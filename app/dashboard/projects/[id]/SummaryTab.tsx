@@ -1,0 +1,178 @@
+"use client";
+
+import { createClient } from "@/lib/supabase/client";
+import type { CategoryRow, LineItemRow, Markups, ProjectRow, RateItemRow, RiskItemRow } from "@/lib/types";
+import { categoryTotal, costTypeTotals, fmt0, type FullBuildup } from "@/lib/calc";
+
+export default function SummaryTab({
+  project,
+  setProject,
+  categories,
+  items,
+  risks,
+  rates,
+  build,
+}: {
+  project: ProjectRow;
+  setProject: (updater: (p: ProjectRow) => ProjectRow) => void;
+  categories: CategoryRow[];
+  items: LineItemRow[];
+  risks: RiskItemRow[];
+  rates: RateItemRow[];
+  build: FullBuildup;
+}) {
+  const supabase = createClient();
+  const markups = project.markups as Markups;
+
+  function changeMarkup(key: keyof Markups, value: number) {
+    const next = { ...markups, [key]: value };
+    setProject((p) => ({ ...p, markups: next }));
+  }
+  async function persistMarkups() {
+    await supabase.from("projects").update({ markups }).eq("id", project.id);
+  }
+
+  const byType = costTypeTotals(rates, items);
+  const catRows = categories
+    .map((c) => ({ name: c.name, color: c.color, value: categoryTotal(rates, items, c.id) }))
+    .filter((r) => r.value > 0);
+  const typeRows = [
+    { name: "Labour", color: "var(--cost-labour)", value: byType.labour },
+    { name: "Plant", color: "var(--cost-plant)", value: byType.plant },
+    { name: "Material", color: "var(--cost-material)", value: byType.material },
+    { name: "Risk, contingency, overhead & margin", color: "var(--cost-markup)", value: build.risk + build.cont + build.overhead + build.margin },
+  ].filter((r) => r.value > 0);
+
+  function exportCsv() {
+    const header = ["Category", "Description", "Unit", "Quantity", "Unit Rate (AUD)", "Line Total (AUD)"];
+    const rows: string[][] = [];
+    categories.forEach((cat) => {
+      items.filter((i) => i.category_id === cat.id).forEach((it) => {
+        const unitRate = (it.labour.concat(it.plant, it.material) as any[]).reduce((sum, c) => {
+          const r = rates.find((rr) => rr.id === c.ref);
+          return sum + (r ? c.perUnit * r.rate : 0);
+        }, 0);
+        rows.push([cat.name, it.description, it.unit, String(it.qty), unitRate.toFixed(2), (unitRate * it.qty).toFixed(2)]);
+      });
+    });
+    const csv = [header, ...rows]
+      .map((row) => row.map((cell) => (/[",\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell)).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${project.name.replace(/[^a-z0-9]+/gi, "_")}_line_items.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function StackBar({ rows, total }: { rows: { name: string; color: string; value: number }[]; total: number }) {
+    if (!rows.length || total <= 0) return <div className="empty">No costs yet — add line items in the Estimate tab.</div>;
+    return (
+      <>
+        <div className="stackbar">
+          {rows.map((r) => {
+            const w = (r.value / total) * 100;
+            return (
+              <div key={r.name} className="seg" style={{ width: `${w}%`, background: r.color }} title={`${r.name}: ${fmt0.format(r.value)}`}>
+                {w > 9 && <span>{Math.round(w)}%</span>}
+              </div>
+            );
+          })}
+        </div>
+        <div className="legend">
+          {rows.map((r) => (
+            <div className="legend-item" key={r.name}>
+              <span className="sw" style={{ background: r.color }}></span>
+              {r.name} <b>{fmt0.format(r.value)}</b>
+            </div>
+          ))}
+        </div>
+      </>
+    );
+  }
+
+  function MarkupRow({ label, value, mkKey }: { label: string; value: number; mkKey?: keyof Markups }) {
+    return (
+      <tr>
+        <td className="label-cell">{label}</td>
+        <td className="num" style={{ width: 110 }}>
+          {mkKey && (
+            <>
+              <input
+                type="number" className="mono" step="0.1"
+                value={markups[mkKey]}
+                onChange={(e) => changeMarkup(mkKey, parseFloat(e.target.value) || 0)}
+                onBlur={persistMarkups}
+              /> %
+            </>
+          )}
+        </td>
+        <td className="num" style={{ width: 130, fontWeight: 600 }}>{fmt0.format(value)}</td>
+      </tr>
+    );
+  }
+
+  return (
+    <div>
+      <div className="titleblock">
+        <div>
+          <h2 style={{ fontSize: 20 }}>Estimate Summary</h2>
+          <div className="meta">{project.name} · {project.location}</div>
+        </div>
+        <div className="stamp">{project.project_date}<br />Prepared by {project.prepared_by || "—"}</div>
+      </div>
+
+      <div className="kpi-row">
+        <div className="kpi"><div className="label">Direct cost</div><div className="value">{fmt0.format(build.direct)}</div><div className="sub">{items.length} priced line items</div></div>
+        <div className="kpi"><div className="label">Risk allowance</div><div className="value">{fmt0.format(build.risk)}</div><div className="sub">{risks.length} risks in register</div></div>
+        <div className="kpi"><div className="label">Contract price</div><div className="value">{fmt0.format(build.contractPrice)}</div><div className="sub">Incl. GST — your tender price</div></div>
+        <div className="kpi"><div className="label">Total project cost</div><div className="value">{fmt0.format(build.totalProjectCost)}</div><div className="sub">Incl. Principal&apos;s admin cost</div></div>
+      </div>
+
+      <div className="section">
+        <div className="section-head"><h3>Cost by work category</h3><span className="hint">Direct cost only, before markups</span></div>
+        <div className="card chart-card"><StackBar rows={catRows} total={build.direct} /></div>
+      </div>
+
+      <div className="section">
+        <div className="section-head"><h3>Cost by resource type</h3><span className="hint">Across the whole estimate</span></div>
+        <div className="card chart-card"><StackBar rows={typeRows} total={typeRows.reduce((s, r) => s + r.value, 0)} /></div>
+      </div>
+
+      <div className="section">
+        <div className="section-head"><h3>Cost build-up</h3><span className="hint">Editable percentages — applied in sequence</span></div>
+        <div className="card" style={{ padding: "6px 22px" }}>
+          <table className="markup-table">
+            <tbody>
+              <MarkupRow label="Direct cost" value={build.direct} />
+              <MarkupRow label="Preliminaries" value={build.prelim} mkKey="preliminaries" />
+              <MarkupRow label="Risk allowance (from register)" value={build.risk} />
+              <MarkupRow label="Contingency" value={build.cont} mkKey="contingency" />
+              <MarkupRow label="Overhead" value={build.overhead} mkKey="overhead" />
+              <MarkupRow label="Margin" value={build.margin} mkKey="margin" />
+              <tr><td className="label-cell">Subtotal (ex GST)</td><td></td><td className="num mono" style={{ fontWeight: 600 }}>{fmt0.format(build.s3)}</td></tr>
+              <MarkupRow label="GST" value={build.gst} mkKey="gst" />
+              <tr className="grand-total-row"><td className="label-cell">Contract price</td><td></td><td className="num">{fmt0.format(build.contractPrice)}</td></tr>
+              <MarkupRow label="Principal's administrative cost" value={build.principalCost} mkKey="principalCost" />
+              <tr className="grand-total-row"><td className="label-cell">Total project cost</td><td></td><td className="num">{fmt0.format(build.totalProjectCost)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style={{ fontSize: 12, color: "var(--ink-faint)", marginTop: 8 }}>
+          &quot;Contract price&quot; is what you would tender — Preliminaries, Risk, Contingency, Overhead, Margin and GST all sit inside it.
+          &quot;Principal&apos;s administrative cost&quot; is the client&apos;s own project management/administration allowance, shown
+          separately because it isn&apos;t part of your price.
+        </p>
+      </div>
+
+      <div className="section no-print" style={{ display: "flex", gap: 10 }}>
+        <button className="btn btn-primary" onClick={() => window.print()}>Print / Save PDF</button>
+        <button className="btn" onClick={exportCsv}>Export line items (CSV)</button>
+      </div>
+    </div>
+  );
+}
