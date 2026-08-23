@@ -4,10 +4,24 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
 
+// Prefer an explicit site URL (set NEXT_PUBLIC_SITE_URL in Vercel's env vars
+// to your real domain). Falls back to the request's Origin header, which
+// works locally but isn't reliably present on every hosting setup — hence
+// the explicit override option.
+function resolveSiteUrl() {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL;
+  if (configured) return configured.replace(/\/$/, "");
+  const origin = headers().get("origin");
+  if (origin) return origin;
+  // Vercel sets this automatically on every deployment as a last resort.
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3000";
+}
+
 export async function signup(formData: FormData) {
   const email = String(formData.get("email") || "").trim();
   const password = String(formData.get("password") || "");
-  const origin = headers().get("origin");
+  const origin = resolveSiteUrl();
 
   const supabase = createClient();
   const { data, error } = await supabase.auth.signUp({
