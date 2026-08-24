@@ -62,9 +62,10 @@ export default async function RootPage() {
           <p>
             Build a labour, plant, and material rate library once. Every new project
             draws from the same source, so estimates stay consistent as your
-            business's real costs change.
+            business&apos;s real costs change.
           </p>
         </div>
+
         <div className="feature-card" style={{ borderTopColor: "var(--cat-pave)" }}>
           <span className="feature-tag" style={{ color: "var(--cat-pave)" }}>
             Build-up estimating
@@ -72,9 +73,10 @@ export default async function RootPage() {
           <h3>Costs built from first principles</h3>
           <p>
             Every line item is assembled from its actual labour, plant, and material
-            components — not typed in as a lump sum you can't defend later.
+            components — not typed in as a lump sum you can&apos;t defend later.
           </p>
         </div>
+
         <div className="feature-card" style={{ borderTopColor: "var(--cat-drain)" }}>
           <span className="feature-tag" style={{ color: "var(--cat-drain)" }}>
             Risk register
@@ -85,6 +87,7 @@ export default async function RootPage() {
             contingency is a considered number — not a round-up at the end.
           </p>
         </div>
+
         <div className="feature-card" style={{ borderTopColor: "var(--cat-struct)" }}>
           <span className="feature-tag" style={{ color: "var(--cat-struct)" }}>
             Cost breakdown
@@ -109,3 +112,12 @@ export default async function RootPage() {
       </section>
 
       <footer className="landing-foot">
+        <div className="landing-nav-brand">
+          <span className="mark">GT</span>
+          <span className="landing-nav-name">Ground Truth Estimator</span>
+        </div>
+        <p className="landing-fineprint">Cost estimating for civil infrastructure projects.</p>
+      </footer>
+    </div>
+  );
+}
