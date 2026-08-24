@@ -2,9 +2,9 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { createBlankProject, createExampleProject, deleteProject } from "./actions";
-import { fmt0 } from "@/lib/calc";
-import type { LineItemRow, Markups, ProjectRow, RateItemRow, RiskItemRow } from "@/lib/types";
 import { fullBuildup } from "@/lib/calc";
+import { formatMoney } from "@/lib/units";
+import type { LineItemRow, Markups, ProjectRow, RateItemRow, RiskItemRow } from "@/lib/types";
 
 export default async function DashboardPage() {
   const supabase = createClient();
@@ -13,6 +13,14 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const { data: membership } = await supabase
+    .from("org_members")
+    .select("organizations(currency)")
+    .eq("user_id", user.id)
+    .limit(1)
+    .single();
+  const currency = (membership as any)?.organizations?.currency || "AUD";
+
   const { data: projects } = await supabase
     .from("projects")
     .select("*")
@@ -20,7 +28,6 @@ export default async function DashboardPage() {
 
   const projectRows = (projects || []) as ProjectRow[];
 
-  // Pull totals for each project so the list is actually useful at a glance.
   const totals: Record<string, number> = {};
   if (projectRows.length) {
     const { data: rateItems } = await supabase.from("rate_items").select("*");
@@ -90,7 +97,7 @@ export default async function DashboardPage() {
                 </td>
                 <td>{p.client || "—"}</td>
                 <td>{p.location || "—"}</td>
-                <td className="num mono">{fmt0.format(totals[p.id] || 0)}</td>
+                <td className="num mono">{formatMoney(totals[p.id] || 0, currency)}</td>
                 <td>
                   <form action={deleteProject}>
                     <input type="hidden" name="id" value={p.id} />
