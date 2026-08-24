@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { BuildupComponent, CategoryRow, LineItemRow, ProjectRow, RateItemRow } from "@/lib/types";
-import { categoryTotal, directTotal, fmt0, fmt2, itemUnitRate, numFmt, rateById } from "@/lib/calc";
+import { categoryTotal, directTotal, itemUnitRate, numFmt, rateById } from "@/lib/calc";
+import { formatMoney, convertedDisplay, type UnitSystem } from "@/lib/units";
 
 type BuildupKey = "labour" | "plant" | "material";
 
@@ -14,6 +15,8 @@ export default function EstimateTab({
   items,
   setItems,
   rates,
+  currency,
+  unitSystem,
 }: {
   project: ProjectRow;
   categories: CategoryRow[];
@@ -21,6 +24,8 @@ export default function EstimateTab({
   items: LineItemRow[];
   setItems: (updater: (i: LineItemRow[]) => LineItemRow[]) => void;
   rates: RateItemRow[];
+  currency: string;
+  unitSystem: UnitSystem;
 }) {
   const supabase = createClient();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -100,7 +105,7 @@ export default function EstimateTab({
         <div className="stamp">
           Direct cost
           <br />
-          <span className="mono" style={{ fontSize: 16, color: "var(--ink)" }}>{fmt0.format(direct)}</span>
+          <span className="mono" style={{ fontSize: 16, color: "var(--ink)" }}>{formatMoney(direct, currency)}</span>
         </div>
       </div>
 
@@ -118,7 +123,7 @@ export default function EstimateTab({
                 <span className="cat-swatch" style={{ background: cat.color }}></span>
                 <h4>{cat.name}</h4>
               </div>
-              <div className="cat-total mono">{fmt0.format(categoryTotal(rates, items, cat.id))}</div>
+              <div className="cat-total mono">{formatMoney(categoryTotal(rates, items, cat.id), currency)}</div>
             </div>
             {!isCollapsed && (
               <div>
@@ -149,6 +154,8 @@ export default function EstimateTab({
                           open={open}
                           rate={rate}
                           rates={rates}
+                          currency={currency}
+                          unitSystem={unitSystem}
                           onToggle={() => setOpenItem(open ? null : item.id)}
                           onDelete={() => deleteItem(item.id)}
                           onFieldChange={(patch) => updateItemLocal(item.id, patch)}
@@ -179,6 +186,8 @@ function FragmentRow({
   open,
   rate,
   rates,
+  currency,
+  unitSystem,
   onToggle,
   onDelete,
   onFieldChange,
@@ -191,6 +200,8 @@ function FragmentRow({
   open: boolean;
   rate: number;
   rates: RateItemRow[];
+  currency: string;
+  unitSystem: UnitSystem;
   onToggle: () => void;
   onDelete: () => void;
   onFieldChange: (patch: Partial<LineItemRow>) => void;
@@ -199,14 +210,30 @@ function FragmentRow({
   onRemoveComponent: (key: BuildupKey, idx: number) => void;
   onComponentChange: (key: BuildupKey, idx: number, patch: Partial<BuildupComponent>) => void;
 }) {
+  const conv = convertedDisplay(item.unit, unitSystem);
+
   return (
     <>
       <tr className={"item-row" + (open ? " open" : "")} onClick={onToggle}>
         <td>{item.description}</td>
         <td>{item.unit}</td>
-        <td className="num mono">{numFmt.format(item.qty)}</td>
-        <td className="num mono">{fmt2.format(rate)}</td>
-        <td className="num mono">{fmt0.format(rate * item.qty)}</td>
+        <td className="num mono">
+          {numFmt.format(item.qty)}
+          {conv && (
+            <div style={{ fontSize: 10, color: "var(--ink-faint)", fontWeight: 400 }}>
+              ≈ {numFmt.format(item.qty * conv.qtyMultiplier)} {conv.label}
+            </div>
+          )}
+        </td>
+        <td className="num mono">
+          {formatMoney(rate, currency, 2)}
+          {conv && (
+            <div style={{ fontSize: 10, color: "var(--ink-faint)", fontWeight: 400 }}>
+              ≈ {formatMoney(rate * conv.rateMultiplier, currency, 2)}/{conv.label}
+            </div>
+          )}
+        </td>
+        <td className="num mono">{formatMoney(rate * item.qty, currency)}</td>
         <td>
           <button
             className="btn btn-ghost btn-sm btn-danger"
@@ -251,9 +278,9 @@ function FragmentRow({
               </div>
             </div>
             <div className="buildup-grid">
-              <BuildupColumn title="Labour" itemKey="labour" comps={item.labour} rates={rates.filter((r) => r.kind === "labour")} onAdd={() => onAddComponent("labour")} onRemove={(idx) => onRemoveComponent("labour", idx)} onChange={(idx, patch) => onComponentChange("labour", idx, patch)} />
-              <BuildupColumn title="Plant" itemKey="plant" comps={item.plant} rates={rates.filter((r) => r.kind === "plant")} onAdd={() => onAddComponent("plant")} onRemove={(idx) => onRemoveComponent("plant", idx)} onChange={(idx, patch) => onComponentChange("plant", idx, patch)} />
-              <BuildupColumn title="Material" itemKey="material" comps={item.material} rates={rates.filter((r) => r.kind === "material")} onAdd={() => onAddComponent("material")} onRemove={(idx) => onRemoveComponent("material", idx)} onChange={(idx, patch) => onComponentChange("material", idx, patch)} />
+              <BuildupColumn title="Labour" comps={item.labour} rates={rates.filter((r) => r.kind === "labour")} currency={currency} onAdd={() => onAddComponent("labour")} onRemove={(idx) => onRemoveComponent("labour", idx)} onChange={(idx, patch) => onComponentChange("labour", idx, patch)} />
+              <BuildupColumn title="Plant" comps={item.plant} rates={rates.filter((r) => r.kind === "plant")} currency={currency} onAdd={() => onAddComponent("plant")} onRemove={(idx) => onRemoveComponent("plant", idx)} onChange={(idx, patch) => onComponentChange("plant", idx, patch)} />
+              <BuildupColumn title="Material" comps={item.material} rates={rates.filter((r) => r.kind === "material")} currency={currency} onAdd={() => onAddComponent("material")} onRemove={(idx) => onRemoveComponent("material", idx)} onChange={(idx, patch) => onComponentChange("material", idx, patch)} />
             </div>
           </td>
         </tr>
@@ -266,14 +293,15 @@ function BuildupColumn({
   title,
   comps,
   rates,
+  currency,
   onAdd,
   onRemove,
   onChange,
 }: {
   title: string;
-  itemKey: BuildupKey;
   comps: BuildupComponent[];
   rates: RateItemRow[];
+  currency: string;
   onAdd: () => void;
   onRemove: (idx: number) => void;
   onChange: (idx: number, patch: Partial<BuildupComponent>) => void;
@@ -303,7 +331,7 @@ function BuildupColumn({
               title="Qty per unit"
               onChange={(e) => onChange(idx, { perUnit: parseFloat(e.target.value) || 0 })}
             />
-            <div className="comp-cost mono">{fmt2.format(cost)}</div>
+            <div className="comp-cost mono">{formatMoney(cost, currency, 2)}</div>
             <button className="btn btn-ghost btn-sm btn-danger" onClick={() => onRemove(idx)}>✕</button>
           </div>
         );
