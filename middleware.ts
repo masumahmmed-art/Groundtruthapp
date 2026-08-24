@@ -36,8 +36,16 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   const isAuthRoute =
-    path.startsWith("/login") || path.startsWith("/signup") || path.startsWith("/auth");
-  const isPublicRoute = path === "/" || isAuthRoute;
+    path.startsWith("/login") ||
+    path.startsWith("/signup") ||
+    path.startsWith("/auth") ||
+    path.startsWith("/forgot-password");
+  // /reset-password is intentionally NOT part of isAuthRoute: a visitor
+  // lands there already authenticated (via the recovery link's one-time
+  // code), and isAuthRoute would otherwise bounce them straight to
+  // /dashboard before they get a chance to set a new password.
+  const isResetPasswordRoute = path.startsWith("/reset-password");
+  const isPublicRoute = path === "/" || isAuthRoute || isResetPasswordRoute;
 
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
