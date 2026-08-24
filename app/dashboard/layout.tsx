@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "./actions";
 import RailNav from "./RailNav";
+import { OrgSettingsProvider } from "@/lib/OrgSettingsContext";
+import type { UnitSystem } from "@/lib/units";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -13,12 +15,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const { data: membership } = await supabase
     .from("org_members")
-    .select("org_id, organizations(name)")
+    .select("org_id, organizations(name, currency, unit_system)")
     .eq("user_id", user.id)
     .limit(1)
     .single();
 
-  const orgName = (membership as any)?.organizations?.name || "My Company";
+  const org = (membership as any)?.organizations;
+  const orgName = org?.name || "My Company";
+  const currency = org?.currency || "AUD";
+  const unitSystem = (org?.unit_system || "metric") as UnitSystem;
 
   return (
     <div id="app">
@@ -41,7 +46,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </form>
         </div>
       </nav>
-      <main className="content">{children}</main>
+      <main className="content">
+        <OrgSettingsProvider value={{ currency, unitSystem }}>{children}</OrgSettingsProvider>
+      </main>
     </div>
   );
 }
