@@ -108,4 +108,74 @@ export default function SummaryTab({
               <input
                 type="number" className="mono" step="0.1"
                 value={markups[mkKey]}
-                onChange={(e) => changeMarkup(mkKey, parseFloat(e.target.
+                onChange={(e) => changeMarkup(mkKey, parseFloat(e.target.value) || 0)}
+                onBlur={persistMarkups}
+              /> %
+            </>
+          )}
+        </td>
+        <td className="num" style={{ width: 130, fontWeight: 600 }}>{formatMoney(value, currency)}</td>
+      </tr>
+    );
+  }
+
+  return (
+    <div>
+      <div className="titleblock">
+        <div>
+          <h2 style={{ fontSize: 20 }}>Estimate Summary</h2>
+          <div className="meta">{project.name} · {project.location}</div>
+        </div>
+        <div className="stamp">{project.project_date}<br />Prepared by {project.prepared_by || "—"}</div>
+      </div>
+
+      <div className="kpi-row">
+        <div className="kpi"><div className="label">Direct cost</div><div className="value">{formatMoney(build.direct, currency)}</div><div className="sub">{items.length} priced line items</div></div>
+        <div className="kpi"><div className="label">Risk allowance</div><div className="value">{formatMoney(build.risk, currency)}</div><div className="sub">{risks.length} risks in register</div></div>
+        <div className="kpi"><div className="label">Contract price</div><div className="value">{formatMoney(build.contractPrice, currency)}</div><div className="sub">Incl. tax — your tender price</div></div>
+        <div className="kpi"><div className="label">Total project cost</div><div className="value">{formatMoney(build.totalProjectCost, currency)}</div><div className="sub">Incl. Principal&apos;s admin cost</div></div>
+      </div>
+
+      <div className="section">
+        <div className="section-head"><h3>Cost by work category</h3><span className="hint">Direct cost only, before markups</span></div>
+        <div className="card chart-card"><StackBar rows={catRows} total={build.direct} /></div>
+      </div>
+
+      <div className="section">
+        <div className="section-head"><h3>Cost by resource type</h3><span className="hint">Across the whole estimate</span></div>
+        <div className="card chart-card"><StackBar rows={typeRows} total={typeRows.reduce((s, r) => s + r.value, 0)} /></div>
+      </div>
+
+      <div className="section">
+        <div className="section-head"><h3>Cost build-up</h3><span className="hint">Editable percentages — applied in sequence</span></div>
+        <div className="card" style={{ padding: "6px 22px" }}>
+          <table className="markup-table">
+            <tbody>
+              <MarkupRow label="Direct cost" value={build.direct} />
+              <MarkupRow label="Preliminaries" value={build.prelim} mkKey="preliminaries" />
+              <MarkupRow label="Risk allowance (from register)" value={build.risk} />
+              <MarkupRow label="Contingency" value={build.cont} mkKey="contingency" />
+              <MarkupRow label="Overhead" value={build.overhead} mkKey="overhead" />
+              <MarkupRow label="Margin" value={build.margin} mkKey="margin" />
+              <tr><td className="label-cell">Subtotal (ex tax)</td><td></td><td className="num mono" style={{ fontWeight: 600 }}>{formatMoney(build.s3, currency)}</td></tr>
+              <MarkupRow label="Tax (GST / VAT / Sales tax)" value={build.gst} mkKey="gst" />
+              <tr className="grand-total-row"><td className="label-cell">Contract price</td><td></td><td className="num">{formatMoney(build.contractPrice, currency)}</td></tr>
+              <MarkupRow label="Principal's administrative cost" value={build.principalCost} mkKey="principalCost" />
+              <tr className="grand-total-row"><td className="label-cell">Total project cost</td><td></td><td className="num">{formatMoney(build.totalProjectCost, currency)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style={{ fontSize: 12, color: "var(--ink-faint)", marginTop: 8 }}>
+          &quot;Contract price&quot; is what you would tender — Preliminaries, Risk, Contingency, Overhead, Margin and tax all sit inside it.
+          &quot;Principal&apos;s administrative cost&quot; is the client&apos;s own project management/administration allowance, shown
+          separately because it isn&apos;t part of your price.
+        </p>
+      </div>
+
+      <div className="section no-print" style={{ display: "flex", gap: 10 }}>
+        <button className="btn btn-primary" onClick={() => window.print()}>Print / Save PDF</button>
+        <button className="btn" onClick={exportCsv}>Export line items (CSV)</button>
+      </div>
+    </div>
+  );
+}
