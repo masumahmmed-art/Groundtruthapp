@@ -4,7 +4,7 @@ import { login } from "./actions";
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: { error?: string; email?: string; next?: string };
+  searchParams: { error?: string; email?: string; next?: string; reset?: string };
 }) {
   return (
     <div className="auth-shell">
@@ -12,6 +12,22 @@ export default function LoginPage({
         <div className="mark">GT</div>
         <h1>Welcome back</h1>
         <p className="lead">Log in to your Ground Truth Estimator workspace.</p>
+
+        {searchParams.reset && (
+          <div
+            style={{
+              marginBottom: 14,
+              padding: "10px 13px",
+              borderRadius: 8,
+              background: "rgba(31,111,160,0.08)",
+              border: "1px solid var(--blueprint)",
+              color: "var(--blueprint)",
+              fontSize: 14,
+            }}
+          >
+            Password updated — log in with your new password.
+          </div>
+        )}
 
         {searchParams.error && <div className="auth-error" style={{ marginBottom: 14 }}>{searchParams.error}</div>}
 
@@ -22,7 +38,12 @@ export default function LoginPage({
             <input id="email" name="email" type="email" required defaultValue={searchParams.email} autoFocus />
           </div>
           <div className="field">
-            <label htmlFor="password">Password</label>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+              <label htmlFor="password">Password</label>
+              <Link href="/forgot-password" style={{ fontSize: 13 }}>
+                Forgot password?
+              </Link>
+            </div>
             <input id="password" name="password" type="password" required minLength={6} />
           </div>
           <button type="submit" className="btn btn-primary" style={{ justifyContent: "center", padding: "10px 13px" }}>
