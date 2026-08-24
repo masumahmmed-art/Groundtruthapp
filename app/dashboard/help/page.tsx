@@ -9,6 +9,28 @@ export default function HelpPage() {
       </div>
 
       <div className="section">
+        <div className="card" style={{ padding: "18px 22px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <h3 style={{ margin: "0 0 4px" }}>📄 Full user guide (PDF)</h3>
+            <p style={{ margin: 0 }}>
+              A step-by-step manual covering first-principles estimating — the considerations
+              behind a sound estimate — and a full walkthrough of using this software from
+              setting up your workspace through to exporting a finished estimate.
+            </p>
+          </div>
+          
+            href="/Ground-Truth-Estimator-User-Guide.pdf"
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn-primary"
+            style={{ whiteSpace: "nowrap" }}
+          >
+            Download the guide
+          </a>
+        </div>
+      </div>
+
+      <div className="section">
         <div className="section-head"><h3>Your workspace</h3></div>
         <div className="card" style={{ padding: "18px 22px" }}>
           <p>
@@ -18,7 +40,6 @@ export default function HelpPage() {
           </p>
         </div>
       </div>
-
       <div className="section">
         <div className="section-head"><h3>Rate Library</h3></div>
         <div className="card" style={{ padding: "18px 22px" }}>
@@ -29,19 +50,14 @@ export default function HelpPage() {
             relying on this for a real tender.
           </p>
           <p>
-            <b>✨ Ask AI</b> (the search box at the top) answers open-ended pricing questions by
-            searching the web live — e.g. "concrete supply rate in Texas" — and shows its
-            sources.
-          </p>
-          <p>
-            <b>✨ AI</b> (the button on each rate row) does the same search but tailored to that
-            specific rate: it proposes a rate and unit you can review and, if it looks right,
-            apply with one click. Nothing is ever applied automatically — you always choose to
-            accept a suggestion.
+            <b>🔎 Search the web</b> (the box at the top, and the button on each rate row) opens
+            a normal web search in a new tab so you can quickly check current supplier or hire
+            pricing for a rate. It's a plain search shortcut — nothing is fetched or applied
+            automatically, you review the results yourself and type in whatever figure you
+            decide is right.
           </p>
         </div>
       </div>
-
       <div className="section">
         <div className="section-head"><h3>Estimate — Bill of Quantities</h3></div>
         <div className="card" style={{ padding: "18px 22px" }}>
@@ -64,7 +80,6 @@ export default function HelpPage() {
           </p>
         </div>
       </div>
-
       <div className="section">
         <div className="section-head"><h3>Risk & Location</h3></div>
         <div className="card" style={{ padding: "18px 22px" }}>
@@ -76,7 +91,6 @@ export default function HelpPage() {
           </p>
         </div>
       </div>
-
       <div className="section">
         <div className="section-head"><h3>Summary</h3></div>
         <div className="card" style={{ padding: "18px 22px" }}>
@@ -89,7 +103,6 @@ export default function HelpPage() {
           </p>
         </div>
       </div>
-
       <div className="section">
         <div className="section-head"><h3>Settings</h3></div>
         <div className="card" style={{ padding: "18px 22px" }}>
@@ -101,7 +114,6 @@ export default function HelpPage() {
           </p>
         </div>
       </div>
-
       <div className="section">
         <div className="section-head"><h3>Your account</h3></div>
         <div className="card" style={{ padding: "18px 22px" }}>
