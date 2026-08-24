@@ -4,8 +4,26 @@ import { signup } from "./actions";
 export default function SignupPage({
   searchParams,
 }: {
-  searchParams: { error?: string; email?: string; "check-email"?: string };
+  searchParams: { error?: string; email?: string; "check-email"?: string; "already-registered"?: string };
 }) {
+  if (searchParams["already-registered"]) {
+    return (
+      <div className="auth-shell">
+        <div className="auth-card">
+          <div className="mark">GT</div>
+          <h1>You already have an account</h1>
+          <p className="lead">
+            <strong>{searchParams.email}</strong> is already registered. Log in instead — if
+            you've forgotten your password, let us know and we'll help you reset it.
+          </p>
+          <Link href={`/login?email=${encodeURIComponent(searchParams.email || "")}`} className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }}>
+            Go to log in
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (searchParams["check-email"]) {
     return (
       <div className="auth-shell">
