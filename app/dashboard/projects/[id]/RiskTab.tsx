@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { ProjectRow, RiskCategory, RiskItemRow } from "@/lib/types";
-import { fmt0, riskAllowance, totalRiskAllowance, RISK_CATEGORY_LABELS } from "@/lib/calc";
+import { riskAllowance, totalRiskAllowance, RISK_CATEGORY_LABELS } from "@/lib/calc";
+import { formatMoney } from "@/lib/units";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -20,10 +21,12 @@ export default function RiskTab({
   project,
   risks,
   setRisks,
+  currency,
 }: {
   project: ProjectRow;
   risks: RiskItemRow[];
   setRisks: (updater: (r: RiskItemRow[]) => RiskItemRow[]) => void;
+  currency: string;
 }) {
   const supabase = createClient();
   const [location, setLocation] = useState(project.location || "");
@@ -101,7 +104,7 @@ export default function RiskTab({
         <div className="stamp">
           Risk allowance
           <br />
-          <span className="mono" style={{ fontSize: 16, color: "var(--ink)" }}>{fmt0.format(total)}</span>
+          <span className="mono" style={{ fontSize: 16, color: "var(--ink)" }}>{formatMoney(total, currency)}</span>
         </div>
       </div>
 
@@ -162,7 +165,7 @@ export default function RiskTab({
                       onBlur={(e) => persist(r.id, { impact: parseFloat(e.target.value) || 0 })}
                     />
                   </td>
-                  <td className="num mono">{fmt0.format(riskAllowance(r))}</td>
+                  <td className="num mono">{formatMoney(riskAllowance(r), currency)}</td>
                   <td><button className="btn btn-ghost btn-sm btn-danger" onClick={() => removeRisk(r.id)}>✕</button></td>
                 </tr>
               ))}
