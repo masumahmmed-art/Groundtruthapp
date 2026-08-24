@@ -13,8 +13,16 @@ const SECTIONS: { key: RateKind; title: string; defaultUnit: string }[] = [
 ];
 
 function webSearchUrl(query: string) {
-  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+  // tbs=qdr:y restricts results to the past 12 months, so pricing found is current.
+  const params = new URLSearchParams({ q: query, tbs: "qdr:y" });
+  return `https://www.google.com/search?${params.toString()}`;
 }
+
+const KIND_SEARCH_PHRASE: Record<RateKind, string> = {
+  labour: "labour rate",
+  plant: "hire rate",
+  material: "supply price",
+};
 
 export default function RatesClient({
   orgId,
@@ -53,7 +61,14 @@ export default function RatesClient({
   }
 
   function openRowSearch(row: RateItemRow) {
-    const q = [row.name, row.unit ? `rate per ${row.unit}` : "rate", region].filter(Boolean).join(" ");
+    const q = [
+      `"${row.name}"`,
+      KIND_SEARCH_PHRASE[row.kind],
+      row.unit ? `per ${row.unit}` : "",
+      region,
+    ]
+      .filter(Boolean)
+      .join(" ");
     window.open(webSearchUrl(q), "_blank", "noopener,noreferrer");
   }
 
@@ -97,7 +112,8 @@ export default function RatesClient({
           </button>
         </form>
         <div className="hint" style={{ marginTop: 10 }}>
-          Opens a normal web search in a new tab — no AI, no cost, you review the results yourself.
+          Opens a normal web search in a new tab, restricted to results from the past year for
+          current pricing — no AI, no cost, you review the results yourself.
         </div>
       </div>
 
