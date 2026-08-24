@@ -34,6 +34,16 @@ export async function signup(formData: FormData) {
     redirect(`/signup?error=${encodeURIComponent(error.message)}&email=${encodeURIComponent(email)}`);
   }
 
+  // Supabase returns a "success" response even when the email is already
+  // registered (it never throws an error here, to avoid letting the signup
+  // form be used to discover which emails exist). The documented way to
+  // detect that case is: data.user exists but data.user.identities is an
+  // empty array. When that happens, send the visitor to log in instead of
+  // showing a misleading "check your email" screen.
+  if (data.user && data.user.identities && data.user.identities.length === 0) {
+    redirect(`/signup?already-registered=1&email=${encodeURIComponent(email)}`);
+  }
+
   // If your Supabase project has "Confirm email" turned on (the default),
   // there is no session yet — send the user to check their inbox instead
   // of straight to the dashboard.
