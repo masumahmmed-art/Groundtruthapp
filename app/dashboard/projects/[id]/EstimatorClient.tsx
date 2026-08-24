@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { CategoryRow, LineItemRow, Markups, ProjectRow, RateItemRow, RiskItemRow } from "@/lib/types";
-import { fmt0, fullBuildup } from "@/lib/calc";
+import { fullBuildup } from "@/lib/calc";
+import { formatMoney } from "@/lib/units";
+import { useOrgSettings } from "@/lib/OrgSettingsContext";
 import ProjectTab from "./ProjectTab";
 import EstimateTab from "./EstimateTab";
 import RiskTab from "./RiskTab";
@@ -31,6 +33,7 @@ export default function EstimatorClient({
   initialRisks: RiskItemRow[];
   rates: RateItemRow[];
 }) {
+  const { currency, unitSystem } = useOrgSettings();
   const [activeTab, setActiveTab] = useState<TabId>("project");
   const [project, setProject] = useState(initialProject);
   const [categories, setCategories] = useState(initialCategories);
@@ -61,7 +64,7 @@ export default function EstimatorClient({
           Total project cost
           <br />
           <span className="mono" style={{ fontSize: 16, color: "var(--ink)" }}>
-            {fmt0.format(build.totalProjectCost)}
+            {formatMoney(build.totalProjectCost, currency)}
           </span>
         </div>
       </div>
@@ -83,10 +86,12 @@ export default function EstimatorClient({
           items={items}
           setItems={setItems}
           rates={rates}
+          currency={currency}
+          unitSystem={unitSystem}
         />
       )}
       {activeTab === "risk" && (
-        <RiskTab project={project} risks={risks} setRisks={setRisks} />
+        <RiskTab project={project} risks={risks} setRisks={setRisks} currency={currency} />
       )}
       {activeTab === "summary" && (
         <SummaryTab
@@ -97,6 +102,7 @@ export default function EstimatorClient({
           risks={risks}
           rates={rates}
           build={build}
+          currency={currency}
         />
       )}
     </div>
