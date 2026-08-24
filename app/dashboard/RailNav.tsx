@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 const ITEMS = [
   { href: "/dashboard", label: "Projects" },
   { href: "/dashboard/rates", label: "Rate Library" },
+  { href: "/dashboard/settings", label: "Settings" },
+  { href: "/dashboard/help", label: "Help" },
 ];
 
 export default function RailNav() {
