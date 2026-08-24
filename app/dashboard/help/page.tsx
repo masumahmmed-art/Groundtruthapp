@@ -19,7 +19,7 @@ export default function HelpPage() {
             </p>
           </div>
           
-            href="/Ground-Truth-Estimator-User-Guide.pdf"
+            href="/GroundTruthEstimatorUserGuide.pdf"
             target="_blank"
             rel="noreferrer"
             className="btn btn-primary"
