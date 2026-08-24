@@ -63,3 +63,49 @@ If you cannot find a reliable figure, still give your best estimate and set "con
     });
 
     if (!aiRes.ok) {
+      const text = await aiRes.text().catch(() => "");
+      return NextResponse.json(
+        { error: `AI request failed (${aiRes.status}).`, detail: text.slice(0, 500) },
+        { status: 502 }
+      );
+    }
+
+    const data = await aiRes.json();
+    const blocks: any[] = data.content || [];
+
+    let fullText = "";
+    const sources: { title: string; url: string }[] = [];
+    for (const block of blocks) {
+      if (block.type === "text") fullText += block.text;
+      if (block.type === "web_search_tool_result" && Array.isArray(block.content)) {
+        for (const item of block.content) {
+          if (item?.url) sources.push({ title: item.title || item.url, url: item.url });
+        }
+      }
+    }
+
+    const match = fullText.match(/```json\s*([\s\S]*?)```/);
+    if (!match) {
+      return NextResponse.json({ error: "The AI did not return a usable suggestion. Try again." }, { status: 502 });
+    }
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(match[1]);
+    } catch {
+      return NextResponse.json({ error: "Could not parse the AI's suggestion." }, { status: 502 });
+    }
+
+    const uniqueSources = sources.filter((s, i) => sources.findIndex((x) => x.url === s.url) === i).slice(0, 5);
+
+    return NextResponse.json({
+      rate: Number(parsed.rate) || 0,
+      unit: String(parsed.unit || unit || ""),
+      confidence: parsed.confidence || "low",
+      note: parsed.note || "",
+      sources: uniqueSources,
+    });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || "Unexpected error contacting the AI." }, { status: 500 });
+  }
+}
