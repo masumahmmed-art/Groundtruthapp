@@ -18,7 +18,7 @@ export default function HelpPage() {
               setting up your workspace through to exporting a finished estimate.
             </p>
           </div>
-          
+          <a
             href="/GroundTruthEstimatorUserGuide.pdf"
             target="_blank"
             rel="noreferrer"
