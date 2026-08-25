@@ -18,7 +18,7 @@ export default function HelpPage() {
               setting up your workspace through to exporting a finished estimate.
             </p>
           </div>
-          <a
+          
             href="/GroundTruthEstimatorUserGuide.pdf"
             target="_blank"
             rel="noreferrer"
@@ -85,9 +85,22 @@ export default function HelpPage() {
         <div className="card" style={{ padding: "18px 22px" }}>
           <p>
             An itemised risk register — each risk has a probability and a cost impact, and its
-            allowance (probability × impact) feeds into the estimate's total. The weather-risk
-            lookup pulls live historical climate data for your site's location and can suggest
-            a starting weather risk entry for you to refine.
+            allowance (probability × impact) feeds into the estimate's total.
+          </p>
+          <p>
+            Enter your site location once and use it for two live lookups. The <b>weather risk
+            lookup</b> pulls historical climate data for the site and can suggest a starting
+            weather risk entry. The <b>geotechnical / soil risk lookup</b> checks free
+            government soil survey data for the site — USDA soil survey (SSURGO) data in the
+            United States, and CSIRO's national soil classification in Australia — and can flag
+            things like reactive clay, poor drainage, or a shallow water table, suggesting a
+            starting geotechnical risk entry where relevant. Elsewhere in the world this lookup
+            isn't wired up to a data source yet, so add a geotechnical risk row manually.
+          </p>
+          <p>
+            Both lookups are a desktop-level early warning, not a substitute for a real site
+            investigation — always confirm with your own geotechnical engineer, bores, or test
+            pits before pricing footings or pavement subgrade.
           </p>
         </div>
       </div>
