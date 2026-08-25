@@ -235,13 +235,14 @@ async function lookupAU(place: GeocodeResult) {
 
   const results: any[] = data?.results || [];
   if (!results.length) {
+    const placeLabel = `${place.name}${place.admin1 ? ", " + place.admin1 : ""}`;
     return NextResponse.json({
       location: locationOut(place),
-      source: "CSIRO Australian Soil Classification",
+      source: "CSIRO Australian Soil Classification (manual check needed)",
       summary: [
-        diag
-          ? `Automated lookup didn't complete — ${diag}`
-          : "No classified soil data was returned for this exact point from CSIRO's national soil classification layer. Commission a site geotechnical investigation.",
+        "CSIRO's soil classification service doesn't allow automated point look-ups from outside a browser map, so this can't be checked automatically yet.",
+        `To check by hand: search the web for "${placeLabel} soil classification reactive clay", or open asris.csiro.au and use their interactive soil map for this location.`,
+        "Once you know the soil type, add a geotechnical risk row above yourself — e.g. reactive clay (Vertosol) commonly justifies an AS 2870 site classification allowance and stiffened/deeper footings.",
       ],
       suggestedRisk: null,
     });
