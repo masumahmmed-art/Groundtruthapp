@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Ground Truth Estimator",
   description:
-    "First-principles cost estimating for Australian civil infrastructure projects.",
+    "First-principles cost estimating for civil infrastructure projects, worldwide.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
