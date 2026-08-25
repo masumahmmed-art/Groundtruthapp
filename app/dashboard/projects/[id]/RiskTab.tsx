@@ -17,6 +17,13 @@ interface WeatherResult {
   suggestedRisk: { category: "weather"; description: string; probability: number } | null;
 }
 
+interface GeotechResult {
+  location: { name: string; state: string | null; country: string | null };
+  source: string | null;
+  summary: string[];
+  suggestedRisk: { category: "geotechnical"; description: string; probability: number } | null;
+}
+
 export default function RiskTab({
   project,
   risks,
@@ -34,6 +41,10 @@ export default function RiskTab({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<WeatherResult | null>(null);
+
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
+  const [geoResult, setGeoResult] = useState<GeotechResult | null>(null);
 
   function toggleMonth(m: number) {
     setMonths((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m].sort((a, b) => a - b)));
@@ -58,6 +69,27 @@ export default function RiskTab({
       setError(e?.message || "Network error looking up weather risk.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function checkGeotech() {
+    if (!location.trim()) return;
+    setGeoLoading(true);
+    setGeoError(null);
+    setGeoResult(null);
+    try {
+      const qs = new URLSearchParams({ location });
+      const res = await fetch(`/api/geotech-risk?${qs.toString()}`);
+      const json = await res.json();
+      if (!res.ok) {
+        setGeoError(json.error || "Something went wrong looking up geotechnical risk.");
+      } else {
+        setGeoResult(json);
+      }
+    } catch (e: any) {
+      setGeoError(e?.message || "Network error looking up geotechnical risk.");
+    } finally {
+      setGeoLoading(false);
     }
   }
 
@@ -99,7 +131,7 @@ export default function RiskTab({
       <div className="titleblock">
         <div>
           <h2 style={{ fontSize: 20 }}>Risk & Location</h2>
-          <div className="meta">Itemised risk register (probability × cost impact) plus a weather-risk lookup for the site.</div>
+          <div className="meta">Itemised risk register (probability × cost impact) plus weather and geotechnical lookups for the site.</div>
         </div>
         <div className="stamp">
           Risk allowance
@@ -127,7 +159,7 @@ export default function RiskTab({
             </thead>
             <tbody>
               {risks.length === 0 && (
-                <tr><td colSpan={6} className="empty">No risks logged yet — add one, or use the weather lookup below.</td></tr>
+                <tr><td colSpan={6} className="empty">No risks logged yet — add one, or use the lookups below.</td></tr>
               )}
               {risks.map((r) => (
                 <tr key={r.id}>
@@ -176,15 +208,31 @@ export default function RiskTab({
 
       <div className="section">
         <div className="section-head">
+          <h3>Site location</h3>
+          <span className="hint">Used by both lookups below</span>
+        </div>
+        <div className="card" style={{ padding: 18 }}>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
+            <div className="field" style={{ minWidth: 260, flex: "1 1 260px" }}>
+              <label>Site location</label>
+              <input
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Suburb, STATE (or City, Country)"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-head">
           <h3>Weather risk lookup</h3>
           <span className="hint">Live historical climate data via Open-Meteo</span>
         </div>
         <div className="card" style={{ padding: 18 }}>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 14 }}>
-            <div className="field" style={{ minWidth: 220 }}>
-              <label>Site location</label>
-              <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Suburb, STATE" />
-            </div>
             <button className="btn btn-primary" onClick={checkWeather} disabled={loading}>
               {loading ? "Checking…" : "Check weather risk"}
             </button>
@@ -255,6 +303,59 @@ export default function RiskTab({
                       category: "weather",
                       description: result.suggestedRisk!.description,
                       probability: result.suggestedRisk!.probability,
+                      impact: 0,
+                    })
+                  }
+                >
+                  + Add suggested risk to register
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-head">
+          <h3>Geotechnical / soil risk lookup</h3>
+          <span className="hint">Government soil survey data — US (USDA) and Australia (CSIRO)</span>
+        </div>
+        <div className="card" style={{ padding: 18 }}>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 14 }}>
+            <button className="btn btn-primary" onClick={checkGeotech} disabled={geoLoading}>
+              {geoLoading ? "Checking…" : "Check soil / geotechnical risk"}
+            </button>
+          </div>
+
+          {geoError && <div className="auth-error">{geoError}</div>}
+
+          {geoResult && (
+            <div>
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 14 }}>
+                <div className="kpi" style={{ flex: "1 1 200px" }}>
+                  <div className="label">Location matched</div>
+                  <div className="value" style={{ fontSize: 15 }}>{geoResult.location.name}{geoResult.location.state ? `, ${geoResult.location.state}` : ""}</div>
+                </div>
+                <div className="kpi" style={{ flex: "1 1 200px" }}>
+                  <div className="label">Data source</div>
+                  <div className="value" style={{ fontSize: 15 }}>{geoResult.source || "Not available for this country"}</div>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                {geoResult.summary.map((s, i) => (
+                  <p key={i} style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "0 0 8px" }}>{s}</p>
+                ))}
+              </div>
+
+              {geoResult.suggestedRisk && (
+                <button
+                  className="btn"
+                  onClick={() =>
+                    addRisk({
+                      category: "geotechnical",
+                      description: geoResult.suggestedRisk!.description,
+                      probability: geoResult.suggestedRisk!.probability,
                       impact: 0,
                     })
                   }
