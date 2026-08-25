@@ -96,6 +96,7 @@ WHERE mu.mukey IN (
 ORDER BY co.comppct_r DESC`;
 
   let data: any = null;
+  let diag = "";
   try {
     const sdaRes = await fetch("https://SDMDataAccess.sc.egov.usda.gov/Tabular/post.rest", {
       method: "POST",
@@ -103,9 +104,19 @@ ORDER BY co.comppct_r DESC`;
       body: JSON.stringify({ query: sql, format: "JSON+COLUMNNAME" }),
       cache: "no-store",
     });
-    if (sdaRes.ok) data = await sdaRes.json().catch(() => null);
-  } catch {
-    data = null;
+    if (!sdaRes.ok) {
+      const bodyText = await sdaRes.text().catch(() => "");
+      diag = `USDA service returned HTTP ${sdaRes.status}. ${bodyText.slice(0, 200)}`;
+    } else {
+      const text = await sdaRes.text();
+      try {
+        data = JSON.parse(text);
+      } catch {
+        diag = `USDA service returned a non-JSON response: ${text.slice(0, 200)}`;
+      }
+    }
+  } catch (e: any) {
+    diag = `Request to USDA service failed: ${e?.message || "unknown error"}.`;
   }
 
   const table: any[][] | undefined = data?.Table;
@@ -114,7 +125,9 @@ ORDER BY co.comppct_r DESC`;
       location: locationOut(place),
       source: "USDA Soil Data Access (SSURGO)",
       summary: [
-        "No mapped SSURGO soil survey data was found at this exact point — this can happen over water, very remote areas, or where the county hasn't been digitally surveyed yet. Commission a site geotechnical investigation.",
+        diag
+          ? `Automated lookup didn't complete — ${diag}`
+          : "No mapped SSURGO soil survey data was found at this exact point — this can happen over water, very remote areas, or where the county hasn't been digitally surveyed yet. Commission a site geotechnical investigation.",
       ],
       suggestedRisk: null,
     });
@@ -196,11 +209,28 @@ async function lookupAU(place: GeocodeResult) {
   const url = `https://asris.csiro.au/arcgis/rest/services/TERN/ASC_ACLEP_AU_NAT_C/MapServer/identify?${params.toString()}`;
 
   let data: any = null;
+  let diag = "";
   try {
-    const res = await fetch(url, { cache: "no-store" });
-    if (res.ok) data = await res.json().catch(() => null);
-  } catch {
-    data = null;
+    const res = await fetch(url, {
+      cache: "no-store",
+      headers: { accept: "application/json", "user-agent": "Mozilla/5.0 (compatible; GroundTruthEstimator/1.0)" },
+    });
+    if (!res.ok) {
+      const bodyText = await res.text().catch(() => "");
+      diag = `CSIRO service returned HTTP ${res.status}. ${bodyText.slice(0, 200)}`;
+    } else {
+      const text = await res.text();
+      try {
+        data = JSON.parse(text);
+        if (data?.error) {
+          diag = `CSIRO service returned an error: ${JSON.stringify(data.error).slice(0, 200)}`;
+        }
+      } catch {
+        diag = `CSIRO service returned a non-JSON response: ${text.slice(0, 200)}`;
+      }
+    }
+  } catch (e: any) {
+    diag = `Request to CSIRO service failed: ${e?.message || "unknown error"}.`;
   }
 
   const results: any[] = data?.results || [];
@@ -209,7 +239,9 @@ async function lookupAU(place: GeocodeResult) {
       location: locationOut(place),
       source: "CSIRO Australian Soil Classification",
       summary: [
-        "No classified soil data was returned for this exact point from CSIRO's national soil classification layer. Commission a site geotechnical investigation.",
+        diag
+          ? `Automated lookup didn't complete — ${diag}`
+          : "No classified soil data was returned for this exact point from CSIRO's national soil classification layer. Commission a site geotechnical investigation.",
       ],
       suggestedRisk: null,
     });
@@ -223,11 +255,12 @@ async function lookupAU(place: GeocodeResult) {
   const classification = preferredEntry ? String(preferredEntry[1]) : null;
 
   if (!classification) {
+    const keys = Object.keys(attrs).slice(0, 10).join(", ") || "(no attributes at all)";
     return NextResponse.json({
       location: locationOut(place),
       source: "CSIRO Australian Soil Classification",
       summary: [
-        "Soil data was found for this point, but the classification couldn't be confidently read from the response. Treat this as inconclusive and commission a site geotechnical investigation.",
+        `Soil data was found for this point, but the classification couldn't be confidently read from the response. Fields seen: ${keys}. Treat this as inconclusive and commission a site geotechnical investigation.`,
       ],
       suggestedRisk: null,
     });
