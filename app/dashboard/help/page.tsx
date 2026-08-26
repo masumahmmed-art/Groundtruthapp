@@ -31,6 +31,18 @@ export default function HelpPage() {
       </div>
 
       <div className="section">
+        <div className="card" style={{ padding: "14px 22px" }}>
+          <p style={{ margin: 0, fontSize: 13 }}>
+            <b>A note on terms:</b> this app uses Australian/UK construction terminology in a
+            few places — "Plant" means equipment, a "hire rate" is a rental rate,
+            "Preliminaries" is what's often called General Conditions in the US, "tender"
+            means bid, and "Labour" is the British spelling of "Labor." The costs and
+            calculations work identically everywhere — only the wording differs.
+          </p>
+        </div>
+      </div>
+
+      <div className="section">
         <div className="section-head"><h3>Your workspace</h3></div>
         <div className="card" style={{ padding: "18px 22px" }}>
           <p>
@@ -113,10 +125,11 @@ export default function HelpPage() {
         <div className="section-head"><h3>Summary</h3></div>
         <div className="card" style={{ padding: "18px 22px" }}>
           <p>
-            The full cost cascade: Direct cost → Preliminaries → Risk (from the register) →
-            Contingency → Overhead → Margin → subtotal → Tax → Contract price (what you'd
-            tender) → + Principal's administrative cost → Total project cost. Every percentage
-            is editable and recalculates live. Use "Print / Save PDF" for a clean printable
+            The full cost cascade: Direct cost → Preliminaries (General Conditions in the US) →
+            Risk (from the register) → Contingency → Overhead → Margin → subtotal → Tax →
+            Contract price (what you'd tender or bid) → + Client's administrative cost (called
+            the Principal's cost in Australia/UK) → Total project cost. Every percentage is
+            editable and recalculates live. Use "Print / Save PDF" for a clean printable
             version, or "Export line items (CSV)" for a spreadsheet of every priced line item.
           </p>
           <p>
