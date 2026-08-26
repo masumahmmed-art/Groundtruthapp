@@ -18,10 +18,12 @@ function webSearchUrl(query: string) {
   return `https://www.google.com/search?${params.toString()}`;
 }
 
+// Both AU/UK and US phrasing, so the search returns useful results regardless of
+// which side of the Pacific the user (and their workspace currency/region) is on.
 const KIND_SEARCH_PHRASE: Record<RateKind, string> = {
-  labour: "labour rate",
-  plant: "hire rate",
-  material: "supply price",
+  labour: "labour rate labor rate",
+  plant: "hire rate rental rate equipment",
+  material: "supply price material cost",
 };
 
 export default function RatesClient({
@@ -92,7 +94,7 @@ export default function RatesClient({
         <span>⚠</span>
         <span>
           <b>Indicative placeholders.</b> Edit every rate below to match your real supplier
-          quotes, EBA labour rates and plant hire agreements.
+          quotes, labour agreements, and plant hire / equipment rental agreements.
         </span>
       </div>
 
@@ -104,7 +106,7 @@ export default function RatesClient({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="e.g. typical hire rate for a 20t excavator"
+              placeholder="e.g. typical hire/rental rate for a 20t excavator"
             />
           </div>
           <button className="btn btn-primary" type="submit">
