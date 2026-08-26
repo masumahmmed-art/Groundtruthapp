@@ -83,16 +83,22 @@ export interface FullBuildup {
  * Principal's Administrative Cost is then added on top as a separate,
  * client-side line to produce the Total Project Cost — it is NOT part of
  * the contractor's tender price or its GST calculation.
+ *
+ * riskOverride: if provided, this exact dollar figure is used for the risk
+ * line instead of the deterministic expected value computed from `risks`.
+ * Used to re-run the same cascade for the low/high ends of the simulated
+ * risk range (see simulateRiskRange below) without duplicating this logic.
  */
 export function fullBuildup(
   rates: RateItemRow[],
   items: LineItemRow[],
   markups: Markups,
-  risks: RiskItemRow[] = []
+  risks: RiskItemRow[] = [],
+  riskOverride?: number
 ): FullBuildup {
   const direct = directTotal(rates, items);
   const prelim = direct * (markups.preliminaries / 100);
-  const risk = totalRiskAllowance(risks);
+  const risk = riskOverride !== undefined ? riskOverride : totalRiskAllowance(risks);
   const s0 = direct + prelim + risk;
   const cont = s0 * (markups.contingency / 100);
   const s1 = s0 + cont;
@@ -105,6 +111,51 @@ export function fullBuildup(
   const principalCost = contractPrice * (markups.principalCost / 100);
   const totalProjectCost = contractPrice + principalCost;
   return { direct, prelim, risk, cont, overhead, margin, s3, gst, contractPrice, principalCost, totalProjectCost };
+}
+
+export interface RiskRange {
+  low: number; // 10th percentile simulated risk total ("best case")
+  expected: number; // deterministic expected value — same as totalRiskAllowance()
+  high: number; // 90th percentile simulated risk total ("if things go wrong")
+}
+
+export const RISK_SIMULATION_ITERATIONS = 8000;
+
+/**
+ * A lightweight Monte Carlo simulation of the itemised risk register.
+ *
+ * Each risk is modelled as an independent event: with its stated
+ * probability, the full cost impact happens; otherwise it doesn't. This
+ * runs many simulated versions of the project, sums the risks that "hit"
+ * in each one, and reads off the 10th/90th percentiles — giving a
+ * defensible low/expected/high spread instead of a single blended number.
+ * It deliberately does NOT assume risks partially occur or correlate with
+ * each other — that would need more input than a simple register captures.
+ */
+export function simulateRiskRange(risks: RiskItemRow[], iterations: number = RISK_SIMULATION_ITERATIONS): RiskRange {
+  const expected = totalRiskAllowance(risks);
+  if (!risks.length) return { low: 0, expected: 0, high: 0 };
+
+  const totals: number[] = new Array(iterations);
+  for (let i = 0; i < iterations; i++) {
+    let sum = 0;
+    for (const r of risks) {
+      if (Math.random() * 100 < r.probability) sum += r.impact;
+    }
+    totals[i] = sum;
+  }
+  totals.sort((a, b) => a - b);
+
+  const percentile = (p: number) => {
+    const idx = Math.min(totals.length - 1, Math.max(0, Math.round(p * (totals.length - 1))));
+    return totals[idx];
+  };
+
+  return {
+    low: percentile(0.1),
+    expected,
+    high: percentile(0.9),
+  };
 }
 
 export const numFmt = new Intl.NumberFormat("en-AU", { maximumFractionDigits: 2 });
