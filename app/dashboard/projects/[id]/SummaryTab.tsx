@@ -1,8 +1,9 @@
 "use client";
 
+import { useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { CategoryRow, LineItemRow, Markups, ProjectRow, RateItemRow, RiskItemRow } from "@/lib/types";
-import { categoryTotal, costTypeTotals, type FullBuildup } from "@/lib/calc";
+import { categoryTotal, costTypeTotals, fullBuildup, simulateRiskRange, RISK_SIMULATION_ITERATIONS, type FullBuildup } from "@/lib/calc";
 import { formatMoney } from "@/lib/units";
 
 export default function SummaryTab({
@@ -45,6 +46,21 @@ export default function SummaryTab({
     { name: "Material", color: "var(--cost-material)", value: byType.material },
     { name: "Risk, contingency, overhead & margin", color: "var(--cost-markup)", value: build.risk + build.cont + build.overhead + build.margin },
   ].filter((r) => r.value > 0);
+
+  // Risk-adjusted price range: rather than blend every risk's probability
+  // into one number, simulate many outcomes of "did each risk happen or
+  // not" and read off the 10th/90th percentiles, then re-run the same
+  // cost cascade at each end. Recomputed only when the risk register or
+  // the cost inputs actually change, not on every render.
+  const riskRange = useMemo(() => simulateRiskRange(risks), [risks]);
+  const buildLow = useMemo(
+    () => fullBuildup(rates, items, markups, risks, riskRange.low),
+    [rates, items, markups, risks, riskRange.low]
+  );
+  const buildHigh = useMemo(
+    () => fullBuildup(rates, items, markups, risks, riskRange.high),
+    [rates, items, markups, risks, riskRange.high]
+  );
 
   function exportCsv() {
     const header = ["Category", "Description", "Unit", "Quantity", `Unit Rate (${currency})`, `Line Total (${currency})`];
@@ -133,7 +149,7 @@ export default function SummaryTab({
         <div className="kpi"><div className="label">Direct cost</div><div className="value">{formatMoney(build.direct, currency)}</div><div className="sub">{items.length} priced line items</div></div>
         <div className="kpi"><div className="label">Risk allowance</div><div className="value">{formatMoney(build.risk, currency)}</div><div className="sub">{risks.length} risks in register</div></div>
         <div className="kpi"><div className="label">Contract price</div><div className="value">{formatMoney(build.contractPrice, currency)}</div><div className="sub">Incl. tax — your tender price</div></div>
-        <div className="kpi"><div className="label">Total project cost</div><div className="value">{formatMoney(build.totalProjectCost, currency)}</div><div className="sub">Incl. Principal&apos;s admin cost</div></div>
+        <div className="kpi"><div className="label">Total project cost</div><div className="value">{formatMoney(build.totalProjectCost, currency)}</div><div className="sub">Incl. Principal's admin cost</div></div>
       </div>
 
       <div className="section">
@@ -144,6 +160,58 @@ export default function SummaryTab({
       <div className="section">
         <div className="section-head"><h3>Cost by resource type</h3><span className="hint">Across the whole estimate</span></div>
         <div className="card chart-card"><StackBar rows={typeRows} total={typeRows.reduce((s, r) => s + r.value, 0)} /></div>
+      </div>
+
+      <div className="section">
+        <div className="section-head">
+          <h3>Risk-adjusted price range</h3>
+          <span className="hint">{RISK_SIMULATION_ITERATIONS.toLocaleString()} simulated outcomes of the risk register</span>
+        </div>
+        <div className="card" style={{ padding: "18px 22px" }}>
+          <p style={{ marginTop: 0, fontSize: 12.5, color: "var(--ink-soft)" }}>
+            Each risk in the register either happens, at its stated probability, or it doesn&apos;t — rather than
+            blending that into a single number, this simulates many versions of the project and reads off the
+            spread. Use it to show a client or tender panel a defensible range, not just one point figure.
+          </p>
+          <div className="card rate-table-wrap" style={{ boxShadow: "none", border: "1px solid var(--line)" }}>
+            <table className="markup-table">
+              <thead>
+                <tr>
+                  <th className="label-cell">Scenario</th>
+                  <th className="num">Risk allowance</th>
+                  <th className="num">Contract price</th>
+                  <th className="num">Total project cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="label-cell">Best case (P10)</td>
+                  <td className="num mono">{formatMoney(riskRange.low, currency)}</td>
+                  <td className="num mono">{formatMoney(buildLow.contractPrice, currency)}</td>
+                  <td className="num mono">{formatMoney(buildLow.totalProjectCost, currency)}</td>
+                </tr>
+                <tr className="grand-total-row">
+                  <td className="label-cell">Expected</td>
+                  <td className="num mono">{formatMoney(riskRange.expected, currency)}</td>
+                  <td className="num mono">{formatMoney(build.contractPrice, currency)}</td>
+                  <td className="num mono">{formatMoney(build.totalProjectCost, currency)}</td>
+                </tr>
+                <tr>
+                  <td className="label-cell">If things go wrong (P90)</td>
+                  <td className="num mono">{formatMoney(riskRange.high, currency)}</td>
+                  <td className="num mono">{formatMoney(buildHigh.contractPrice, currency)}</td>
+                  <td className="num mono">{formatMoney(buildHigh.totalProjectCost, currency)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          {risks.length === 0 && (
+            <p className="hint" style={{ marginTop: 10 }}>
+              Add risks in the Risk &amp; Location tab to see a meaningful range here — with none logged, every
+              scenario is the same.
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="section">
@@ -167,8 +235,8 @@ export default function SummaryTab({
         </div>
         <p style={{ fontSize: 12, color: "var(--ink-faint)", marginTop: 8 }}>
           &quot;Contract price&quot; is what you would tender — Preliminaries, Risk, Contingency, Overhead, Margin and tax all sit inside it.
-          &quot;Principal&apos;s administrative cost&quot; is the client&apos;s own project management/administration allowance, shown
-          separately because it isn&apos;t part of your price.
+          &quot;Principal's administrative cost&quot; is the client's own project management/administration allowance, shown
+          separately because it isn't part of your price.
         </p>
       </div>
 
