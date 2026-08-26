@@ -85,17 +85,22 @@ export default function HelpPage() {
         <div className="card" style={{ padding: "18px 22px" }}>
           <p>
             An itemised risk register — each risk has a probability and a cost impact, and its
-            allowance (probability × impact) feeds into the estimate's total.
+            allowance (probability × impact) feeds into the estimate's total. For a risk where
+            the cost itself is uncertain (not just whether it happens), the optional <b>Min</b>
+            and <b>Max</b> columns let you enter a 3-point estimate instead of a single fixed
+            figure — leave them blank for risks you already know the cost of, and use them for
+            the few where the range genuinely matters, like unexpected ground conditions.
           </p>
           <p>
             Enter your site location once and use it for two live lookups. The <b>weather risk
             lookup</b> pulls historical climate data for the site and can suggest a starting
             weather risk entry. The <b>geotechnical / soil risk lookup</b> checks free
             government soil survey data for the site — USDA soil survey (SSURGO) data in the
-            United States, and CSIRO's national soil classification in Australia — and can flag
-            things like reactive clay, poor drainage, or a shallow water table, suggesting a
-            starting geotechnical risk entry where relevant. Elsewhere in the world this lookup
-            isn't wired up to a data source yet, so add a geotechnical risk row manually.
+            United States, and Queensland Government soil and land resource mapping in
+            Australia (more Australian states to follow) — and can flag things like reactive
+            clay, poor drainage, or a shallow water table, suggesting a starting geotechnical
+            risk entry where relevant. Outside those covered regions this lookup will tell you
+            plainly rather than guess, so add a geotechnical risk row manually instead.
           </p>
           <p>
             Both lookups are a desktop-level early warning, not a substitute for a real site
@@ -113,6 +118,14 @@ export default function HelpPage() {
             tender) → + Principal's administrative cost → Total project cost. Every percentage
             is editable and recalculates live. Use "Print / Save PDF" for a clean printable
             version, or "Export line items (CSV)" for a spreadsheet of every priced line item.
+          </p>
+          <p>
+            The <b>Risk-adjusted price range</b> table simulates thousands of outcomes of your
+            risk register — each risk either happening, at its stated probability, or not — and
+            shows a best-case, expected, and worst-case figure for the risk allowance, contract
+            price, and total project cost. Treat it as a decision tool for setting your own
+            contingency, not something to hand to a client on a competitive fixed-price bid —
+            they want your price, not your worst case.
           </p>
         </div>
       </div>
