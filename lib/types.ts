@@ -40,7 +40,11 @@ export interface RiskItemRow {
   category: RiskCategory;
   description: string;
   probability: number; // 0-100 (%)
-  impact: number; // $ cost if the risk occurs
+  impact: number; // $ cost if the risk occurs — the "most likely" figure when a min/max range is also set
+  /** Optional 3-point estimate: minimum plausible cost impact, if this risk occurs. Null = no range set, `impact` is used as a single fixed figure. */
+  impact_min?: number | null;
+  /** Optional 3-point estimate: maximum plausible cost impact, if this risk occurs. Null = no range set, `impact` is used as a single fixed figure. */
+  impact_max?: number | null;
   notes: string;
   sort_order: number;
 }
