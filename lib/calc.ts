@@ -1,7 +1,47 @@
 import type { BuildupComponent, CategoryRow, LineItemRow, Markups, RateItemRow, RiskItemRow } from "@/lib/types";
 
+/** True when a risk has a usable min/max range in addition to its `impact` (likely) figure. */
+function hasImpactRange(risk: RiskItemRow): boolean {
+  return (
+    typeof risk.impact_min === "number" &&
+    typeof risk.impact_max === "number" &&
+    (risk.impact_max as number) > (risk.impact_min as number)
+  );
+}
+
+/** The "likely" value clamped inside [min, max], for risks that have a range set. */
+function likelyImpact(risk: RiskItemRow): number {
+  if (!hasImpactRange(risk)) return risk.impact;
+  const min = risk.impact_min as number;
+  const max = risk.impact_max as number;
+  return Math.min(Math.max(risk.impact, min), max);
+}
+
+/** Mean of a triangular(min, likely, max) distribution — used for the deterministic expected value. */
+function meanImpact(risk: RiskItemRow): number {
+  if (!hasImpactRange(risk)) return risk.impact;
+  const min = risk.impact_min as number;
+  const max = risk.impact_max as number;
+  return (min + likelyImpact(risk) + max) / 3;
+}
+
+/** Draws one random sample from a triangular(min, likely, max) distribution. */
+function sampleTriangular(min: number, likely: number, max: number): number {
+  if (max <= min) return likely;
+  const u = Math.random();
+  const c = (likely - min) / (max - min);
+  if (u < c) return min + Math.sqrt(u * (max - min) * (likely - min));
+  return max - Math.sqrt((1 - u) * (max - min) * (max - likely));
+}
+
+/** One simulated cost impact for a risk, if it occurs — a random draw from its range, or its fixed impact figure if no range is set. */
+function sampleImpact(risk: RiskItemRow): number {
+  if (!hasImpactRange(risk)) return risk.impact;
+  return sampleTriangular(risk.impact_min as number, likelyImpact(risk), risk.impact_max as number);
+}
+
 export function riskAllowance(risk: RiskItemRow): number {
-  return (risk.probability / 100) * risk.impact;
+  return (risk.probability / 100) * meanImpact(risk);
 }
 
 export function totalRiskAllowance(risks: RiskItemRow[]): number {
@@ -129,8 +169,11 @@ export const RISK_SIMULATION_ITERATIONS = 8000;
  * runs many simulated versions of the project, sums the risks that "hit"
  * in each one, and reads off the 10th/90th percentiles — giving a
  * defensible low/expected/high spread instead of a single blended number.
- * It deliberately does NOT assume risks partially occur or correlate with
- * each other — that would need more input than a simple register captures.
+ * It deliberately does NOT assume correlation between risks — that would
+ * need more input than a simple register captures. It DOES, however,
+ * sample a triangular(min, likely, max) distribution for the cost impact
+ * itself, for any risk where a min/max range has been entered — for risks
+ * with just a single impact figure, that fixed figure is used as before.
  */
 export function simulateRiskRange(risks: RiskItemRow[], iterations: number = RISK_SIMULATION_ITERATIONS): RiskRange {
   const expected = totalRiskAllowance(risks);
@@ -140,7 +183,7 @@ export function simulateRiskRange(risks: RiskItemRow[], iterations: number = RIS
   for (let i = 0; i < iterations; i++) {
     let sum = 0;
     for (const r of risks) {
-      if (Math.random() * 100 < r.probability) sum += r.impact;
+      if (Math.random() * 100 < r.probability) sum += sampleImpact(r);
     }
     totals[i] = sum;
   }
