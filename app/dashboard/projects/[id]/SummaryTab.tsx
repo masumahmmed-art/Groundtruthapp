@@ -148,8 +148,8 @@ export default function SummaryTab({
       <div className="kpi-row">
         <div className="kpi"><div className="label">Direct cost</div><div className="value">{formatMoney(build.direct, currency)}</div><div className="sub">{items.length} priced line items</div></div>
         <div className="kpi"><div className="label">Risk allowance</div><div className="value">{formatMoney(build.risk, currency)}</div><div className="sub">{risks.length} risks in register</div></div>
-        <div className="kpi"><div className="label">Contract price</div><div className="value">{formatMoney(build.contractPrice, currency)}</div><div className="sub">Incl. tax — your tender price</div></div>
-        <div className="kpi"><div className="label">Total project cost</div><div className="value">{formatMoney(build.totalProjectCost, currency)}</div><div className="sub">Incl. Principal's admin cost</div></div>
+        <div className="kpi"><div className="label">Contract price</div><div className="value">{formatMoney(build.contractPrice, currency)}</div><div className="sub">Incl. tax — your tender (bid) price</div></div>
+        <div className="kpi"><div className="label">Total project cost</div><div className="value">{formatMoney(build.totalProjectCost, currency)}</div><div className="sub">Incl. client's admin cost</div></div>
       </div>
 
       <div className="section">
@@ -171,7 +171,7 @@ export default function SummaryTab({
           <p style={{ marginTop: 0, fontSize: 12.5, color: "var(--ink-soft)" }}>
             Each risk in the register either happens, at its stated probability, or it doesn&apos;t — rather than
             blending that into a single number, this simulates many versions of the project and reads off the
-            spread. Use it to show a client or tender panel a defensible range, not just one point figure.
+            spread. Use it to show a client or tender/bid panel a defensible range, not just one point figure.
           </p>
           <div className="card rate-table-wrap" style={{ boxShadow: "none", border: "1px solid var(--line)" }}>
             <table className="markup-table">
@@ -228,14 +228,14 @@ export default function SummaryTab({
               <tr><td className="label-cell">Subtotal (ex tax)</td><td></td><td className="num mono" style={{ fontWeight: 600 }}>{formatMoney(build.s3, currency)}</td></tr>
               <MarkupRow label="Tax (GST / VAT / Sales tax)" value={build.gst} mkKey="gst" />
               <tr className="grand-total-row"><td className="label-cell">Contract price</td><td></td><td className="num">{formatMoney(build.contractPrice, currency)}</td></tr>
-              <MarkupRow label="Principal's administrative cost" value={build.principalCost} mkKey="principalCost" />
+              <MarkupRow label="Client's administrative cost" value={build.principalCost} mkKey="principalCost" />
               <tr className="grand-total-row"><td className="label-cell">Total project cost</td><td></td><td className="num">{formatMoney(build.totalProjectCost, currency)}</td></tr>
             </tbody>
           </table>
         </div>
         <p style={{ fontSize: 12, color: "var(--ink-faint)", marginTop: 8 }}>
-          &quot;Contract price&quot; is what you would tender — Preliminaries, Risk, Contingency, Overhead, Margin and tax all sit inside it.
-          &quot;Principal's administrative cost&quot; is the client's own project management/administration allowance, shown
+          &quot;Contract price&quot; is what you would tender or bid — Preliminaries (called General Conditions in the US), Risk, Contingency, Overhead, Margin and tax all sit inside it.
+          &quot;Client's administrative cost&quot; (sometimes called the Principal's cost in Australia/UK) is the client's own project management/administration allowance, shown
           separately because it isn't part of your price.
         </p>
       </div>
