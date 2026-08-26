@@ -145,6 +145,11 @@ export default function RiskTab({
           <h3>Risk register</h3>
           <button className="btn btn-sm" onClick={() => addRisk()}>+ Add risk</button>
         </div>
+        <div className="hint" style={{ marginBottom: 10 }}>
+          Min/Max are optional — leave them blank to use a single fixed cost impact. Fill them in for a 3-point
+          estimate (min / likely / max), and the Summary tab's risk-adjusted price range will sample from that
+          spread instead of treating the impact as one fixed number.
+        </div>
         <div className="card rate-table-wrap">
           <table>
             <thead>
@@ -152,14 +157,16 @@ export default function RiskTab({
                 <th style={{ width: 130 }}>Category</th>
                 <th>Description</th>
                 <th className="num" style={{ width: 90 }}>Probability</th>
-                <th className="num" style={{ width: 110 }}>Cost impact</th>
+                <th className="num" style={{ width: 100 }}>Impact (likely)</th>
+                <th className="num" style={{ width: 90 }}>Min</th>
+                <th className="num" style={{ width: 90 }}>Max</th>
                 <th className="num" style={{ width: 110 }}>Allowance</th>
                 <th style={{ width: 36 }}></th>
               </tr>
             </thead>
             <tbody>
               {risks.length === 0 && (
-                <tr><td colSpan={6} className="empty">No risks logged yet — add one, or use the lookups below.</td></tr>
+                <tr><td colSpan={8} className="empty">No risks logged yet — add one, or use the lookups below.</td></tr>
               )}
               {risks.map((r) => (
                 <tr key={r.id}>
@@ -195,6 +202,24 @@ export default function RiskTab({
                       value={r.impact}
                       onChange={(e) => updateLocal(r.id, { impact: parseFloat(e.target.value) || 0 })}
                       onBlur={(e) => persist(r.id, { impact: parseFloat(e.target.value) || 0 })}
+                    />
+                  </td>
+                  <td className="num">
+                    <input
+                      type="number" className="mono" step="any"
+                      placeholder="—"
+                      value={r.impact_min ?? ""}
+                      onChange={(e) => updateLocal(r.id, { impact_min: e.target.value === "" ? null : parseFloat(e.target.value) })}
+                      onBlur={(e) => persist(r.id, { impact_min: e.target.value === "" ? null : parseFloat(e.target.value) || 0 })}
+                    />
+                  </td>
+                  <td className="num">
+                    <input
+                      type="number" className="mono" step="any"
+                      placeholder="—"
+                      value={r.impact_max ?? ""}
+                      onChange={(e) => updateLocal(r.id, { impact_max: e.target.value === "" ? null : parseFloat(e.target.value) })}
+                      onBlur={(e) => persist(r.id, { impact_max: e.target.value === "" ? null : parseFloat(e.target.value) || 0 })}
                     />
                   </td>
                   <td className="num mono">{formatMoney(riskAllowance(r), currency)}</td>
