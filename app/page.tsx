@@ -23,6 +23,26 @@ export const metadata: Metadata = {
   },
 };
 
+// Structured data so search engines (and AI answer engines) understand
+// exactly what this is, rather than inferring it from marketing prose.
+// Update the "offers.price" field if/when this stops being free.
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Ground Truth Estimator",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web",
+  url: "https://groundtruthestimator.com",
+  description:
+    "First-principles cost estimating for civil infrastructure projects, worldwide. Build labour, plant, and material rates into transparent build-ups, backed by an itemised risk register and a risk-adjusted price range.",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+    description: "Free during early access",
+  },
+};
+
 // Logged-in users skip the marketing page and go straight to work.
 // Everyone else sees an explainer before being asked to sign up.
 export default async function RootPage() {
@@ -35,6 +55,11 @@ export default async function RootPage() {
 
   return (
     <div className="landing">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+
       <header className="landing-nav">
         <div className="landing-nav-brand">
           <span className="mark">GT</span>
