@@ -176,7 +176,7 @@ export default async function RootPage() {
           project with numbers you can actually defend.
         </p>
         <Link href="/signup" className="btn btn-primary">
-          Create your workspace
+          Start estimating
         </Link>
       </section>
 
