@@ -4,7 +4,7 @@ import { requestPasswordReset } from "./actions";
 export default function ForgotPasswordPage({
   searchParams,
 }: {
-  searchParams: { sent?: string; email?: string };
+  searchParams: { sent?: string; email?: string; error?: string };
 }) {
   if (searchParams.sent) {
     return (
@@ -32,6 +32,12 @@ export default function ForgotPasswordPage({
         <p className="lead">
           Enter the email on your account and we&apos;ll send a link to set a new password.
         </p>
+
+        {searchParams.error && (
+          <div className="auth-error" style={{ marginBottom: 14 }}>
+            {searchParams.error}
+          </div>
+        )}
 
         <form className="auth-form" action={requestPasswordReset}>
           <div className="field">
