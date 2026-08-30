@@ -35,9 +35,9 @@ export default function HelpPage() {
           <p style={{ margin: 0, fontSize: 13 }}>
             <b>A note on terms:</b> this app uses Australian/UK construction terminology in a
             few places — "Plant" means equipment, a "hire rate" is a rental rate,
-            "Preliminaries" is what's often called General Conditions in the US, "tender"
-            means bid, and "Labour" is the British spelling of "Labor." The costs and
-            calculations work identically everywhere — only the wording differs.
+            "Preliminaries / Indirect Job Costs" is what's often called General Conditions in
+            the US, "tender" means bid, and "Labour" is the British spelling of "Labor." The
+            costs and calculations work identically everywhere — only the wording differs.
           </p>
         </div>
       </div>
@@ -125,12 +125,35 @@ export default function HelpPage() {
         <div className="section-head"><h3>Summary</h3></div>
         <div className="card" style={{ padding: "18px 22px" }}>
           <p>
-            The full cost cascade: Direct cost → Preliminaries (General Conditions in the US) →
-            Risk (from the register) → Contingency → Overhead → Margin → subtotal → Tax →
-            Contract price (what you'd tender or bid) → + Client's administrative cost (called
-            the Principal's cost in Australia/UK) → Total project cost. Every percentage is
-            editable and recalculates live. Use "Print / Save PDF" for a clean printable
-            version, or "Export line items (CSV)" for a spreadsheet of every priced line item.
+            The full cost cascade: Direct cost → Preliminaries / Indirect Job Costs (General
+            Conditions in the US) → Risk (from the register) → Contingency → Overhead → Margin →
+            subtotal → Tax → Contract price (what you'd tender or bid) → + Client's
+            administrative cost (called the Principal's cost in Australia/UK) → Total project
+            cost. Every percentage is editable and recalculates live. Use "Print / Save PDF" for
+            a clean printable version, or "Export line items (CSV)" for a spreadsheet of every
+            priced line item.
+          </p>
+          <p>
+            <b>Preliminaries / Indirect Job Costs</b> can be priced two ways — pick whichever
+            suits the stage you're at. <b>Simple %</b> (the default) applies a flat percentage of
+            direct cost, useful for an early, rough-order estimate. <b>Itemised build-up</b> lets
+            you build it from real line items instead of a guess: each item is either a one-off
+            <b> Fixed</b> cost (mobilisation, a performance bond, an insurance premium) or a
+            <b> $/week Time-related</b> cost (site supervision, temporary services, site
+            facilities) multiplied by the project duration you enter — so extending the
+            programme automatically extends every time-related item with it, rather than needing
+            to be re-typed. Switching between the two modes doesn't lose anything — your itemised
+            list stays saved even while "Simple %" is selected, so you can flip back and forth
+            freely.
+          </p>
+          <p>
+            Two <b>Quick add</b> panels sit above the itemised list to save re-typing common
+            items: one for on-site overhead and supervisory staff (Project Manager, Site
+            Engineer, Quality Manager, Safety Officer, and more, plus a Custom role option), and
+            one for insurances, bonds &amp; guarantees, permits, and mobilisation-type pay items.
+            Pick an item, set its rate, and it's added to the list ready to fine-tune or
+            re-categorise — nothing about the quick-add lists is exhaustive, so "+ Add item"
+            still covers anything not listed.
           </p>
           <p>
             The <b>Risk-adjusted price range</b> table simulates thousands of outcomes of your
