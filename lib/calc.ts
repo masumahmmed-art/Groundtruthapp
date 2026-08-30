@@ -270,6 +270,39 @@ export const SITE_STAFF_PRESETS: string[] = [
 // "Site Manager / Construction Manager" is the contractor-side equivalent
 // role in AU/UK usage; "Superintendent" remains the correct term in US usage.
 
+export interface PreliminaryPreset {
+  description: string;
+  category: PreliminaryCategory;
+  type: "fixed" | "time_related";
+}
+
+/**
+ * Common non-staff preliminaries / indirect job cost pay items — insurances,
+ * bonds & guarantees, permits, mobilisation and the like. A convenience list
+ * for the "quick add" picker alongside SITE_STAFF_PRESETS, so these don't
+ * have to be typed from scratch either. Most are realistically one-off costs
+ * (type "fixed"); a couple (site security, waste management) are more often
+ * priced $/week — either way, every quick-added item can still have its
+ * type and category changed afterwards like any other row.
+ */
+export const PRELIMINARY_ITEM_PRESETS: PreliminaryPreset[] = [
+  { description: "Mobilisation", category: "mobilisation", type: "fixed" },
+  { description: "Demobilisation", category: "mobilisation", type: "fixed" },
+  { description: "Site establishment (compound, fencing, hoarding)", category: "site_facilities", type: "fixed" },
+  { description: "Site sheds & amenities", category: "site_facilities", type: "time_related" },
+  { description: "Temporary power & water", category: "temporary_services", type: "time_related" },
+  { description: "Site security (guards / patrols)", category: "security", type: "time_related" },
+  { description: "Contract works / construction all-risks insurance", category: "insurances", type: "fixed" },
+  { description: "Public liability insurance", category: "insurances", type: "fixed" },
+  { description: "Professional indemnity insurance", category: "insurances", type: "fixed" },
+  { description: "Workers compensation insurance", category: "insurances", type: "fixed" },
+  { description: "Performance bond", category: "bonds_guarantees", type: "fixed" },
+  { description: "Unconditional / bank guarantee", category: "bonds_guarantees", type: "fixed" },
+  { description: "Statutory permits & approvals", category: "permits_approvals", type: "fixed" },
+  { description: "Traffic management plan & approval", category: "permits_approvals", type: "fixed" },
+  { description: "Waste management & site cleaning", category: "cleaning_waste", type: "time_related" },
+];
+
 export const PRELIMINARY_CATEGORY_LABELS: Record<string, string> = {
   site_management: "Site management & supervision",
   site_facilities: "Site facilities",
