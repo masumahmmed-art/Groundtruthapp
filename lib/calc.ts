@@ -238,6 +238,38 @@ export const DEFAULT_MARKUPS: Markups = {
   gst: 10,
 };
 
+/**
+ * Common contractor's on-site overhead / supervisory staff roles for a
+ * civil infrastructure project. Purely a convenience list for the
+ * "quick add" picker in the preliminaries build-up — selecting one drops
+ * in a ready-made time-related ($/week) item under the "Site management
+ * & supervision" category, so the estimator only has to fill in the rate.
+ * Not exhaustive — "+ Add item" still covers anything not listed here.
+ */
+export const SITE_STAFF_PRESETS: string[] = [
+  "Project Director",
+  "Project Manager",
+  "Site Manager / Construction Manager",
+  "General Foreman / Site Foreman",
+  "Site Engineer",
+  "Project Engineer",
+  "Quantity Surveyor / Cost Controller",
+  "Quality Manager / QA Representative",
+  "Environmental Manager",
+  "Surveyor / Setout Engineer",
+  "Safety Officer (WHS/HSE Manager)",
+  "Traffic Management Coordinator",
+  "Community & Stakeholder Relations Officer",
+  "Contracts Administrator",
+  "Document Controller",
+  "Site Administrator",
+];
+// Note: deliberately NOT labelled "Superintendent" on its own — under AU
+// standard-form contracts (AS2124/AS4000) that term specifically means the
+// PRINCIPAL's (client's) contract administrator, not contractor staff.
+// "Site Manager / Construction Manager" is the contractor-side equivalent
+// role in AU/UK usage; "Superintendent" remains the correct term in US usage.
+
 export const PRELIMINARY_CATEGORY_LABELS: Record<string, string> = {
   site_management: "Site management & supervision",
   site_facilities: "Site facilities",
