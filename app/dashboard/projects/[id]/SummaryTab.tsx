@@ -171,7 +171,12 @@ export default function SummaryTab({
     );
   }
 
-  function MarkupRow({ label, value, mkKey }: { label: string; value: number; mkKey?: keyof Markups }) {
+  // Only the flat-percentage markup fields — NOT all of `keyof Markups`, since
+  // that now also includes non-numeric fields (preliminariesMode, preliminariesItems)
+  // added for the itemised build-up, which can't be bound to a numeric <input>.
+  type NumericMarkupKey = "preliminaries" | "contingency" | "overhead" | "margin" | "principalCost" | "gst";
+
+  function MarkupRow({ label, value, mkKey }: { label: string; value: number; mkKey?: NumericMarkupKey }) {
     return (
       <tr>
         <td className="label-cell">{label}</td>
