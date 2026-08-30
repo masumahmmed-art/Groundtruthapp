@@ -13,6 +13,7 @@ import {
   RISK_SIMULATION_ITERATIONS,
   PRELIMINARY_CATEGORY_LABELS,
   SITE_STAFF_PRESETS,
+  PRELIMINARY_ITEM_PRESETS,
   type FullBuildup,
 } from "@/lib/calc";
 import { formatMoney } from "@/lib/units";
@@ -102,6 +103,25 @@ export default function SummaryTab({
     setQuickRole("");
     setQuickCustomRole("");
     setQuickRate("");
+  }
+
+  // --- Quick-add: insurances, bonds & other preliminaries pay items ---
+  const [quickPayIdx, setQuickPayIdx] = useState("");
+  const [quickPayRate, setQuickPayRate] = useState("");
+  const selectedPayPreset = quickPayIdx !== "" ? PRELIMINARY_ITEM_PRESETS[parseInt(quickPayIdx, 10)] : undefined;
+
+  function handleQuickAddPayItem() {
+    if (quickPayIdx === "") return;
+    const preset = PRELIMINARY_ITEM_PRESETS[parseInt(quickPayIdx, 10)];
+    if (!preset) return;
+    addPreliminaryItem({
+      category: preset.category,
+      description: preset.description,
+      type: preset.type,
+      rate: parseFloat(quickPayRate) || 0,
+    });
+    setQuickPayIdx("");
+    setQuickPayRate("");
   }
 
   function updatePreliminaryItem(id: string, patch: Partial<PreliminaryItem>) {
@@ -302,7 +322,7 @@ export default function SummaryTab({
       </div>
 
       <div className="section">
-        <div className="section-head"><h3>Preliminaries</h3><span className="hint">Called General Conditions in the US</span></div>
+        <div className="section-head"><h3>Preliminaries / Indirect Job Costs</h3><span className="hint">Called General Conditions in the US</span></div>
         <div className="card" style={{ padding: "14px 22px" }}>
           <div style={{ display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap" }}>
             <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
@@ -406,6 +426,55 @@ export default function SummaryTab({
                 </p>
               </div>
 
+              <div className="card rate-table-wrap" style={{ boxShadow: "none", border: "1px solid var(--line)", padding: 12, marginBottom: 14 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 8 }}>
+                  Quick add — insurances, bonds &amp; other preliminaries items
+                </div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th style={{ width: 130 }} className="num">
+                        {selectedPayPreset?.type === "time_related" ? "$ / week" : "$ (one-off)"}
+                      </th>
+                      <th style={{ width: 120 }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <select value={quickPayIdx} onChange={(e) => setQuickPayIdx(e.target.value)}>
+                          <option value="">Select an item…</option>
+                          {PRELIMINARY_ITEM_PRESETS.map((preset, i) => (
+                            <option key={preset.description} value={String(i)}>{preset.description}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="num">
+                        <input
+                          type="number"
+                          className="mono"
+                          step="0.01"
+                          min={0}
+                          value={quickPayRate}
+                          onChange={(e) => setQuickPayRate(e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <button className="btn btn-sm" onClick={handleQuickAddPayItem} disabled={quickPayIdx === ""}>
+                          + Add to list
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p className="hint" style={{ marginTop: 8, marginBottom: 0 }}>
+                  Covers insurances, bonds &amp; guarantees, permits, and mobilisation-type pay items — each is added
+                  with a sensible default category and Fixed/$-per-week type, which you can still change below like
+                  any other row.
+                </p>
+              </div>
+
               <div className="card rate-table-wrap" style={{ boxShadow: "none", border: "1px solid var(--line)" }}>
                 <table>
                   <thead>
@@ -490,10 +559,10 @@ export default function SummaryTab({
             <tbody>
               <MarkupRow label="Direct cost" value={build.direct} />
               {preliminariesMode === "percent" ? (
-                <MarkupRow label="Preliminaries" value={build.prelim} mkKey="preliminaries" />
+                <MarkupRow label="Preliminaries / Indirect Job Costs" value={build.prelim} mkKey="preliminaries" />
               ) : (
                 <tr>
-                  <td className="label-cell">Preliminaries <span className="hint">(itemised — edit above)</span></td>
+                  <td className="label-cell">Preliminaries / Indirect Job Costs <span className="hint">(itemised — edit above)</span></td>
                   <td></td>
                   <td className="num mono" style={{ fontWeight: 600 }}>{formatMoney(build.prelim, currency)}</td>
                 </tr>
@@ -511,7 +580,7 @@ export default function SummaryTab({
           </table>
         </div>
         <p style={{ fontSize: 12, color: "var(--ink-faint)", marginTop: 8 }}>
-          &quot;Contract price&quot; is what you would tender or bid — Preliminaries (called General Conditions in the US), Risk, Contingency, Overhead, Margin and tax all sit inside it.
+          &quot;Contract price&quot; is what you would tender or bid — Preliminaries / Indirect Job Costs (called General Conditions in the US), Risk, Contingency, Overhead, Margin and tax all sit inside it.
           &quot;Client's administrative cost&quot; (sometimes called the Principal's cost in Australia/UK) is the client's own project management/administration allowance, shown
           separately because it isn't part of your price.
         </p>
