@@ -2,9 +2,23 @@
 
 import { useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { CategoryRow, LineItemRow, Markups, ProjectRow, RateItemRow, RiskItemRow } from "@/lib/types";
-import { categoryTotal, costTypeTotals, fullBuildup, simulateRiskRange, RISK_SIMULATION_ITERATIONS, type FullBuildup } from "@/lib/calc";
+import type { CategoryRow, LineItemRow, Markups, PreliminaryCategory, PreliminaryItem, ProjectRow, RateItemRow, RiskItemRow } from "@/lib/types";
+import {
+  categoryTotal,
+  costTypeTotals,
+  fullBuildup,
+  preliminaryItemTotal,
+  preliminariesBuildupTotal,
+  simulateRiskRange,
+  RISK_SIMULATION_ITERATIONS,
+  PRELIMINARY_CATEGORY_LABELS,
+  type FullBuildup,
+} from "@/lib/calc";
 import { formatMoney } from "@/lib/units";
+
+function newPreliminaryId() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `pre_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
 
 export default function SummaryTab({
   project,
@@ -34,6 +48,49 @@ export default function SummaryTab({
   }
   async function persistMarkups() {
     await supabase.from("projects").update({ markups }).eq("id", project.id);
+  }
+
+  // --- Preliminaries build-up (itemised alternative to the flat % above) ---
+  const preliminariesMode = markups.preliminariesMode || "percent";
+  const preliminaryItems = markups.preliminariesItems || [];
+  const durationWeeks = markups.projectDurationWeeks ?? 12;
+
+  function setMarkupsAndPersist(next: Markups) {
+    setProject((p) => ({ ...p, markups: next }));
+    supabase.from("projects").update({ markups: next }).eq("id", project.id);
+  }
+
+  function setPreliminariesMode(mode: "percent" | "buildup") {
+    setMarkupsAndPersist({ ...markups, preliminariesMode: mode });
+  }
+
+  function setDurationWeeks(weeks: number) {
+    setMarkupsAndPersist({ ...markups, projectDurationWeeks: weeks });
+  }
+
+  function addPreliminaryItem() {
+    const item: PreliminaryItem = {
+      id: newPreliminaryId(),
+      category: "site_management",
+      description: "New preliminaries item",
+      type: "fixed",
+      rate: 0,
+    };
+    setMarkupsAndPersist({ ...markups, preliminariesItems: [...preliminaryItems, item] });
+  }
+
+  function updatePreliminaryItem(id: string, patch: Partial<PreliminaryItem>) {
+    const next = preliminaryItems.map((it) => (it.id === id ? { ...it, ...patch } : it));
+    setProject((p) => ({ ...p, markups: { ...markups, preliminariesItems: next } }));
+  }
+
+  function persistPreliminaryItems() {
+    supabase.from("projects").update({ markups }).eq("id", project.id);
+  }
+
+  function removePreliminaryItem(id: string) {
+    const next = preliminaryItems.filter((it) => it.id !== id);
+    setMarkupsAndPersist({ ...markups, preliminariesItems: next });
   }
 
   const byType = costTypeTotals(rates, items);
@@ -215,12 +272,139 @@ export default function SummaryTab({
       </div>
 
       <div className="section">
+        <div className="section-head"><h3>Preliminaries</h3><span className="hint">Called General Conditions in the US</span></div>
+        <div className="card" style={{ padding: "14px 22px" }}>
+          <div style={{ display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+              <input
+                type="radio"
+                name="prelim-mode"
+                checked={preliminariesMode === "percent"}
+                onChange={() => setPreliminariesMode("percent")}
+              />
+              Simple % of direct cost
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+              <input
+                type="radio"
+                name="prelim-mode"
+                checked={preliminariesMode === "buildup"}
+                onChange={() => setPreliminariesMode("buildup")}
+              />
+              Itemised build-up
+            </label>
+          </div>
+
+          {preliminariesMode === "buildup" && (
+            <div style={{ marginTop: 14 }}>
+              <div className="field" style={{ maxWidth: 220, marginBottom: 14 }}>
+                <label>Estimated project duration (weeks)</label>
+                <input
+                  type="number"
+                  className="mono"
+                  step="1"
+                  min={0}
+                  value={durationWeeks}
+                  onChange={(e) => setProject((p) => ({ ...p, markups: { ...markups, projectDurationWeeks: parseFloat(e.target.value) || 0 } }))}
+                  onBlur={(e) => setDurationWeeks(parseFloat(e.target.value) || 0)}
+                />
+              </div>
+              <p className="hint" style={{ marginBottom: 10 }}>
+                Fixed items are a one-off cost. Time-related items are a $/week rate multiplied by the duration above —
+                so extending the programme automatically extends items like site supervision or temporary services.
+              </p>
+              <div className="card rate-table-wrap" style={{ boxShadow: "none", border: "1px solid var(--line)" }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Description</th>
+                      <th style={{ width: 190 }}>Category</th>
+                      <th style={{ width: 130 }}>Type</th>
+                      <th className="num" style={{ width: 120 }}>Rate</th>
+                      <th className="num" style={{ width: 120 }}>Total</th>
+                      <th style={{ width: 40 }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {preliminaryItems.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="empty">No preliminaries items yet — add one below.</td>
+                      </tr>
+                    )}
+                    {preliminaryItems.map((it) => (
+                      <tr key={it.id}>
+                        <td>
+                          <input
+                            type="text"
+                            value={it.description}
+                            onChange={(e) => updatePreliminaryItem(it.id, { description: e.target.value })}
+                            onBlur={persistPreliminaryItems}
+                          />
+                        </td>
+                        <td>
+                          <select
+                            value={it.category}
+                            onChange={(e) => { updatePreliminaryItem(it.id, { category: e.target.value as PreliminaryCategory }); persistPreliminaryItems(); }}
+                          >
+                            {Object.entries(PRELIMINARY_CATEGORY_LABELS).map(([key, label]) => (
+                              <option key={key} value={key}>{label}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td>
+                          <select
+                            value={it.type}
+                            onChange={(e) => { updatePreliminaryItem(it.id, { type: e.target.value as "fixed" | "time_related" }); persistPreliminaryItems(); }}
+                          >
+                            <option value="fixed">Fixed</option>
+                            <option value="time_related">$/week</option>
+                          </select>
+                        </td>
+                        <td className="num">
+                          <input
+                            type="number"
+                            className="mono"
+                            step="0.01"
+                            value={it.rate}
+                            onChange={(e) => updatePreliminaryItem(it.id, { rate: parseFloat(e.target.value) || 0 })}
+                            onBlur={persistPreliminaryItems}
+                          />
+                        </td>
+                        <td className="num mono">{formatMoney(preliminaryItemTotal(it, durationWeeks), currency)}</td>
+                        <td>
+                          <button className="btn btn-ghost btn-sm btn-danger" title="Remove item" onClick={() => removePreliminaryItem(it.id)}>✕</button>
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="grand-total-row">
+                      <td className="label-cell" colSpan={4}>Total preliminaries</td>
+                      <td className="num mono">{formatMoney(preliminariesBuildupTotal(preliminaryItems, durationWeeks), currency)}</td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <button className="btn btn-sm" style={{ marginTop: 10 }} onClick={addPreliminaryItem}>+ Add item</button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="section">
         <div className="section-head"><h3>Cost build-up</h3><span className="hint">Editable percentages — applied in sequence</span></div>
         <div className="card" style={{ padding: "6px 22px" }}>
           <table className="markup-table">
             <tbody>
               <MarkupRow label="Direct cost" value={build.direct} />
-              <MarkupRow label="Preliminaries" value={build.prelim} mkKey="preliminaries" />
+              {preliminariesMode === "percent" ? (
+                <MarkupRow label="Preliminaries" value={build.prelim} mkKey="preliminaries" />
+              ) : (
+                <tr>
+                  <td className="label-cell">Preliminaries <span className="hint">(itemised — edit above)</span></td>
+                  <td></td>
+                  <td className="num mono" style={{ fontWeight: 600 }}>{formatMoney(build.prelim, currency)}</td>
+                </tr>
+              )}
               <MarkupRow label="Risk allowance (from register)" value={build.risk} />
               <MarkupRow label="Contingency" value={build.cont} mkKey="contingency" />
               <MarkupRow label="Overhead" value={build.overhead} mkKey="overhead" />
