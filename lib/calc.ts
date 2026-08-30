@@ -1,4 +1,4 @@
-import type { BuildupComponent, CategoryRow, LineItemRow, Markups, RateItemRow, RiskItemRow } from "@/lib/types";
+import type { BuildupComponent, CategoryRow, LineItemRow, Markups, PreliminaryItem, RateItemRow, RiskItemRow } from "@/lib/types";
 
 /** True when a risk has a usable min/max range in addition to its `impact` (likely) figure. */
 function hasImpactRange(risk: RiskItemRow): boolean {
@@ -103,6 +103,25 @@ export function costTypeTotals(rates: RateItemRow[], items: LineItemRow[]) {
   );
 }
 
+/** One item's contribution to the preliminaries total: its fixed cost as-is, or rate × duration if time-related. */
+export function preliminaryItemTotal(item: PreliminaryItem, durationWeeks: number): number {
+  return item.type === "time_related" ? item.rate * durationWeeks : item.rate;
+}
+
+/** Sum of an itemised preliminaries build-up — fixed items plus every time-related item's rate × project duration. */
+export function preliminariesBuildupTotal(items: PreliminaryItem[] | undefined | null, durationWeeks: number): number {
+  if (!items || !items.length) return 0;
+  return items.reduce((sum, it) => sum + preliminaryItemTotal(it, durationWeeks), 0);
+}
+
+/** The preliminaries total to use in the cost cascade, respecting whichever mode (percent vs itemised build-up) the project is set to. Defaults to percent mode for older projects that predate the build-up feature. */
+export function preliminariesTotal(markups: Markups, direct: number): number {
+  if (markups.preliminariesMode === "buildup") {
+    return preliminariesBuildupTotal(markups.preliminariesItems, markups.projectDurationWeeks || 0);
+  }
+  return direct * (markups.preliminaries / 100);
+}
+
 export interface FullBuildup {
   direct: number;
   prelim: number;
@@ -137,7 +156,7 @@ export function fullBuildup(
   riskOverride?: number
 ): FullBuildup {
   const direct = directTotal(rates, items);
-  const prelim = direct * (markups.preliminaries / 100);
+  const prelim = preliminariesTotal(markups, direct);
   const risk = riskOverride !== undefined ? riskOverride : totalRiskAllowance(risks);
   const s0 = direct + prelim + risk;
   const cont = s0 * (markups.contingency / 100);
@@ -209,11 +228,29 @@ export function pct1(n: number): string {
 
 export const DEFAULT_MARKUPS: Markups = {
   preliminaries: 8,
+  preliminariesMode: "percent",
+  preliminariesItems: [],
+  projectDurationWeeks: 12,
   contingency: 5,
   overhead: 6,
   margin: 8,
   principalCost: 5,
   gst: 10,
+};
+
+export const PRELIMINARY_CATEGORY_LABELS: Record<string, string> = {
+  site_management: "Site management & supervision",
+  site_facilities: "Site facilities",
+  temporary_services: "Temporary services",
+  security: "Security",
+  temporary_works: "Temporary works",
+  quality_safety_environmental: "Quality, safety & environmental",
+  cleaning_waste: "Cleaning & waste management",
+  insurances: "Insurances",
+  bonds_guarantees: "Bonds & guarantees",
+  permits_approvals: "Permits & approvals",
+  mobilisation: "Mobilisation / demobilisation",
+  other: "Other",
 };
 
 export const RISK_CATEGORY_LABELS: Record<string, string> = {
