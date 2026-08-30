@@ -22,8 +22,47 @@ export interface RateItemRow {
   sort_order: number;
 }
 
+export type PreliminaryCategory =
+  | "site_management"
+  | "site_facilities"
+  | "temporary_services"
+  | "security"
+  | "temporary_works"
+  | "quality_safety_environmental"
+  | "cleaning_waste"
+  | "insurances"
+  | "bonds_guarantees"
+  | "permits_approvals"
+  | "mobilisation"
+  | "other";
+
+/**
+ * One line item in an itemised preliminaries / indirect-cost build-up
+ * (called "General Conditions" in the US). Follows the standard QS
+ * distinction (RICS NRM2, NZES) between a "fixed" one-off cost and a
+ * "time_related" cost that scales with however long the job runs —
+ * e.g. a site supervisor's $/week rate times the estimated project
+ * duration, rather than a single lump sum.
+ */
+export interface PreliminaryItem {
+  id: string;
+  category: PreliminaryCategory;
+  description: string;
+  type: "fixed" | "time_related";
+  /** Dollar amount: a one-off total if type is "fixed", or a $/week rate if type is "time_related". */
+  rate: number;
+  notes?: string;
+}
+
 export interface Markups {
+  /** Legacy/default path: preliminaries as a flat % of direct cost. Still used when preliminariesMode is "percent" or unset. */
   preliminaries: number;
+  /** "percent" (default, backward compatible) or "buildup" (itemised, see preliminariesItems). */
+  preliminariesMode?: "percent" | "buildup";
+  /** Itemised preliminaries lines, used only when preliminariesMode is "buildup". */
+  preliminariesItems?: PreliminaryItem[];
+  /** Estimated project duration in weeks — multiplies every "time_related" preliminaries item. Used only in buildup mode. */
+  projectDurationWeeks?: number;
   contingency: number;
   overhead: number;
   margin: number;
