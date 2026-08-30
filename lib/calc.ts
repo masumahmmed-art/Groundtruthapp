@@ -1,4 +1,4 @@
-import type { BuildupComponent, CategoryRow, LineItemRow, Markups, PreliminaryItem, RateItemRow, RiskItemRow } from "@/lib/types";
+import type { BuildupComponent, CategoryRow, LineItemRow, Markups, PreliminaryCategory, PreliminaryItem, RateItemRow, RiskItemRow } from "@/lib/types";
 
 /** True when a risk has a usable min/max range in addition to its `impact` (likely) figure. */
 function hasImpactRange(risk: RiskItemRow): boolean {
