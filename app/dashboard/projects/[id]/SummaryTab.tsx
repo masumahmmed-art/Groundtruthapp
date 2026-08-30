@@ -477,7 +477,7 @@ export default function SummaryTab({
                   </tbody>
                 </table>
               </div>
-              <button className="btn btn-sm" style={{ marginTop: 10 }} onClick={addPreliminaryItem}>+ Add item</button>
+              <button className="btn btn-sm" style={{ marginTop: 10 }} onClick={() => addPreliminaryItem()}>+ Add item</button>
             </div>
           )}
         </div>
