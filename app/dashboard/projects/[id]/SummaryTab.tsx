@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { CategoryRow, LineItemRow, Markups, PreliminaryCategory, PreliminaryItem, ProjectRow, RateItemRow, RiskItemRow } from "@/lib/types";
 import {
@@ -12,6 +12,7 @@ import {
   simulateRiskRange,
   RISK_SIMULATION_ITERATIONS,
   PRELIMINARY_CATEGORY_LABELS,
+  SITE_STAFF_PRESETS,
   type FullBuildup,
 } from "@/lib/calc";
 import { formatMoney } from "@/lib/units";
@@ -68,15 +69,39 @@ export default function SummaryTab({
     setMarkupsAndPersist({ ...markups, projectDurationWeeks: weeks });
   }
 
-  function addPreliminaryItem() {
+  function addPreliminaryItem(overrides?: Partial<PreliminaryItem>) {
     const item: PreliminaryItem = {
       id: newPreliminaryId(),
       category: "site_management",
       description: "New preliminaries item",
       type: "fixed",
       rate: 0,
+      ...overrides,
     };
     setMarkupsAndPersist({ ...markups, preliminariesItems: [...preliminaryItems, item] });
+  }
+
+  // --- Quick-add: on-site overhead & staff ---
+  // A small form (not just a plain dropdown) so the user builds up the
+  // resource — pick or type a role, set its $/week rate — then adds it to
+  // the itemised list in one step, as a time-related item under Site
+  // management & supervision.
+  const [quickRole, setQuickRole] = useState("");
+  const [quickCustomRole, setQuickCustomRole] = useState("");
+  const [quickRate, setQuickRate] = useState("");
+
+  function handleQuickAddStaff() {
+    const description = quickRole === "__custom__" ? quickCustomRole.trim() : quickRole;
+    if (!description) return;
+    addPreliminaryItem({
+      category: "site_management",
+      description,
+      type: "time_related",
+      rate: parseFloat(quickRate) || 0,
+    });
+    setQuickRole("");
+    setQuickCustomRole("");
+    setQuickRate("");
   }
 
   function updatePreliminaryItem(id: string, patch: Partial<PreliminaryItem>) {
@@ -318,6 +343,69 @@ export default function SummaryTab({
                 Fixed items are a one-off cost. Time-related items are a $/week rate multiplied by the duration above —
                 so extending the programme automatically extends items like site supervision or temporary services.
               </p>
+
+              <div className="card rate-table-wrap" style={{ boxShadow: "none", border: "1px solid var(--line)", padding: 12, marginBottom: 14 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 8 }}>
+                  Quick add — on-site overhead &amp; staff
+                </div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Role</th>
+                      {quickRole === "__custom__" && <th style={{ width: 200 }}>Custom role name</th>}
+                      <th style={{ width: 130 }} className="num">$ / week</th>
+                      <th style={{ width: 120 }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <select value={quickRole} onChange={(e) => setQuickRole(e.target.value)}>
+                          <option value="">Select a role…</option>
+                          {SITE_STAFF_PRESETS.map((role) => (
+                            <option key={role} value={role}>{role}</option>
+                          ))}
+                          <option value="__custom__">Custom role…</option>
+                        </select>
+                      </td>
+                      {quickRole === "__custom__" && (
+                        <td>
+                          <input
+                            type="text"
+                            value={quickCustomRole}
+                            onChange={(e) => setQuickCustomRole(e.target.value)}
+                            placeholder="e.g. Utilities Coordinator"
+                          />
+                        </td>
+                      )}
+                      <td className="num">
+                        <input
+                          type="number"
+                          className="mono"
+                          step="0.01"
+                          min={0}
+                          value={quickRate}
+                          onChange={(e) => setQuickRate(e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <button
+                          className="btn btn-sm"
+                          onClick={handleQuickAddStaff}
+                          disabled={!quickRole || (quickRole === "__custom__" && !quickCustomRole.trim())}
+                        >
+                          + Add to list
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p className="hint" style={{ marginTop: 8, marginBottom: 0 }}>
+                  Pick a common role (or type your own), set its weekly rate, and it's added below as a time-related
+                  item under Site management &amp; supervision — ready to fine-tune or re-categorise if needed.
+                </p>
+              </div>
+
               <div className="card rate-table-wrap" style={{ boxShadow: "none", border: "1px solid var(--line)" }}>
                 <table>
                   <thead>
