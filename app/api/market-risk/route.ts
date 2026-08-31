@@ -49,7 +49,10 @@ const EXTERNAL_API_HEADERS: Record<string, string> = {
   accept: "application/json",
   "user-agent":
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-  "accept-encoding": "gzip, deflate, br",
+  // Deliberately not requesting Brotli ("br") here — Node's fetch (undici) on
+  // some serverless runtimes doesn't reliably auto-decompress it, which could
+  // turn a working response into an undecodable one. gzip/deflate are safe.
+  "accept-encoding": "gzip, deflate",
 };
 
 interface GeocodeResult {
@@ -296,14 +299,19 @@ async function lookupAU(place: GeocodeResult) {
       try {
         json = JSON.parse(text);
       } catch {
-        diag = `ABS Data API returned a non-JSON response: ${text.slice(0, 200)}`;
+        diag = `ABS Data API returned a non-JSON response (HTTP ${res.status}): ${text.slice(0, 300)}`;
         continue;
       }
+      const apiErrors = json?.errors || json?.data?.errors;
       const parsed = parseAbsLatestValue(json);
       if (parsed) {
         results.push({ label: series.label, latestLabel: parsed.latestLabel, pct: parsed.value });
+      } else if (apiErrors && (Array.isArray(apiErrors) ? apiErrors.length : true)) {
+        diag = `ABS Data API returned an error payload: ${JSON.stringify(apiErrors).slice(0, 300)}`;
       } else {
-        diag = "ABS response didn't contain a usable observation for this series (query key or dataflow version may need updating).";
+        // Parsed OK as JSON (HTTP 200) but the shape we expected wasn't there — dump a
+        // snippet of what actually came back so a repeat failure is diagnosable at a glance.
+        diag = `ABS response (HTTP ${res.status}) didn't contain a usable observation. Raw response snippet: ${text.slice(0, 300)}`;
       }
     } catch (e: any) {
       diag = `Request to ABS Data API failed: ${e?.message || "unknown error"}.`;
@@ -418,7 +426,12 @@ async function fetchOnsYoy(cdid: string): Promise<{ yoy: { latestLabel: string; 
     yoyFromOnsPoints(onsPointsFromArray(json.months, "months")) ||
     yoyFromOnsPoints(onsPointsFromArray(json.quarters, "quarters")) ||
     yoyFromOnsPoints(onsPointsFromArray(json.years, "years"));
-  return { yoy, diag: yoy ? "" : `ONS response for ${cdid} didn't contain a usable 12-month-apart comparison.` };
+  return {
+    yoy,
+    diag: yoy
+      ? ""
+      : `ONS response for ${cdid} didn't contain a usable 12-month-apart comparison. Raw response snippet: ${text.slice(0, 300)}`,
+  };
 }
 
 async function lookupUK(place: GeocodeResult) {
