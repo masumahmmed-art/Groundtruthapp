@@ -104,20 +104,30 @@ export default function HelpPage() {
             the few where the range genuinely matters, like unexpected ground conditions.
           </p>
           <p>
-            Enter your site location once and use it for two live lookups. The <b>weather risk
+            Enter your site location once and use it for four live lookups. The <b>weather risk
             lookup</b> pulls historical climate data for the site and can suggest a starting
             weather risk entry. The <b>geotechnical / soil risk lookup</b> checks free
             government soil survey data for the site — USDA soil survey (SSURGO) data in the
-            United States, and Queensland Government soil and land resource mapping in
-            Australia (more Australian states to follow) — and can flag things like reactive
-            clay, poor drainage, or a shallow water table, suggesting a starting geotechnical
-            risk entry where relevant. Outside those covered regions this lookup will tell you
-            plainly rather than guess, so add a geotechnical risk row manually instead.
+            United States, and CSIRO's national Australian Soil Classification in Australia —
+            and can flag things like reactive clay, poor drainage, or a shallow water table,
+            suggesting a starting geotechnical risk entry where relevant.
           </p>
           <p>
-            Both lookups are a desktop-level early warning, not a substitute for a real site
-            investigation — always confirm with your own geotechnical engineer, bores, or test
-            pits before pricing footings or pavement subgrade.
+            The <b>flood risk lookup</b> checks FEMA's National Flood Hazard Layer for US sites
+            and can flag a mapped Special Flood Hazard Area, base flood elevation, or an
+            unstudied zone, suggesting a starting flood risk entry where relevant. The
+            <b> seismic risk lookup</b> checks USGS Design Maps in the United States and
+            Geoscience Australia's National Seismic Hazard Assessment in Australia, and can flag
+            a higher-than-typical Seismic Design Category or peak ground acceleration,
+            suggesting a starting seismic risk entry where relevant.
+          </p>
+          <p>
+            Outside the regions each lookup covers, it will tell you plainly rather than guess —
+            add a risk row manually instead. All four lookups are a desktop-level early warning,
+            not a substitute for a real site investigation — always confirm with your own
+            geotechnical or structural engineer, bores or test pits, the actual FEMA FIRM panel,
+            or a project-specific seismic assessment before pricing footings, pavement subgrade,
+            flood-proofing, or seismic detailing.
           </p>
         </div>
       </div>
