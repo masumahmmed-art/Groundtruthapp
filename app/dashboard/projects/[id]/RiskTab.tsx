@@ -38,6 +38,13 @@ interface SeismicResult {
   suggestedRisk: { category: "seismic"; description: string; probability: number } | null;
 }
 
+interface MarketResult {
+  location: { name: string; state: string | null; country: string | null };
+  source: string | null;
+  summary: string[];
+  suggestedRisk: { category: "market"; description: string; probability: number } | null;
+}
+
 export default function RiskTab({
   project,
   risks,
@@ -67,6 +74,10 @@ export default function RiskTab({
   const [seismicLoading, setSeismicLoading] = useState(false);
   const [seismicError, setSeismicError] = useState<string | null>(null);
   const [seismicResult, setSeismicResult] = useState<SeismicResult | null>(null);
+
+  const [marketLoading, setMarketLoading] = useState(false);
+  const [marketError, setMarketError] = useState<string | null>(null);
+  const [marketResult, setMarketResult] = useState<MarketResult | null>(null);
 
   function toggleMonth(m: number) {
     setMonths((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m].sort((a, b) => a - b)));
@@ -157,6 +168,27 @@ export default function RiskTab({
     }
   }
 
+  async function checkMarket() {
+    if (!location.trim()) return;
+    setMarketLoading(true);
+    setMarketError(null);
+    setMarketResult(null);
+    try {
+      const qs = new URLSearchParams({ location });
+      const res = await fetch(`/api/market-risk?${qs.toString()}`);
+      const json = await res.json();
+      if (!res.ok) {
+        setMarketError(json.error || "Something went wrong looking up market / price escalation risk.");
+      } else {
+        setMarketResult(json);
+      }
+    } catch (e: any) {
+      setMarketError(e?.message || "Network error looking up market / price escalation risk.");
+    } finally {
+      setMarketLoading(false);
+    }
+  }
+
   async function addRisk(patch?: Partial<RiskItemRow>) {
     const { data, error } = await supabase
       .from("risk_items")
@@ -195,7 +227,7 @@ export default function RiskTab({
       <div className="titleblock">
         <div>
           <h2 style={{ fontSize: 20 }}>Risk & Location</h2>
-          <div className="meta">Itemised risk register (probability × cost impact) plus weather, geotechnical, flood, and seismic lookups for the site.</div>
+          <div className="meta">Itemised risk register (probability × cost impact) plus weather, geotechnical, flood, seismic, and market / price escalation lookups for the site.</div>
         </div>
         <div className="stamp">
           Risk allowance
@@ -551,6 +583,59 @@ export default function RiskTab({
                       category: "seismic",
                       description: seismicResult.suggestedRisk!.description,
                       probability: seismicResult.suggestedRisk!.probability,
+                      impact: 0,
+                    })
+                  }
+                >
+                  + Add suggested risk to register
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-head">
+          <h3>Market / price escalation lookup</h3>
+          <span className="hint">Construction cost & materials trend — US (BLS) and Australia (ABS)</span>
+        </div>
+        <div className="card" style={{ padding: 18 }}>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 14 }}>
+            <button className="btn btn-primary" onClick={checkMarket} disabled={marketLoading}>
+              {marketLoading ? "Checking…" : "Check market / price escalation risk"}
+            </button>
+          </div>
+
+          {marketError && <div className="auth-error">{marketError}</div>}
+
+          {marketResult && (
+            <div>
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 14 }}>
+                <div className="kpi" style={{ flex: "1 1 200px" }}>
+                  <div className="label">Location matched</div>
+                  <div className="value" style={{ fontSize: 15 }}>{marketResult.location.name}{marketResult.location.state ? `, ${marketResult.location.state}` : ""}</div>
+                </div>
+                <div className="kpi" style={{ flex: "1 1 200px" }}>
+                  <div className="label">Data source</div>
+                  <div className="value" style={{ fontSize: 15 }}>{marketResult.source || "Not available for this country"}</div>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                {marketResult.summary.map((s, i) => (
+                  <p key={i} style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "0 0 8px" }}>{s}</p>
+                ))}
+              </div>
+
+              {marketResult.suggestedRisk && (
+                <button
+                  className="btn"
+                  onClick={() =>
+                    addRisk({
+                      category: "market",
+                      description: marketResult.suggestedRisk!.description,
+                      probability: marketResult.suggestedRisk!.probability,
                       impact: 0,
                     })
                   }
