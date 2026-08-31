@@ -309,9 +309,19 @@ async function lookupAU(place: GeocodeResult) {
       } else if (apiErrors && (Array.isArray(apiErrors) ? apiErrors.length : true)) {
         diag = `ABS Data API returned an error payload: ${JSON.stringify(apiErrors).slice(0, 300)}`;
       } else {
-        // Parsed OK as JSON (HTTP 200) but the shape we expected wasn't there — dump a
-        // snippet of what actually came back so a repeat failure is diagnosable at a glance.
-        diag = `ABS response (HTTP ${res.status}) didn't contain a usable observation. Raw response snippet: ${text.slice(0, 300)}`;
+        // Parsed OK as JSON (HTTP 200) but the shape we expected wasn't there. The response's
+        // "meta" header alone runs past a short text slice before ever reaching "data" — so
+        // report specifically on the "data" section (dataSets/series/observation counts plus a
+        // snippet of it) rather than the raw text, which would just show meta boilerplate again.
+        const d = json?.data;
+        const diagFacts = {
+          hasData: !!d,
+          dataSetsLength: Array.isArray(d?.dataSets) ? d.dataSets.length : null,
+          seriesKeysFound: Object.keys(d?.dataSets?.[0]?.series || {}).length,
+          timeValuesFound: (d?.structure?.dimensions?.observation?.[0]?.values || []).length,
+          dataSnippet: JSON.stringify(d).slice(0, 250),
+        };
+        diag = `ABS response (HTTP ${res.status}) didn't contain a usable observation. ${JSON.stringify(diagFacts)}`;
       }
     } catch (e: any) {
       diag = `Request to ABS Data API failed: ${e?.message || "unknown error"}.`;
