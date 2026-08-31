@@ -125,6 +125,7 @@ export async function GET(request: Request) {
       summary: [
         `Automated construction cost/materials trend data isn't wired up yet for ${place.country || "this country"} — it currently covers the United States (BLS), Australia (ABS), the United Kingdom (ONS), and EU member states (Eurostat). Check your local statistics agency's producer/input price index for construction for this market, or add a market risk row manually below.`,
       ],
+      categories: [],
       suggestedRisk: null,
     });
   } catch (err: any) {
@@ -158,6 +159,29 @@ function riskFromYoyPct(pct: number, label: string, sourceLabel: string): Sugges
     };
   }
   return null;
+}
+
+interface MarketCategory {
+  label: string;
+  pct: number;
+  latestLabel: string;
+  suggestedRisk: SuggestedRisk;
+}
+
+// Turns a list of {label, latestLabel, pct} results into per-category rows,
+// each with its OWN suggested risk (not just the headline's) — so the UI can
+// offer a separate "+ Add" for every category instead of only ever offering
+// the first one. The first entry stays the "headline" for display purposes.
+function buildMarketCategories(
+  results: { label: string; latestLabel: string; pct: number }[],
+  sourceLabel: string
+): MarketCategory[] {
+  return results.map((r) => ({
+    label: r.label,
+    pct: r.pct,
+    latestLabel: r.latestLabel,
+    suggestedRisk: riskFromYoyPct(r.pct, r.label, sourceLabel),
+  }));
 }
 
 // ---------- United States: BLS Producer Price Index ----------
@@ -232,30 +256,26 @@ async function lookupUS(place: GeocodeResult) {
           ? "Automated lookup didn't complete — the BLS public API may be temporarily unavailable, or its free unregistered tier's daily request limit (shared across everyone using this app) may have been reached for today. Try again later, or check bls.gov/ppi directly."
           : "No usable BLS data was returned for this lookup. Check bls.gov/ppi directly, or add a market risk row manually.",
       ],
+      categories: [],
       suggestedRisk: null,
     });
   }
 
-  const summary: string[] = [];
-  const headline = results.find((r) => r.label === US_SERIES[0].label) || results[0];
-  summary.push(
-    `${headline.label}: ${headline.pct >= 0 ? "up" : "down"} ${Math.abs(headline.pct).toFixed(1)}% over the 12 months to ${headline.latestLabel} (US BLS Producer Price Index).`
-  );
-  for (const r of results) {
-    if (r === headline) continue;
-    summary.push(`${r.label}: ${r.pct >= 0 ? "up" : "down"} ${Math.abs(r.pct).toFixed(1)}% over the 12 months to ${r.latestLabel} (BLS PPI).`);
-  }
-  summary.push(
-    "This is a national materials/input cost trend, not a quote for this project's actual material mix, region, or supplier — always confirm with current supplier and subcontractor pricing before finalising an escalation allowance."
-  );
+  // Put the primary "inputs to construction" series first if it came through, so it's the headline.
+  const headlineIdx = results.findIndex((r) => r.label === US_SERIES[0].label);
+  if (headlineIdx > 0) results.unshift(results.splice(headlineIdx, 1)[0]);
 
-  const suggested = riskFromYoyPct(headline.pct, headline.label, "US BLS PPI");
+  const categories = buildMarketCategories(results, "US BLS PPI");
+  const summary: string[] = [
+    "This is a national materials/input cost trend, not a quote for this project's actual material mix, region, or supplier — always confirm with current supplier and subcontractor pricing before finalising an escalation allowance.",
+  ];
 
   return NextResponse.json({
     location: locationOut(place),
     source: "US Bureau of Labor Statistics — Producer Price Index",
     summary,
-    suggestedRisk: suggested,
+    categories,
+    suggestedRisk: categories[0]?.suggestedRisk ?? null,
   });
 }
 
@@ -347,6 +367,7 @@ async function lookupAU(place: GeocodeResult) {
       location: locationOut(place),
       source: "Australian Bureau of Statistics — Producer Price Indexes",
       summary: [`Automated lookup didn't complete — ${findDiag} Check abs.gov.au (Producer Price Indexes, Australia) directly, or add a market risk row manually.`],
+      categories: [],
       suggestedRisk: null,
     });
   }
@@ -374,6 +395,7 @@ async function lookupAU(place: GeocodeResult) {
       summary: [
         `Automated lookup didn't complete — ${diag || "couldn't read the ABS workbook."} Check abs.gov.au (Producer Price Indexes, Australia) directly, or add a market risk row manually.`,
       ],
+      categories: [],
       suggestedRisk: null,
     });
   }
@@ -391,29 +413,22 @@ async function lookupAU(place: GeocodeResult) {
       summary: [
         "The ABS workbook downloaded but didn't contain a usable observation for any tracked series — its layout or series IDs may have changed. Check abs.gov.au (Producer Price Indexes, Australia) directly, or add a market risk row manually.",
       ],
+      categories: [],
       suggestedRisk: null,
     });
   }
 
-  const headline = results[0];
+  const categories = buildMarketCategories(results, "ABS PPI");
   const summary: string[] = [
-    `${headline.label}: ${headline.pct >= 0 ? "up" : "down"} ${Math.abs(headline.pct).toFixed(1)}% over the 12 months to ${headline.latestLabel} (ABS Producer Price Indexes — Output of the Construction industries).`,
+    "These are national output price indices by construction category, not a quote for this project's actual work type, region, or supplier — always confirm with current supplier and subcontractor pricing before finalising an escalation allowance.",
   ];
-  for (const r of results) {
-    if (r === headline) continue;
-    summary.push(`${r.label}: ${r.pct >= 0 ? "up" : "down"} ${Math.abs(r.pct).toFixed(1)}% over the 12 months to ${r.latestLabel} (ABS PPI).`);
-  }
-  summary.push(
-    "These are national output price indices by construction category, not a quote for this project's actual work type, region, or supplier — always confirm with current supplier and subcontractor pricing before finalising an escalation allowance."
-  );
-
-  const suggested = riskFromYoyPct(headline.pct, headline.label, "ABS PPI");
 
   return NextResponse.json({
     location: locationOut(place),
     source: "Australian Bureau of Statistics — Producer Price Indexes",
     summary,
-    suggestedRisk: suggested,
+    categories,
+    suggestedRisk: categories[0]?.suggestedRisk ?? null,
   });
 }
 
@@ -529,32 +544,23 @@ async function lookupUK(place: GeocodeResult) {
           ? `Automated lookup didn't complete — ${diag} Check ons.gov.uk (Producer Price Index) directly, or add a market risk row manually.`
           : "No usable ONS data was returned for this lookup. Check ons.gov.uk (Producer Price Index) directly, or add a market risk row manually.",
       ],
+      categories: [],
       suggestedRisk: null,
     });
   }
 
-  const headline = results[0];
+  const categories = buildMarketCategories(results, "UK ONS PPI");
   const summary: string[] = [
-    `${headline.label}: ${headline.pct >= 0 ? "up" : "down"} ${Math.abs(headline.pct).toFixed(1)}% over the 12 months to ${headline.latestLabel} (UK ONS Producer Price Index).`,
+    "These are individual domestic material price indices, not one blended 'all construction inputs' aggregate — ONS's broader Construction Output Price Index isn't currently available through this automated lookup, so treat this as a materials basket rather than a single headline figure.",
+    "This is a national materials cost trend, not a quote for this project's actual material mix, region, or supplier — always confirm with current supplier and subcontractor pricing before finalising an escalation allowance.",
   ];
-  for (const r of results) {
-    if (r === headline) continue;
-    summary.push(`${r.label}: ${r.pct >= 0 ? "up" : "down"} ${Math.abs(r.pct).toFixed(1)}% over the 12 months to ${r.latestLabel} (ONS PPI).`);
-  }
-  summary.push(
-    "These are individual domestic material price indices, not one blended 'all construction inputs' aggregate — ONS's broader Construction Output Price Index isn't currently available through this automated lookup, so treat this as a materials basket rather than a single headline figure."
-  );
-  summary.push(
-    "This is a national materials cost trend, not a quote for this project's actual material mix, region, or supplier — always confirm with current supplier and subcontractor pricing before finalising an escalation allowance."
-  );
-
-  const suggested = riskFromYoyPct(headline.pct, headline.label, "UK ONS PPI");
 
   return NextResponse.json({
     location: locationOut(place),
     source: "UK Office for National Statistics — Producer Price Index",
     summary,
-    suggestedRisk: suggested,
+    categories,
+    suggestedRisk: categories[0]?.suggestedRisk ?? null,
   });
 }
 
@@ -610,15 +616,15 @@ async function lookupEU(place: GeocodeResult, geoCode: string, countryLabel: str
       if (parsed) {
         const label = `Construction producer prices, new residential buildings (${countryLabel})`;
         const summary: string[] = [
-          `${label}: ${parsed.value >= 0 ? "up" : "down"} ${Math.abs(parsed.value).toFixed(1)}% over the 12 months to ${parsed.period} (Eurostat).`,
           "This tracks new residential building construction specifically, not civil infrastructure, and isn't a quote for this project's actual material mix or region — always confirm with current supplier and subcontractor pricing before finalising an escalation allowance.",
         ];
-        const suggested = riskFromYoyPct(parsed.value, label, "Eurostat");
+        const categories = buildMarketCategories([{ label, latestLabel: parsed.period, pct: parsed.value }], "Eurostat");
         return NextResponse.json({
           location: locationOut(place),
           source: "Eurostat — Construction Producer Price Index",
           summary,
-          suggestedRisk: suggested,
+          categories,
+          suggestedRisk: categories[0]?.suggestedRisk ?? null,
         });
       }
       diag = "No usable Eurostat data was returned for this country.";
@@ -631,6 +637,7 @@ async function lookupEU(place: GeocodeResult, geoCode: string, countryLabel: str
     location: locationOut(place),
     source: "Eurostat — Construction Producer Price Index",
     summary: [`Automated lookup didn't complete — ${diag} Check ec.europa.eu/eurostat directly, or add a market risk row manually.`],
+    categories: [],
     suggestedRisk: null,
   });
 }
