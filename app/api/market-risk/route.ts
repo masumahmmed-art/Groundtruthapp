@@ -1,13 +1,5 @@
 import { NextResponse } from "next/server";
-
-// Try running this function out of Sydney rather than Vercel's US default.
-// ABS's Data API appears to be silently soft-blocking automated-looking
-// requests from US cloud IP ranges (see the long comment above lookupAU) —
-// this is a cheap, harmless experiment to see if an AU-region origin fares
-// better. If it doesn't help, or this account's Vercel plan doesn't support
-// picking a region, this line is simply ignored and the function keeps
-// running from the default region.
-export const preferredRegion = "syd1";
+import * as XLSX from "xlsx";
 
 /**
  * Market / price escalation risk lookup.
@@ -17,11 +9,16 @@ export const preferredRegion = "syd1";
  *                  Index-number series — this route pulls the raw index
  *                  values itself and computes the 12-month % change by hand.
  *
- * Australia     -> ABS Data API, free keyless SDMX-JSON API.
- *                  https://data.api.abs.gov.au — PPI dataflow, "House
- *                  Construction Inputs" (materials used in house building).
- *                  ABS pre-computes the 12-month % change (MEASURE=3), so
- *                  this route just reads that figure straight off.
+ * Australia     -> ABS's downloadable Producer Price Indexes workbook
+ *                  (table 6427017, "Output of the Construction industries"),
+ *                  not their live Data API — that API silently returns an
+ *                  empty result to requests from Vercel's servers no matter
+ *                  what headers or region are used (confirmed after several
+ *                  rounds of diagnosis), so this route instead finds and
+ *                  downloads the current quarterly Excel workbook from ABS's
+ *                  stable "latest-release" page and reads real numbers out
+ *                  of it directly. See the long comment above lookupAU for
+ *                  the full story and the workbook's exact layout.
  *
  * United Kingdom -> ONS (Office for National Statistics) v1 API, free and
  *                  keyless. https://api.beta.ons.gov.uk — individual
@@ -262,79 +259,129 @@ async function lookupUS(place: GeocodeResult) {
   });
 }
 
-// ---------- Australia: ABS Data API — Producer Price Indexes ----------
+// ---------- Australia: ABS Producer Price Indexes — Output of the Construction industries ----------
+//
+// ABS's live Data API (data.api.abs.gov.au) turned out to be unusable from
+// Vercel's servers: after several rounds of fixes (browser-style headers,
+// a Sydney function region), it kept silently returning a validly-shaped
+// but empty response — the same query works everywhere except from the
+// deployed app, which points to ABS's gateway soft-blocking automated
+// cloud traffic rather than anything wrong in this code. The static Excel
+// workbook ABS publishes alongside each quarterly release doesn't have
+// that problem, so this route reads real numbers out of that file instead.
+//
+// The download URL embeds the release date (e.g. ".../jun-2026/6427017.xlsx")
+// and changes every quarter, so this route first fetches ABS's stable
+// "latest-release" landing page and finds the current file's URL in its
+// HTML, then downloads and parses that file. It's an ABS "Time Series
+// Workbook": sheet "Data1" has each column's Series ID on row 10, and one
+// quarter per row from row 11 down, with column A holding the date — this
+// exact layout was confirmed against a real downloaded copy of table
+// 6427017 ("Output of the Construction industries, subdivision and class
+// index numbers"), not guessed.
 
-const AU_SERIES: { key: string; label: string }[] = [
-  // MEASURE.INDEX.TYPE.FREQ — MEASURE 3 = "% change from corresponding quarter of previous year" (ABS pre-computes this).
-  { key: "3.8102825.INPUT.Q", label: "Construction materials cost inflation (House Construction Inputs, all groups)" },
+const ABS_LANDING_PAGE =
+  "https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/producer-price-indexes-australia/latest-release";
+const ABS_TABLE_FILE_ID = "6427017"; // "Output of the Construction industries, subdivision and class index numbers"
+
+const AU_SERIES: { seriesId: string; label: string }[] = [
+  { seriesId: "A85219099L", label: "Heavy and civil engineering construction" },
+  { seriesId: "A2333664R", label: "Road and bridge construction" },
+  { seriesId: "A2333649T", label: "Building construction (all types)" },
+  { seriesId: "A2333658V", label: "Non-residential building construction" },
 ];
 
-function parseAbsLatestValue(json: any): { latestLabel: string; value: number } | null {
-  const timeValues: { id: string }[] = json?.data?.structure?.dimensions?.observation?.[0]?.values || [];
-  const seriesObj = json?.data?.dataSets?.[0]?.series || {};
-  const seriesKey = Object.keys(seriesObj)[0];
-  if (!seriesKey) return null;
-  const obs: Record<string, any[]> = seriesObj[seriesKey]?.observations || {};
-  const points = Object.entries(obs)
-    .map(([idx, arr]) => ({
-      period: timeValues[parseInt(idx, 10)]?.id,
-      value: Array.isArray(arr) && typeof arr[0] === "number" ? arr[0] : null,
-    }))
-    .filter((p) => p.period && p.value !== null) as { period: string; value: number }[];
-  if (!points.length) return null;
-  points.sort((a, b) => b.period.localeCompare(a.period)); // "YYYY-Qn" sorts correctly lexicographically
-  return { latestLabel: points[0].period, value: points[0].value };
+async function findCurrentAbsWorkbookUrl(): Promise<{ url: string | null; diag: string }> {
+  try {
+    const res = await fetch(ABS_LANDING_PAGE, { cache: "no-store", headers: EXTERNAL_API_HEADERS });
+    if (!res.ok) return { url: null, diag: `ABS's release page returned HTTP ${res.status}.` };
+    const html = await res.text();
+    const match = html.match(new RegExp(`href="([^"]*${ABS_TABLE_FILE_ID}\\.xlsx)"`, "i"));
+    if (!match) return { url: null, diag: "Couldn't find the current workbook link on ABS's release page (its page layout may have changed)." };
+    let url = match[1];
+    if (url.startsWith("//")) url = "https:" + url;
+    else if (url.startsWith("/")) url = "https://www.abs.gov.au" + url;
+    return { url, diag: "" };
+  } catch (e: any) {
+    return { url: null, diag: `Request to ABS's release page failed: ${e?.message || "unknown error"}.` };
+  }
+}
+
+function parseAbsWorkbookRows(buffer: ArrayBuffer): { rows: any[][]; diag: string } {
+  try {
+    const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
+    const sheet = workbook.Sheets["Data1"];
+    if (!sheet) return { rows: [], diag: "The downloaded workbook didn't contain a 'Data1' sheet (its layout may have changed)." };
+    const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: null });
+    return { rows, diag: rows.length ? "" : "The 'Data1' sheet appeared to be empty." };
+  } catch (e: any) {
+    return { rows: [], diag: `Failed to parse the downloaded ABS workbook: ${e?.message || "unknown error"}.` };
+  }
+}
+
+const ABS_QUARTER_LABELS = ["Mar", "Jun", "Sep", "Dec"];
+
+function yoyFromAbsRows(rows: any[][], seriesId: string): { latestLabel: string; pct: number } | null {
+  // Row 10 (1-indexed in Excel) = array index 9 — holds each data column's Series ID.
+  const seriesIdRow = rows[9] || [];
+  const col = seriesIdRow.findIndex((v) => v === seriesId);
+  if (col < 1) return null;
+  // Data runs from Excel row 11 (index 10) down, one quarter per row, column A = date.
+  for (let r = rows.length - 1; r >= 10; r--) {
+    const value = rows[r]?.[col];
+    const date = rows[r]?.[0];
+    if (typeof value !== "number" || !date) continue;
+    const yearAgoValue = rows[r - 4]?.[col]; // same quarter, 4 rows back = 4 quarters earlier
+    if (typeof yearAgoValue !== "number" || yearAgoValue === 0) return null;
+    const latestLabel =
+      date instanceof Date ? `${ABS_QUARTER_LABELS[Math.floor(date.getMonth() / 3)]} ${date.getFullYear()}` : String(date);
+    return { latestLabel, pct: ((value - yearAgoValue) / yearAgoValue) * 100 };
+  }
+  return null;
 }
 
 async function lookupAU(place: GeocodeResult) {
-  const thisYear = new Date().getFullYear();
-  const results: { label: string; latestLabel: string; pct: number }[] = [];
-  let diag = "";
+  const { url: workbookUrl, diag: findDiag } = await findCurrentAbsWorkbookUrl();
+  if (!workbookUrl) {
+    return NextResponse.json({
+      location: locationOut(place),
+      source: "Australian Bureau of Statistics — Producer Price Indexes",
+      summary: [`Automated lookup didn't complete — ${findDiag} Check abs.gov.au (Producer Price Indexes, Australia) directly, or add a market risk row manually.`],
+      suggestedRisk: null,
+    });
+  }
 
-  for (const series of AU_SERIES) {
-    try {
-      const url = `https://data.api.abs.gov.au/rest/data/ABS,PPI/${series.key}?startPeriod=${thisYear - 2}-Q1&format=jsondata`;
-      const res = await fetch(url, {
-        cache: "no-store",
-        headers: EXTERNAL_API_HEADERS,
-      });
-      if (!res.ok) {
-        const bodyText = await res.text().catch(() => "");
-        diag = `ABS Data API returned HTTP ${res.status}.${bodyText ? ` ${bodyText.slice(0, 200)}` : ""}`;
-        continue;
-      }
-      const text = await res.text();
-      let json: any = null;
-      try {
-        json = JSON.parse(text);
-      } catch {
-        diag = `ABS Data API returned a non-JSON response (HTTP ${res.status}): ${text.slice(0, 300)}`;
-        continue;
-      }
-      const apiErrors = json?.errors || json?.data?.errors;
-      const parsed = parseAbsLatestValue(json);
-      if (parsed) {
-        results.push({ label: series.label, latestLabel: parsed.latestLabel, pct: parsed.value });
-      } else if (apiErrors && (Array.isArray(apiErrors) ? apiErrors.length : true)) {
-        diag = `ABS Data API returned an error payload: ${JSON.stringify(apiErrors).slice(0, 300)}`;
-      } else {
-        // Parsed OK as JSON (HTTP 200) but the shape we expected wasn't there. The response's
-        // "meta" header alone runs past a short text slice before ever reaching "data" — so
-        // report specifically on the "data" section (dataSets/series/observation counts plus a
-        // snippet of it) rather than the raw text, which would just show meta boilerplate again.
-        const d = json?.data;
-        const diagFacts = {
-          hasData: !!d,
-          dataSetsLength: Array.isArray(d?.dataSets) ? d.dataSets.length : null,
-          seriesKeysFound: Object.keys(d?.dataSets?.[0]?.series || {}).length,
-          timeValuesFound: (d?.structure?.dimensions?.observation?.[0]?.values || []).length,
-          dataSnippet: JSON.stringify(d).slice(0, 250),
-        };
-        diag = `ABS response (HTTP ${res.status}) didn't contain a usable observation. ${JSON.stringify(diagFacts)}`;
-      }
-    } catch (e: any) {
-      diag = `Request to ABS Data API failed: ${e?.message || "unknown error"}.`;
+  let rows: any[][] = [];
+  let diag = "";
+  try {
+    const fileRes = await fetch(workbookUrl, { cache: "no-store", headers: EXTERNAL_API_HEADERS });
+    if (!fileRes.ok) {
+      diag = `ABS workbook download returned HTTP ${fileRes.status}.`;
+    } else {
+      const buffer = await fileRes.arrayBuffer();
+      const parsed = parseAbsWorkbookRows(buffer);
+      rows = parsed.rows;
+      diag = parsed.diag;
     }
+  } catch (e: any) {
+    diag = `Request to download the ABS workbook failed: ${e?.message || "unknown error"}.`;
+  }
+
+  if (!rows.length) {
+    return NextResponse.json({
+      location: locationOut(place),
+      source: "Australian Bureau of Statistics — Producer Price Indexes",
+      summary: [
+        `Automated lookup didn't complete — ${diag || "couldn't read the ABS workbook."} Check abs.gov.au (Producer Price Indexes, Australia) directly, or add a market risk row manually.`,
+      ],
+      suggestedRisk: null,
+    });
+  }
+
+  const results: { label: string; latestLabel: string; pct: number }[] = [];
+  for (const series of AU_SERIES) {
+    const yoy = yoyFromAbsRows(rows, series.seriesId);
+    if (yoy) results.push({ label: series.label, latestLabel: yoy.latestLabel, pct: yoy.pct });
   }
 
   if (!results.length) {
@@ -342,9 +389,7 @@ async function lookupAU(place: GeocodeResult) {
       location: locationOut(place),
       source: "Australian Bureau of Statistics — Producer Price Indexes",
       summary: [
-        diag
-          ? `Automated lookup didn't complete — ${diag} Check abs.gov.au (Producer Price Indexes, Australia) directly, or add a market risk row manually.`
-          : "No usable ABS data was returned for this lookup. Check abs.gov.au (Producer Price Indexes, Australia) directly, or add a market risk row manually.",
+        "The ABS workbook downloaded but didn't contain a usable observation for any tracked series — its layout or series IDs may have changed. Check abs.gov.au (Producer Price Indexes, Australia) directly, or add a market risk row manually.",
       ],
       suggestedRisk: null,
     });
@@ -352,10 +397,15 @@ async function lookupAU(place: GeocodeResult) {
 
   const headline = results[0];
   const summary: string[] = [
-    `${headline.label}: ${headline.pct >= 0 ? "up" : "down"} ${Math.abs(headline.pct).toFixed(1)}% over the 12 months to ${headline.latestLabel} (ABS Producer Price Indexes).`,
-    "ABS publishes this as an input cost index for house building — it's the closest free national indicator of Australian construction materials cost inflation, but it isn't civil-infrastructure-specific and isn't a quote for this project's actual material mix or region.",
-    "This is a national materials cost trend, not a quote for this project's actual material mix, region, or supplier — always confirm with current supplier and subcontractor pricing before finalising an escalation allowance.",
+    `${headline.label}: ${headline.pct >= 0 ? "up" : "down"} ${Math.abs(headline.pct).toFixed(1)}% over the 12 months to ${headline.latestLabel} (ABS Producer Price Indexes — Output of the Construction industries).`,
   ];
+  for (const r of results) {
+    if (r === headline) continue;
+    summary.push(`${r.label}: ${r.pct >= 0 ? "up" : "down"} ${Math.abs(r.pct).toFixed(1)}% over the 12 months to ${r.latestLabel} (ABS PPI).`);
+  }
+  summary.push(
+    "These are national output price indices by construction category, not a quote for this project's actual work type, region, or supplier — always confirm with current supplier and subcontractor pricing before finalising an escalation allowance."
+  );
 
   const suggested = riskFromYoyPct(headline.pct, headline.label, "ABS PPI");
 
