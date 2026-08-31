@@ -101,7 +101,18 @@ export default function HelpPage() {
             the cost itself is uncertain (not just whether it happens), the optional <b>Min</b>
             and <b>Max</b> columns let you enter a 3-point estimate instead of a single fixed
             figure — leave them blank for risks you already know the cost of, and use them for
-            the few where the range genuinely matters, like unexpected ground conditions.
+            the few where the range genuinely matters, like unexpected ground conditions. When
+            Min and Max are set, the Summary tab's risk-adjusted price range treats that risk as
+            a spread rather than one fixed number; leaving them blank just uses the single
+            "Impact (likely)" figure.
+          </p>
+          <p>
+            The <b>cost impact — and Min/Max — are always something you enter yourself.</b> None
+            of the five lookups below know your project's dollar exposure, so none of them ever
+            pre-fill a cost figure; each one can only suggest a probability and a description
+            based on the hazard or trend it finds at the site. For the market / price escalation
+            lookup, a reasonable starting point is the value of the affected material or trade
+            package multiplied by the cost trend it shows you.
           </p>
           <p>
             Enter your site location once and use it for five live lookups. The <b>weather risk
