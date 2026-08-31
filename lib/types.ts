@@ -71,7 +71,7 @@ export interface Markups {
   gst: number;
 }
 
-export type RiskCategory = "weather" | "geotechnical" | "programme" | "market" | "safety" | "other";
+export type RiskCategory = "weather" | "geotechnical" | "flood" | "seismic" | "programme" | "market" | "safety" | "other";
 
 export interface RiskItemRow {
   id: string;
