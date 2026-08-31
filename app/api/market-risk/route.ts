@@ -40,6 +40,18 @@ import { NextResponse } from "next/server";
  * GET /api/market-risk?location=Ipswich%2C%20QLD
  */
 
+// Some government API gateways (ABS's in particular — confirmed in their own
+// troubleshooting docs) return HTTP 403 for requests that don't carry a
+// browser-like User-Agent, since Node's built-in fetch() otherwise identifies
+// itself as "undici" and gets flagged as a bot. A realistic UA plus a normal
+// Accept-Encoding header avoids that.
+const EXTERNAL_API_HEADERS: Record<string, string> = {
+  accept: "application/json",
+  "user-agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "accept-encoding": "gzip, deflate, br",
+};
+
 interface GeocodeResult {
   name: string;
   country?: string;
@@ -183,7 +195,7 @@ async function lookupUS(place: GeocodeResult) {
       const url = `https://api.bls.gov/publicAPI/v2/timeseries/data/${series.id}?startyear=${thisYear - 1}&endyear=${thisYear}`;
       const res = await fetch(url, {
         cache: "no-store",
-        headers: { accept: "application/json", "user-agent": "Mozilla/5.0 (compatible; GroundTruthEstimator/1.0)" },
+        headers: EXTERNAL_API_HEADERS,
       });
       if (!res.ok) {
         anyRequestFailed = true;
@@ -265,21 +277,36 @@ function parseAbsLatestValue(json: any): { latestLabel: string; value: number } 
 async function lookupAU(place: GeocodeResult) {
   const thisYear = new Date().getFullYear();
   const results: { label: string; latestLabel: string; pct: number }[] = [];
-  let anyRequestFailed = false;
+  let diag = "";
 
   for (const series of AU_SERIES) {
     try {
       const url = `https://data.api.abs.gov.au/rest/data/ABS,PPI/${series.key}?startPeriod=${thisYear - 2}-Q1&format=jsondata`;
-      const res = await fetch(url, { cache: "no-store", headers: { accept: "application/json" } });
+      const res = await fetch(url, {
+        cache: "no-store",
+        headers: EXTERNAL_API_HEADERS,
+      });
       if (!res.ok) {
-        anyRequestFailed = true;
+        const bodyText = await res.text().catch(() => "");
+        diag = `ABS Data API returned HTTP ${res.status}.${bodyText ? ` ${bodyText.slice(0, 200)}` : ""}`;
         continue;
       }
-      const json = await res.json().catch(() => null);
-      const parsed = json ? parseAbsLatestValue(json) : null;
-      if (parsed) results.push({ label: series.label, latestLabel: parsed.latestLabel, pct: parsed.value });
-    } catch {
-      anyRequestFailed = true;
+      const text = await res.text();
+      let json: any = null;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        diag = `ABS Data API returned a non-JSON response: ${text.slice(0, 200)}`;
+        continue;
+      }
+      const parsed = parseAbsLatestValue(json);
+      if (parsed) {
+        results.push({ label: series.label, latestLabel: parsed.latestLabel, pct: parsed.value });
+      } else {
+        diag = "ABS response didn't contain a usable observation for this series (query key or dataflow version may need updating).";
+      }
+    } catch (e: any) {
+      diag = `Request to ABS Data API failed: ${e?.message || "unknown error"}.`;
     }
   }
 
@@ -288,8 +315,8 @@ async function lookupAU(place: GeocodeResult) {
       location: locationOut(place),
       source: "Australian Bureau of Statistics — Producer Price Indexes",
       summary: [
-        anyRequestFailed
-          ? "Automated lookup didn't complete — the ABS Data API may be temporarily unavailable. Try again later, or check abs.gov.au (Producer Price Indexes, Australia) directly."
+        diag
+          ? `Automated lookup didn't complete — ${diag} Check abs.gov.au (Producer Price Indexes, Australia) directly, or add a market risk row manually.`
           : "No usable ABS data was returned for this lookup. Check abs.gov.au (Producer Price Indexes, Australia) directly, or add a market risk row manually.",
       ],
       suggestedRisk: null,
@@ -369,34 +396,45 @@ function yoyFromOnsPoints(points: OnsPoint[]): { latestLabel: string; pct: numbe
   return { latestLabel: latest.label, pct: ((latest.value - yearAgo.value) / yearAgo.value) * 100 };
 }
 
-async function fetchOnsYoy(cdid: string): Promise<{ latestLabel: string; pct: number } | null> {
+async function fetchOnsYoy(cdid: string): Promise<{ yoy: { latestLabel: string; pct: number } | null; diag: string }> {
   const url = `https://api.beta.ons.gov.uk/v1/data?uri=/economy/inflationandpriceindices/timeseries/${cdid.toLowerCase()}/ppi`;
-  const res = await fetch(url, { cache: "no-store", headers: { accept: "application/json" } });
-  if (!res.ok) return null;
-  const json = await res.json().catch(() => null);
-  if (!json) return null;
+  const res = await fetch(url, {
+    cache: "no-store",
+    headers: EXTERNAL_API_HEADERS,
+  });
+  if (!res.ok) {
+    const bodyText = await res.text().catch(() => "");
+    return { yoy: null, diag: `ONS API returned HTTP ${res.status} for ${cdid}.${bodyText ? ` ${bodyText.slice(0, 200)}` : ""}` };
+  }
+  const text = await res.text();
+  let json: any = null;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    return { yoy: null, diag: `ONS API returned a non-JSON response for ${cdid}: ${text.slice(0, 200)}` };
+  }
   // Prefer the finest available frequency, since ONS series switch frequency over time.
-  return (
+  const yoy =
     yoyFromOnsPoints(onsPointsFromArray(json.months, "months")) ||
     yoyFromOnsPoints(onsPointsFromArray(json.quarters, "quarters")) ||
-    yoyFromOnsPoints(onsPointsFromArray(json.years, "years"))
-  );
+    yoyFromOnsPoints(onsPointsFromArray(json.years, "years"));
+  return { yoy, diag: yoy ? "" : `ONS response for ${cdid} didn't contain a usable 12-month-apart comparison.` };
 }
 
 async function lookupUK(place: GeocodeResult) {
   const results: { label: string; latestLabel: string; pct: number }[] = [];
-  let anyRequestFailed = false;
+  let diag = "";
 
   for (const series of UK_SERIES) {
     try {
-      const yoy = await fetchOnsYoy(series.cdid);
+      const { yoy, diag: seriesDiag } = await fetchOnsYoy(series.cdid);
       if (yoy) {
         results.push({ label: series.label, latestLabel: yoy.latestLabel, pct: yoy.pct });
-      } else {
-        anyRequestFailed = true;
+      } else if (seriesDiag) {
+        diag = seriesDiag;
       }
-    } catch {
-      anyRequestFailed = true;
+    } catch (e: any) {
+      diag = `Request to ONS API failed: ${e?.message || "unknown error"}.`;
     }
   }
 
@@ -405,8 +443,8 @@ async function lookupUK(place: GeocodeResult) {
       location: locationOut(place),
       source: "UK Office for National Statistics — Producer Price Index",
       summary: [
-        anyRequestFailed
-          ? "Automated lookup didn't complete — the ONS API may be temporarily unavailable. Try again later, or check ons.gov.uk (Producer Price Index) directly."
+        diag
+          ? `Automated lookup didn't complete — ${diag} Check ons.gov.uk (Producer Price Index) directly, or add a market risk row manually.`
           : "No usable ONS data was returned for this lookup. Check ons.gov.uk (Producer Price Index) directly, or add a market risk row manually.",
       ],
       suggestedRisk: null,
@@ -477,9 +515,13 @@ async function lookupEU(place: GeocodeResult, geoCode: string, countryLabel: str
 
   let diag = "";
   try {
-    const res = await fetch(url, { cache: "no-store", headers: { accept: "application/json" } });
+    const res = await fetch(url, {
+      cache: "no-store",
+      headers: EXTERNAL_API_HEADERS,
+    });
     if (!res.ok) {
-      diag = `Eurostat returned HTTP ${res.status}.`;
+      const bodyText = await res.text().catch(() => "");
+      diag = `Eurostat returned HTTP ${res.status}.${bodyText ? ` ${bodyText.slice(0, 200)}` : ""}`;
     } else {
       const json = await res.json().catch(() => null);
       const parsed = json ? parseEurostatLatest(json) : null;
