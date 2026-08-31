@@ -321,6 +321,8 @@ export const PRELIMINARY_CATEGORY_LABELS: Record<string, string> = {
 export const RISK_CATEGORY_LABELS: Record<string, string> = {
   weather: "Weather",
   geotechnical: "Geotechnical",
+  flood: "Flood",
+  seismic: "Seismic",
   programme: "Programme",
   market: "Market / Price escalation",
   safety: "Safety",
