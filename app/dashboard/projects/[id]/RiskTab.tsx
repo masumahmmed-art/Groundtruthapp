@@ -598,7 +598,7 @@ export default function RiskTab({
       <div className="section">
         <div className="section-head">
           <h3>Market / price escalation lookup</h3>
-          <span className="hint">Construction cost & materials trend — US (BLS) and Australia (ABS)</span>
+          <span className="hint">Construction cost & materials trend — US, Australia, UK & EU</span>
         </div>
         <div className="card" style={{ padding: 18 }}>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 14 }}>
