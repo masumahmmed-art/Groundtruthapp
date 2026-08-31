@@ -24,6 +24,20 @@ interface GeotechResult {
   suggestedRisk: { category: "geotechnical"; description: string; probability: number } | null;
 }
 
+interface FloodResult {
+  location: { name: string; state: string | null; country: string | null };
+  source: string | null;
+  summary: string[];
+  suggestedRisk: { category: "flood"; description: string; probability: number } | null;
+}
+
+interface SeismicResult {
+  location: { name: string; state: string | null; country: string | null };
+  source: string | null;
+  summary: string[];
+  suggestedRisk: { category: "seismic"; description: string; probability: number } | null;
+}
+
 export default function RiskTab({
   project,
   risks,
@@ -45,6 +59,14 @@ export default function RiskTab({
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [geoResult, setGeoResult] = useState<GeotechResult | null>(null);
+
+  const [floodLoading, setFloodLoading] = useState(false);
+  const [floodError, setFloodError] = useState<string | null>(null);
+  const [floodResult, setFloodResult] = useState<FloodResult | null>(null);
+
+  const [seismicLoading, setSeismicLoading] = useState(false);
+  const [seismicError, setSeismicError] = useState<string | null>(null);
+  const [seismicResult, setSeismicResult] = useState<SeismicResult | null>(null);
 
   function toggleMonth(m: number) {
     setMonths((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m].sort((a, b) => a - b)));
@@ -93,6 +115,48 @@ export default function RiskTab({
     }
   }
 
+  async function checkFlood() {
+    if (!location.trim()) return;
+    setFloodLoading(true);
+    setFloodError(null);
+    setFloodResult(null);
+    try {
+      const qs = new URLSearchParams({ location });
+      const res = await fetch(`/api/flood-risk?${qs.toString()}`);
+      const json = await res.json();
+      if (!res.ok) {
+        setFloodError(json.error || "Something went wrong looking up flood risk.");
+      } else {
+        setFloodResult(json);
+      }
+    } catch (e: any) {
+      setFloodError(e?.message || "Network error looking up flood risk.");
+    } finally {
+      setFloodLoading(false);
+    }
+  }
+
+  async function checkSeismic() {
+    if (!location.trim()) return;
+    setSeismicLoading(true);
+    setSeismicError(null);
+    setSeismicResult(null);
+    try {
+      const qs = new URLSearchParams({ location });
+      const res = await fetch(`/api/seismic-risk?${qs.toString()}`);
+      const json = await res.json();
+      if (!res.ok) {
+        setSeismicError(json.error || "Something went wrong looking up seismic risk.");
+      } else {
+        setSeismicResult(json);
+      }
+    } catch (e: any) {
+      setSeismicError(e?.message || "Network error looking up seismic risk.");
+    } finally {
+      setSeismicLoading(false);
+    }
+  }
+
   async function addRisk(patch?: Partial<RiskItemRow>) {
     const { data, error } = await supabase
       .from("risk_items")
@@ -131,7 +195,7 @@ export default function RiskTab({
       <div className="titleblock">
         <div>
           <h2 style={{ fontSize: 20 }}>Risk & Location</h2>
-          <div className="meta">Itemised risk register (probability × cost impact) plus weather and geotechnical lookups for the site.</div>
+          <div className="meta">Itemised risk register (probability × cost impact) plus weather, geotechnical, flood, and seismic lookups for the site.</div>
         </div>
         <div className="stamp">
           Risk allowance
@@ -381,6 +445,112 @@ export default function RiskTab({
                       category: "geotechnical",
                       description: geoResult.suggestedRisk!.description,
                       probability: geoResult.suggestedRisk!.probability,
+                      impact: 0,
+                    })
+                  }
+                >
+                  + Add suggested risk to register
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-head">
+          <h3>Flood risk lookup</h3>
+          <span className="hint">FEMA National Flood Hazard Layer — United States</span>
+        </div>
+        <div className="card" style={{ padding: 18 }}>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 14 }}>
+            <button className="btn btn-primary" onClick={checkFlood} disabled={floodLoading}>
+              {floodLoading ? "Checking…" : "Check flood risk"}
+            </button>
+          </div>
+
+          {floodError && <div className="auth-error">{floodError}</div>}
+
+          {floodResult && (
+            <div>
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 14 }}>
+                <div className="kpi" style={{ flex: "1 1 200px" }}>
+                  <div className="label">Location matched</div>
+                  <div className="value" style={{ fontSize: 15 }}>{floodResult.location.name}{floodResult.location.state ? `, ${floodResult.location.state}` : ""}</div>
+                </div>
+                <div className="kpi" style={{ flex: "1 1 200px" }}>
+                  <div className="label">Data source</div>
+                  <div className="value" style={{ fontSize: 15 }}>{floodResult.source || "Not available for this country"}</div>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                {floodResult.summary.map((s, i) => (
+                  <p key={i} style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "0 0 8px" }}>{s}</p>
+                ))}
+              </div>
+
+              {floodResult.suggestedRisk && (
+                <button
+                  className="btn"
+                  onClick={() =>
+                    addRisk({
+                      category: "flood",
+                      description: floodResult.suggestedRisk!.description,
+                      probability: floodResult.suggestedRisk!.probability,
+                      impact: 0,
+                    })
+                  }
+                >
+                  + Add suggested risk to register
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-head">
+          <h3>Seismic risk lookup</h3>
+          <span className="hint">USGS Design Maps (US) and Geoscience Australia (AU)</span>
+        </div>
+        <div className="card" style={{ padding: 18 }}>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 14 }}>
+            <button className="btn btn-primary" onClick={checkSeismic} disabled={seismicLoading}>
+              {seismicLoading ? "Checking…" : "Check seismic risk"}
+            </button>
+          </div>
+
+          {seismicError && <div className="auth-error">{seismicError}</div>}
+
+          {seismicResult && (
+            <div>
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 14 }}>
+                <div className="kpi" style={{ flex: "1 1 200px" }}>
+                  <div className="label">Location matched</div>
+                  <div className="value" style={{ fontSize: 15 }}>{seismicResult.location.name}{seismicResult.location.state ? `, ${seismicResult.location.state}` : ""}</div>
+                </div>
+                <div className="kpi" style={{ flex: "1 1 200px" }}>
+                  <div className="label">Data source</div>
+                  <div className="value" style={{ fontSize: 15 }}>{seismicResult.source || "Not available for this country"}</div>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                {seismicResult.summary.map((s, i) => (
+                  <p key={i} style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "0 0 8px" }}>{s}</p>
+                ))}
+              </div>
+
+              {seismicResult.suggestedRisk && (
+                <button
+                  className="btn"
+                  onClick={() =>
+                    addRisk({
+                      category: "seismic",
+                      description: seismicResult.suggestedRisk!.description,
+                      probability: seismicResult.suggestedRisk!.probability,
                       impact: 0,
                     })
                   }
