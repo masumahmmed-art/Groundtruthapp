@@ -1,5 +1,14 @@
 import { NextResponse } from "next/server";
 
+// Try running this function out of Sydney rather than Vercel's US default.
+// ABS's Data API appears to be silently soft-blocking automated-looking
+// requests from US cloud IP ranges (see the long comment above lookupAU) —
+// this is a cheap, harmless experiment to see if an AU-region origin fares
+// better. If it doesn't help, or this account's Vercel plan doesn't support
+// picking a region, this line is simply ignored and the function keeps
+// running from the default region.
+export const preferredRegion = "syd1";
+
 /**
  * Market / price escalation risk lookup.
  *
