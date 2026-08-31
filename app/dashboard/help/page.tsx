@@ -104,7 +104,7 @@ export default function HelpPage() {
             the few where the range genuinely matters, like unexpected ground conditions.
           </p>
           <p>
-            Enter your site location once and use it for four live lookups. The <b>weather risk
+            Enter your site location once and use it for five live lookups. The <b>weather risk
             lookup</b> pulls historical climate data for the site and can suggest a starting
             weather risk entry. The <b>geotechnical / soil risk lookup</b> checks free
             government soil survey data for the site — USDA soil survey (SSURGO) data in the
@@ -122,12 +122,25 @@ export default function HelpPage() {
             suggesting a starting seismic risk entry where relevant.
           </p>
           <p>
+            The <b>market / price escalation lookup</b> checks free government statistics on
+            construction cost and materials price inflation for the site's country, and can flag
+            an above-normal 12-month cost trend, suggesting a starting market risk entry where
+            relevant. It covers the United States (Bureau of Labor Statistics), Australia
+            (Australian Bureau of Statistics), the United Kingdom (Office for National
+            Statistics), and every EU member state (Eurostat). Coverage depth varies by country —
+            the US and Australia return one figure, the UK returns a small basket of individual
+            material indices rather than one blended figure, and the EU figure is specific to new
+            residential building construction rather than civil infrastructure — always check
+            current supplier and subcontractor pricing before setting an escalation allowance.
+          </p>
+          <p>
             Outside the regions each lookup covers, it will tell you plainly rather than guess —
-            add a risk row manually instead. All four lookups are a desktop-level early warning,
-            not a substitute for a real site investigation — always confirm with your own
-            geotechnical or structural engineer, bores or test pits, the actual FEMA FIRM panel,
-            or a project-specific seismic assessment before pricing footings, pavement subgrade,
-            flood-proofing, or seismic detailing.
+            add a risk row manually instead. All five lookups are a desktop-level early warning,
+            not a substitute for a real site investigation or current market pricing — always
+            confirm with your own geotechnical or structural engineer, bores or test pits, the
+            actual FEMA FIRM panel, a project-specific seismic assessment, or current supplier
+            quotes before pricing footings, pavement subgrade, flood-proofing, seismic detailing,
+            or an escalation allowance.
           </p>
         </div>
       </div>
