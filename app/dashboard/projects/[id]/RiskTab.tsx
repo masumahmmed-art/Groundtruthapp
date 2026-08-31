@@ -38,10 +38,18 @@ interface SeismicResult {
   suggestedRisk: { category: "seismic"; description: string; probability: number } | null;
 }
 
+interface MarketCategory {
+  label: string;
+  pct: number;
+  latestLabel: string;
+  suggestedRisk: { category: "market"; description: string; probability: number } | null;
+}
+
 interface MarketResult {
   location: { name: string; state: string | null; country: string | null };
   source: string | null;
   summary: string[];
+  categories: MarketCategory[];
   suggestedRisk: { category: "market"; description: string; probability: number } | null;
 }
 
@@ -622,27 +630,49 @@ export default function RiskTab({
                 </div>
               </div>
 
-              <div style={{ marginBottom: 14 }}>
+              {marketResult.categories.length > 0 && (
+                <div style={{ marginBottom: 14 }}>
+                  {marketResult.categories.map((c, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "8px 0",
+                        borderBottom: i < marketResult.categories.length - 1 ? "1px solid var(--line, #e5e2da)" : "none",
+                      }}
+                    >
+                      <span style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>
+                        <b>{c.label}</b>: {c.pct >= 0 ? "up" : "down"} {Math.abs(c.pct).toFixed(1)}% over the 12 months to {c.latestLabel}
+                      </span>
+                      {c.suggestedRisk && (
+                        <button
+                          className="btn btn-sm"
+                          style={{ whiteSpace: "nowrap" }}
+                          onClick={() =>
+                            addRisk({
+                              category: "market",
+                              description: c.suggestedRisk!.description,
+                              probability: c.suggestedRisk!.probability,
+                              impact: 0,
+                            })
+                          }
+                        >
+                          + Add
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ marginBottom: 4 }}>
                 {marketResult.summary.map((s, i) => (
                   <p key={i} style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "0 0 8px" }}>{s}</p>
                 ))}
               </div>
-
-              {marketResult.suggestedRisk && (
-                <button
-                  className="btn"
-                  onClick={() =>
-                    addRisk({
-                      category: "market",
-                      description: marketResult.suggestedRisk!.description,
-                      probability: marketResult.suggestedRisk!.probability,
-                      impact: 0,
-                    })
-                  }
-                >
-                  + Add suggested risk to register
-                </button>
-              )}
             </div>
           )}
         </div>
