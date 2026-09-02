@@ -8,6 +8,7 @@ const ITEMS = [
   { href: "/dashboard/rates", label: "Rate Library" },
   { href: "/dashboard/settings", label: "Settings" },
   { href: "/dashboard/help", label: "Help" },
+  { href: "/dashboard/feedback", label: "Feedback" },
 ];
 
 export default function RailNav() {
