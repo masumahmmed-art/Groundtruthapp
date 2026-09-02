@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { signup } from "./actions";
+import Turnstile from "@/lib/Turnstile";
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
 export default function SignupPage({
   searchParams,
@@ -63,6 +66,7 @@ export default function SignupPage({
             <label htmlFor="password">Password</label>
             <input id="password" name="password" type="password" required minLength={6} />
           </div>
+          <Turnstile siteKey={TURNSTILE_SITE_KEY} />
           <button type="submit" className="btn btn-primary" style={{ justifyContent: "center", padding: "10px 13px" }}>
             Create workspace
           </button>
