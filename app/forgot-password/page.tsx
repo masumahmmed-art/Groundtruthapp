@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { requestPasswordReset } from "./actions";
+import Turnstile from "@/lib/Turnstile";
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
 export default function ForgotPasswordPage({
   searchParams,
@@ -44,6 +47,7 @@ export default function ForgotPasswordPage({
             <label htmlFor="email">Email</label>
             <input id="email" name="email" type="email" required autoFocus />
           </div>
+          <Turnstile siteKey={TURNSTILE_SITE_KEY} />
           <button type="submit" className="btn btn-primary" style={{ justifyContent: "center", padding: "10px 13px" }}>
             Send reset link
           </button>
