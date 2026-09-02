@@ -21,13 +21,14 @@ function resolveSiteUrl() {
 export async function signup(formData: FormData) {
   const email = String(formData.get("email") || "").trim();
   const password = String(formData.get("password") || "");
+  const captchaToken = String(formData.get("cf-turnstile-response") || "") || undefined;
   const origin = resolveSiteUrl();
 
   const supabase = createClient();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: `${origin}/auth/callback` },
+    options: { emailRedirectTo: `${origin}/auth/callback`, captchaToken },
   });
 
   if (error) {
