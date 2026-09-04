@@ -133,7 +133,12 @@ export function parseSpreadsheetText(text: string): ParseResult {
 
   let headerIdx = -1;
   let columns: ColumnMap | null = null;
-  const scanLimit = Math.min(lines.length, 15);
+  // Scan the whole paste for the header row, not just the first few lines —
+  // real-world cost-estimate workbooks often have a title block and a
+  // separate summary table sitting above the actual line-item table, so the
+  // real "Item / Description / Unit / Quantity / Unit Rate" header can be
+  // dozens of rows down.
+  const scanLimit = lines.length;
   for (let i = 0; i < scanLimit; i++) {
     const cells = splitDelimited(lines[i], delimiter);
     const detected = tryDetectHeader(cells);
