@@ -5,8 +5,9 @@ import { createClient } from "@/lib/supabase/client";
 import type { BuildupComponent, CategoryRow, LineItemRow, ProjectRow, RateItemRow } from "@/lib/types";
 import { categoryTotal, directTotal, itemUnitRate, numFmt, rateById } from "@/lib/calc";
 import { formatMoney, convertedDisplay, type UnitSystem } from "@/lib/units";
+import ImportDialog from "./ImportDialog";
 
-type BuildupKey = "labour" | "plant" | "material";
+type BuildupKey = "labour" | "plant" | "material" | "subcontract";
 
 export default function EstimateTab({
   project,
@@ -30,6 +31,7 @@ export default function EstimateTab({
   const supabase = createClient();
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [openItem, setOpenItem] = useState<string | null>(null);
+  const [showImport, setShowImport] = useState(false);
 
   async function addCategory() {
     const name = prompt("New category name:", "New Category");
@@ -45,7 +47,18 @@ export default function EstimateTab({
   async function addItem(categoryId: string) {
     const { data, error } = await supabase
       .from("line_items")
-      .insert({ category_id: categoryId, description: "New line item", unit: "unit", qty: 1, labour: [], plant: [], material: [] })
+      .insert({
+        category_id: categoryId,
+        description: "New line item",
+        unit: "unit",
+        qty: 1,
+        labour: [],
+        plant: [],
+        material: [],
+        subcontract: [],
+        rate_mode: "buildup",
+        flat_rate: 0,
+      })
       .select("*")
       .single();
     if (!error && data) {
@@ -91,6 +104,19 @@ export default function EstimateTab({
     const list = (item[key] as BuildupComponent[]).filter((_, i) => i !== idx);
     updateItemLocal(itemId, { [key]: list } as Partial<LineItemRow>);
     persistItem(itemId, { [key]: list } as Partial<LineItemRow>);
+  }
+
+  function setRateMode(itemId: string, mode: "buildup" | "flat") {
+    updateItemLocal(itemId, { rate_mode: mode });
+    persistItem(itemId, { rate_mode: mode });
+  }
+
+  function setFlatRate(itemId: string, value: number) {
+    updateItemLocal(itemId, { flat_rate: value });
+  }
+
+  function persistFlatRate(itemId: string, value: number) {
+    persistItem(itemId, { flat_rate: value });
   }
 
   const direct = directTotal(rates, items);
@@ -163,6 +189,9 @@ export default function EstimateTab({
                           onAddComponent={(key) => addComponent(item.id, key)}
                           onRemoveComponent={(key, idx) => removeComponent(item.id, key, idx)}
                           onComponentChange={(key, idx, patch) => updateComponent(item.id, key, idx, patch)}
+                          onSetRateMode={(mode) => setRateMode(item.id, mode)}
+                          onFlatRateChange={(v) => setFlatRate(item.id, v)}
+                          onFlatRateBlur={(v) => persistFlatRate(item.id, v)}
                         />
                       );
                     })}
@@ -176,7 +205,21 @@ export default function EstimateTab({
           </div>
         );
       })}
-      <button className="btn" onClick={addCategory}>+ Add category</button>
+      <div style={{ display: "flex", gap: 10 }}>
+        <button className="btn" onClick={addCategory}>+ Add category</button>
+        <button className="btn" onClick={() => setShowImport(true)}>⇪ Import line items</button>
+      </div>
+
+      {showImport && (
+        <ImportDialog
+          project={project}
+          categories={categories}
+          setCategories={setCategories}
+          setItems={setItems}
+          currency={currency}
+          onClose={() => setShowImport(false)}
+        />
+      )}
     </div>
   );
 }
@@ -195,6 +238,9 @@ function FragmentRow({
   onAddComponent,
   onRemoveComponent,
   onComponentChange,
+  onSetRateMode,
+  onFlatRateChange,
+  onFlatRateBlur,
 }: {
   item: LineItemRow;
   open: boolean;
@@ -209,8 +255,12 @@ function FragmentRow({
   onAddComponent: (key: BuildupKey) => void;
   onRemoveComponent: (key: BuildupKey, idx: number) => void;
   onComponentChange: (key: BuildupKey, idx: number, patch: Partial<BuildupComponent>) => void;
+  onSetRateMode: (mode: "buildup" | "flat") => void;
+  onFlatRateChange: (value: number) => void;
+  onFlatRateBlur: (value: number) => void;
 }) {
   const conv = convertedDisplay(item.unit, unitSystem);
+  const rateMode = item.rate_mode || "buildup";
 
   return (
     <>
@@ -277,11 +327,38 @@ function FragmentRow({
                 />
               </div>
             </div>
-            <div className="buildup-grid">
-              <BuildupColumn title="Labour" comps={item.labour} rates={rates.filter((r) => r.kind === "labour")} currency={currency} onAdd={() => onAddComponent("labour")} onRemove={(idx) => onRemoveComponent("labour", idx)} onChange={(idx, patch) => onComponentChange("labour", idx, patch)} />
-              <BuildupColumn title="Plant" comps={item.plant} rates={rates.filter((r) => r.kind === "plant")} currency={currency} onAdd={() => onAddComponent("plant")} onRemove={(idx) => onRemoveComponent("plant", idx)} onChange={(idx, patch) => onComponentChange("plant", idx, patch)} />
-              <BuildupColumn title="Material" comps={item.material} rates={rates.filter((r) => r.kind === "material")} currency={currency} onAdd={() => onAddComponent("material")} onRemove={(idx) => onRemoveComponent("material", idx)} onChange={(idx, patch) => onComponentChange("material", idx, patch)} />
+
+            <div style={{ display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+                <input type="radio" name={`rate-mode-${item.id}`} checked={rateMode === "buildup"} onChange={() => onSetRateMode("buildup")} />
+                Build up from labour / plant / material / subcontract
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+                <input type="radio" name={`rate-mode-${item.id}`} checked={rateMode === "flat"} onChange={() => onSetRateMode("flat")} />
+                Flat rate ($)
+              </label>
             </div>
+
+            {rateMode === "flat" ? (
+              <div className="field" style={{ width: 160 }}>
+                <label>Unit rate ({currency})</label>
+                <input
+                  type="number"
+                  className="mono"
+                  step="0.01"
+                  value={item.flat_rate ?? 0}
+                  onChange={(e) => onFlatRateChange(parseFloat(e.target.value) || 0)}
+                  onBlur={(e) => onFlatRateBlur(parseFloat(e.target.value) || 0)}
+                />
+              </div>
+            ) : (
+              <div className="buildup-grid">
+                <BuildupColumn title="Labour" comps={item.labour} rates={rates.filter((r) => r.kind === "labour")} currency={currency} onAdd={() => onAddComponent("labour")} onRemove={(idx) => onRemoveComponent("labour", idx)} onChange={(idx, patch) => onComponentChange("labour", idx, patch)} />
+                <BuildupColumn title="Plant" comps={item.plant} rates={rates.filter((r) => r.kind === "plant")} currency={currency} onAdd={() => onAddComponent("plant")} onRemove={(idx) => onRemoveComponent("plant", idx)} onChange={(idx, patch) => onComponentChange("plant", idx, patch)} />
+                <BuildupColumn title="Material" comps={item.material} rates={rates.filter((r) => r.kind === "material")} currency={currency} onAdd={() => onAddComponent("material")} onRemove={(idx) => onRemoveComponent("material", idx)} onChange={(idx, patch) => onComponentChange("material", idx, patch)} />
+                <BuildupColumn title="Subcontract" comps={item.subcontract} rates={rates.filter((r) => r.kind === "subcontract")} currency={currency} onAdd={() => onAddComponent("subcontract")} onRemove={(idx) => onRemoveComponent("subcontract", idx)} onChange={(idx, patch) => onComponentChange("subcontract", idx, patch)} />
+              </div>
+            )}
           </td>
         </tr>
       )}
