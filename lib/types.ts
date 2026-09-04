@@ -10,7 +10,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-export type RateKind = "labour" | "plant" | "material";
+export type RateKind = "labour" | "plant" | "material" | "subcontract";
 
 export interface RateItemRow {
   id: string;
@@ -54,6 +54,35 @@ export interface PreliminaryItem {
   notes?: string;
 }
 
+/**
+ * Client-side ("Principal's") cost categories — the client's own
+ * administration of the job, as distinct from the contractor's preliminaries
+ * above. Modelled on a typical government/agency client cost estimate: staff
+ * time running the project, plus one-off studies/investigations/approvals.
+ */
+export type ClientCostCategory =
+  | "project_management"
+  | "design_investigation"
+  | "environmental_approvals"
+  | "property_acquisition"
+  | "contract_administration"
+  | "other";
+
+/**
+ * One line item in an itemised client-cost build-up — same fixed/time-related
+ * shape as PreliminaryItem, just scoped to the client's own admin categories
+ * instead of the contractor's site preliminaries.
+ */
+export interface ClientCostItem {
+  id: string;
+  category: ClientCostCategory;
+  description: string;
+  type: "fixed" | "time_related";
+  /** Dollar amount: a one-off total if type is "fixed", or a $/week rate if type is "time_related". */
+  rate: number;
+  notes?: string;
+}
+
 export interface Markups {
   /** Legacy/default path: preliminaries as a flat % of direct cost. Still used when preliminariesMode is "percent" or unset. */
   preliminaries: number;
@@ -68,7 +97,15 @@ export interface Markups {
   margin: number;
   /** Client-side administrative cost, shown as a separate line after the contractor's GST-inclusive price — not part of the tender price itself. */
   principalCost: number;
+  /** "percent" (default, backward compatible, flat % of contract price) or "buildup" (itemised, see principalCostItems). */
+  principalCostMode?: "percent" | "buildup";
+  /** Itemised client-cost lines, used only when principalCostMode is "buildup". */
+  principalCostItems?: ClientCostItem[];
+  /** Duration in weeks used by "time_related" client-cost items. Kept separate from projectDurationWeeks because the client's own administration typically spans more than just the construction period (concept, design, delivery, finalisation). Defaults to projectDurationWeeks if unset. */
+  clientCostDurationWeeks?: number;
   gst: number;
+  /** Number of months the total project cost is spread over in the Cash Flow section, starting from the project date. */
+  cashFlowMonths?: number;
 }
 
 export type RiskCategory = "weather" | "geotechnical" | "flood" | "seismic" | "programme" | "market" | "safety" | "other";
@@ -125,6 +162,11 @@ export interface LineItemRow {
   labour: BuildupComponent[];
   plant: BuildupComponent[];
   material: BuildupComponent[];
+  subcontract: BuildupComponent[];
+  /** "buildup" (default, backward compatible — rate comes from labour/plant/material/subcontract) or "flat" (rate comes from flat_rate directly). */
+  rate_mode?: "buildup" | "flat";
+  /** Used only when rate_mode is "flat" — the unit rate, typed directly or set by the spreadsheet importer. */
+  flat_rate?: number;
   sort_order: number;
 }
 
