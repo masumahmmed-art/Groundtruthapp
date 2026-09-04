@@ -26,6 +26,7 @@
   --cost-labour: #1f6fa0;
   --cost-plant: #0f9e5c;
   --cost-material: #c1571a;
+  --cost-subcontract: #8b4b95;
   --cost-markup: #8a8f7c;
 
   --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
@@ -70,6 +71,7 @@
     --cost-labour: #4a8fc4;
     --cost-plant: #279e6d;
     --cost-material: #c96a2e;
+    --cost-subcontract: #9e5cae;
     --cost-markup: #7a8072;
 
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 1px rgba(0, 0, 0, 0.25);
@@ -101,6 +103,7 @@
   --cost-labour: #4a8fc4;
   --cost-plant: #279e6d;
   --cost-material: #c96a2e;
+  --cost-subcontract: #9e5cae;
   --cost-markup: #7a8072;
 
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 1px rgba(0, 0, 0, 0.25);
@@ -228,7 +231,7 @@ td input[type="number"] { text-align: right; }
 .item-row td { cursor: pointer; }
 .item-row.open { background: var(--surface-2); }
 .buildup-row td { background: var(--surface-2); border-bottom: 1px solid var(--line); padding: 14px; }
-.buildup-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.buildup-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; }
 .buildup-col h5 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
 .comp-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
 .buildup-col .comp-row select { flex: 1 1 auto; min-width: 0; width: auto; }
