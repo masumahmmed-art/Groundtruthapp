@@ -1,4 +1,15 @@
-import type { BuildupComponent, CategoryRow, LineItemRow, Markups, PreliminaryCategory, PreliminaryItem, RateItemRow, RiskItemRow } from "@/lib/types";
+import type {
+  BuildupComponent,
+  CategoryRow,
+  ClientCostCategory,
+  ClientCostItem,
+  LineItemRow,
+  Markups,
+  PreliminaryCategory,
+  PreliminaryItem,
+  RateItemRow,
+  RiskItemRow,
+} from "@/lib/types";
 
 /** True when a risk has a usable min/max range in addition to its `impact` (likely) figure. */
 function hasImpactRange(risk: RiskItemRow): boolean {
@@ -60,11 +71,20 @@ export function compUnitCost(rates: RateItemRow[], list: BuildupComponent[] | un
   }, 0);
 }
 
+/**
+ * A line item's unit rate: either the flat rate typed directly (rate_mode
+ * "flat" — used by imported items, or any item you'd rather not build up
+ * from the Rate Library), or the sum of its labour/plant/material/subcontract
+ * build-up (rate_mode "buildup", the default — unset rate_mode is treated as
+ * "buildup" for items that predate this field).
+ */
 export function itemUnitRate(rates: RateItemRow[], item: LineItemRow): number {
+  if (item.rate_mode === "flat") return item.flat_rate || 0;
   return (
     compUnitCost(rates, item.labour) +
     compUnitCost(rates, item.plant) +
-    compUnitCost(rates, item.material)
+    compUnitCost(rates, item.material) +
+    compUnitCost(rates, item.subcontract)
   );
 }
 
@@ -73,10 +93,18 @@ export function itemLineTotal(rates: RateItemRow[], item: LineItemRow): number {
 }
 
 export function itemCostByType(rates: RateItemRow[], item: LineItemRow) {
+  if (item.rate_mode === "flat") {
+    // A flat-rate item has no labour/plant/material/subcontract split to
+    // report — its whole line total is shown under "material" so it still
+    // shows up somewhere in the cost-by-resource-type chart rather than
+    // silently vanishing from it.
+    return { labour: 0, plant: 0, material: itemUnitRate(rates, item) * item.qty, subcontract: 0 };
+  }
   return {
     labour: compUnitCost(rates, item.labour) * item.qty,
     plant: compUnitCost(rates, item.plant) * item.qty,
     material: compUnitCost(rates, item.material) * item.qty,
+    subcontract: compUnitCost(rates, item.subcontract) * item.qty,
   };
 }
 
@@ -97,9 +125,10 @@ export function costTypeTotals(rates: RateItemRow[], items: LineItemRow[]) {
       t.labour += b.labour;
       t.plant += b.plant;
       t.material += b.material;
+      t.subcontract += b.subcontract;
       return t;
     },
-    { labour: 0, plant: 0, material: 0 }
+    { labour: 0, plant: 0, material: 0, subcontract: 0 }
   );
 }
 
@@ -120,6 +149,26 @@ export function preliminariesTotal(markups: Markups, direct: number): number {
     return preliminariesBuildupTotal(markups.preliminariesItems, markups.projectDurationWeeks || 0);
   }
   return direct * (markups.preliminaries / 100);
+}
+
+/** One item's contribution to the client-cost total — same fixed-vs-time-related shape as preliminaryItemTotal. */
+export function clientCostItemTotal(item: ClientCostItem, durationWeeks: number): number {
+  return item.type === "time_related" ? item.rate * durationWeeks : item.rate;
+}
+
+/** Sum of an itemised client-cost build-up. */
+export function clientCostBuildupTotal(items: ClientCostItem[] | undefined | null, durationWeeks: number): number {
+  if (!items || !items.length) return 0;
+  return items.reduce((sum, it) => sum + clientCostItemTotal(it, durationWeeks), 0);
+}
+
+/** The client's administrative cost, computed against the contractor's contract price — respecting percent vs itemised build-up mode. Defaults to percent mode for older projects that predate the build-up feature. */
+export function clientCostTotal(markups: Markups, contractPrice: number): number {
+  if (markups.principalCostMode === "buildup") {
+    const weeks = markups.clientCostDurationWeeks ?? markups.projectDurationWeeks ?? 0;
+    return clientCostBuildupTotal(markups.principalCostItems, weeks);
+  }
+  return contractPrice * (markups.principalCost / 100);
 }
 
 export interface FullBuildup {
@@ -167,7 +216,7 @@ export function fullBuildup(
   const s3 = s2 + margin;
   const gst = s3 * (markups.gst / 100);
   const contractPrice = s3 + gst;
-  const principalCost = contractPrice * (markups.principalCost / 100);
+  const principalCost = clientCostTotal(markups, contractPrice);
   const totalProjectCost = contractPrice + principalCost;
   return { direct, prelim, risk, cont, overhead, margin, s3, gst, contractPrice, principalCost, totalProjectCost };
 }
@@ -235,7 +284,11 @@ export const DEFAULT_MARKUPS: Markups = {
   overhead: 6,
   margin: 8,
   principalCost: 5,
+  principalCostMode: "percent",
+  principalCostItems: [],
+  clientCostDurationWeeks: 12,
   gst: 10,
+  cashFlowMonths: 12,
 };
 
 /**
@@ -318,6 +371,60 @@ export const PRELIMINARY_CATEGORY_LABELS: Record<string, string> = {
   other: "Other",
 };
 
+/**
+ * Common CLIENT-side ("Principal's") staff roles running the project from
+ * the client's own team — as distinct from SITE_STAFF_PRESETS above, which
+ * are contractor staff. Used by the "quick add" picker in the client-cost
+ * build-up.
+ */
+export const CLIENT_STAFF_PRESETS: string[] = [
+  "Project Director",
+  "Project Manager",
+  "Design Manager",
+  "Project Officer",
+  "Project Scheduler",
+  "Communications Officer",
+  "Project Support Officer",
+  "Technical Advisor",
+  "Public Utility Plant (PUP) Coordinator",
+  "Environmental & Cultural Heritage Officer",
+  "Contract Superintendent",
+  "Contract Administrator",
+];
+
+export interface ClientCostPreset {
+  description: string;
+  category: ClientCostCategory;
+  type: "fixed" | "time_related";
+}
+
+/**
+ * Common one-off client-side studies, investigations and approvals pay
+ * items. A convenience list for the "quick add" picker alongside
+ * CLIENT_STAFF_PRESETS.
+ */
+export const CLIENT_COST_ITEM_PRESETS: ClientCostPreset[] = [
+  { description: "Environmental approvals & assessment", category: "environmental_approvals", type: "fixed" },
+  { description: "Geotechnical investigation", category: "design_investigation", type: "fixed" },
+  { description: "Survey", category: "design_investigation", type: "fixed" },
+  { description: "Contaminated land investigation", category: "design_investigation", type: "fixed" },
+  { description: "Noise assessment", category: "design_investigation", type: "fixed" },
+  { description: "Public utility plant (PUP) potholing", category: "design_investigation", type: "fixed" },
+  { description: "Detailed design — Stage 1", category: "design_investigation", type: "fixed" },
+  { description: "Detailed design — issued for construction (IFC)", category: "design_investigation", type: "fixed" },
+  { description: "Property / land acquisition costs", category: "property_acquisition", type: "fixed" },
+  { description: "Property acquisition — transactional & other costs", category: "property_acquisition", type: "fixed" },
+];
+
+export const CLIENT_COST_CATEGORY_LABELS: Record<string, string> = {
+  project_management: "Project management",
+  design_investigation: "Design & investigation",
+  environmental_approvals: "Environmental approvals",
+  property_acquisition: "Property acquisition",
+  contract_administration: "Contract administration",
+  other: "Other",
+};
+
 export const RISK_CATEGORY_LABELS: Record<string, string> = {
   weather: "Weather",
   geotechnical: "Geotechnical",
@@ -335,3 +442,59 @@ export const DEFAULT_CATEGORIES: { name: string; color: string }[] = [
   { name: "Drainage & Pipelines", color: "var(--cat-drain)" },
   { name: "Structures (Bridges & Culverts)", color: "var(--cat-struct)" },
 ];
+
+// A small rotating palette used to colour categories created by the
+// spreadsheet importer — deliberately reuses the same CSS variables the app
+// already defines for DEFAULT_CATEGORIES plus the resource-type chart, so no
+// new colours need to be added to the stylesheet.
+export const IMPORT_CATEGORY_COLORS: string[] = [
+  "var(--cat-earth)",
+  "var(--cat-pave)",
+  "var(--cat-drain)",
+  "var(--cat-struct)",
+  "var(--cost-labour)",
+  "var(--cost-plant)",
+  "var(--cost-material)",
+  "var(--cost-markup)",
+];
+
+export interface CashFlowMonth {
+  label: string; // e.g. "Mar 2027"
+  amount: number; // this month's spend
+  cumulative: number; // running total through this month
+  cumulativePct: number; // running total as a % of the full total, 0-100
+}
+
+/**
+ * An even (straight-line) spread of the total project cost across `months`
+ * calendar months, starting from `startDate` (a "YYYY-MM-DD" string, as
+ * stored on projects.project_date). Deliberately simple — a straight-line
+ * spread rather than a front/back-loaded S-curve — since this app doesn't
+ * track a construction programme in enough detail to justify a shaped curve;
+ * it's meant to give a defensible first-pass view of "roughly how much a
+ * month", not a contractual payment schedule.
+ */
+export function cashFlowSchedule(totalProjectCost: number, months: number, startDate: string): CashFlowMonth[] {
+  const n = Math.max(1, Math.round(months || 1));
+  const monthly = totalProjectCost / n;
+
+  const start = new Date(startDate || new Date().toISOString().slice(0, 10));
+  const startYear = isNaN(start.getTime()) ? new Date().getFullYear() : start.getFullYear();
+  const startMonth = isNaN(start.getTime()) ? new Date().getMonth() : start.getMonth();
+
+  const fmt = new Intl.DateTimeFormat("en-AU", { month: "short", year: "numeric" });
+
+  const rows: CashFlowMonth[] = [];
+  let cumulative = 0;
+  for (let i = 0; i < n; i++) {
+    cumulative += monthly;
+    const d = new Date(startYear, startMonth + i, 1);
+    rows.push({
+      label: fmt.format(d),
+      amount: monthly,
+      cumulative,
+      cumulativePct: totalProjectCost > 0 ? (cumulative / totalProjectCost) * 100 : 0,
+    });
+  }
+  return rows;
+}
