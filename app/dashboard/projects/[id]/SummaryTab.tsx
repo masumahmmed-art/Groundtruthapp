@@ -2,24 +2,43 @@
 
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { CategoryRow, LineItemRow, Markups, PreliminaryCategory, PreliminaryItem, ProjectRow, RateItemRow, RiskItemRow } from "@/lib/types";
+import type {
+  CategoryRow,
+  ClientCostCategory,
+  ClientCostItem,
+  LineItemRow,
+  Markups,
+  PreliminaryCategory,
+  PreliminaryItem,
+  ProjectRow,
+  RateItemRow,
+  RiskItemRow,
+} from "@/lib/types";
 import {
   categoryTotal,
+  cashFlowSchedule,
   costTypeTotals,
   fullBuildup,
   preliminaryItemTotal,
   preliminariesBuildupTotal,
+  clientCostItemTotal,
+  clientCostBuildupTotal,
   simulateRiskRange,
   RISK_SIMULATION_ITERATIONS,
   PRELIMINARY_CATEGORY_LABELS,
   SITE_STAFF_PRESETS,
   PRELIMINARY_ITEM_PRESETS,
+  CLIENT_STAFF_PRESETS,
+  CLIENT_COST_ITEM_PRESETS,
+  CLIENT_COST_CATEGORY_LABELS,
   type FullBuildup,
 } from "@/lib/calc";
 import { formatMoney } from "@/lib/units";
 
-function newPreliminaryId() {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `pre_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+function newId(prefix: string) {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 export default function SummaryTab({
@@ -52,15 +71,15 @@ export default function SummaryTab({
     await supabase.from("projects").update({ markups }).eq("id", project.id);
   }
 
-  // --- Preliminaries build-up (itemised alternative to the flat % above) ---
-  const preliminariesMode = markups.preliminariesMode || "percent";
-  const preliminaryItems = markups.preliminariesItems || [];
-  const durationWeeks = markups.projectDurationWeeks ?? 12;
-
   function setMarkupsAndPersist(next: Markups) {
     setProject((p) => ({ ...p, markups: next }));
     supabase.from("projects").update({ markups: next }).eq("id", project.id);
   }
+
+  // --- Preliminaries build-up (itemised alternative to the flat % above) ---
+  const preliminariesMode = markups.preliminariesMode || "percent";
+  const preliminaryItems = markups.preliminariesItems || [];
+  const durationWeeks = markups.projectDurationWeeks ?? 12;
 
   function setPreliminariesMode(mode: "percent" | "buildup") {
     setMarkupsAndPersist({ ...markups, preliminariesMode: mode });
@@ -72,7 +91,7 @@ export default function SummaryTab({
 
   function addPreliminaryItem(overrides?: Partial<PreliminaryItem>) {
     const item: PreliminaryItem = {
-      id: newPreliminaryId(),
+      id: newId("pre"),
       category: "site_management",
       description: "New preliminaries item",
       type: "fixed",
@@ -82,11 +101,7 @@ export default function SummaryTab({
     setMarkupsAndPersist({ ...markups, preliminariesItems: [...preliminaryItems, item] });
   }
 
-  // --- Quick-add: on-site overhead & staff ---
-  // A small form (not just a plain dropdown) so the user builds up the
-  // resource — pick or type a role, set its $/week rate — then adds it to
-  // the itemised list in one step, as a time-related item under Site
-  // management & supervision.
+  // --- Quick-add: on-site overhead & staff (contractor side, preliminaries) ---
   const [quickRole, setQuickRole] = useState("");
   const [quickCustomRole, setQuickCustomRole] = useState("");
   const [quickRate, setQuickRate] = useState("");
@@ -138,6 +153,94 @@ export default function SummaryTab({
     setMarkupsAndPersist({ ...markups, preliminariesItems: next });
   }
 
+  // --- Client cost build-up (itemised alternative to the flat % principal's/client admin cost) ---
+  const clientCostMode = markups.principalCostMode || "percent";
+  const clientCostItems = markups.principalCostItems || [];
+  const clientCostDurationWeeks = markups.clientCostDurationWeeks ?? markups.projectDurationWeeks ?? 12;
+
+  function setClientCostMode(mode: "percent" | "buildup") {
+    setMarkupsAndPersist({ ...markups, principalCostMode: mode });
+  }
+
+  function setClientCostDurationWeeks(weeks: number) {
+    setMarkupsAndPersist({ ...markups, clientCostDurationWeeks: weeks });
+  }
+
+  function addClientCostItem(overrides?: Partial<ClientCostItem>) {
+    const item: ClientCostItem = {
+      id: newId("cc"),
+      category: "project_management",
+      description: "New client cost item",
+      type: "fixed",
+      rate: 0,
+      ...overrides,
+    };
+    setMarkupsAndPersist({ ...markups, principalCostItems: [...clientCostItems, item] });
+  }
+
+  // --- Quick-add: client-side project team ---
+  const [quickClientRole, setQuickClientRole] = useState("");
+  const [quickClientCustomRole, setQuickClientCustomRole] = useState("");
+  const [quickClientRate, setQuickClientRate] = useState("");
+
+  function handleQuickAddClientStaff() {
+    const description = quickClientRole === "__custom__" ? quickClientCustomRole.trim() : quickClientRole;
+    if (!description) return;
+    addClientCostItem({
+      category: "project_management",
+      description,
+      type: "time_related",
+      rate: parseFloat(quickClientRate) || 0,
+    });
+    setQuickClientRole("");
+    setQuickClientCustomRole("");
+    setQuickClientRate("");
+  }
+
+  // --- Quick-add: client-side studies, investigations & approvals ---
+  const [quickClientPayIdx, setQuickClientPayIdx] = useState("");
+  const [quickClientPayRate, setQuickClientPayRate] = useState("");
+  const selectedClientPayPreset = quickClientPayIdx !== "" ? CLIENT_COST_ITEM_PRESETS[parseInt(quickClientPayIdx, 10)] : undefined;
+
+  function handleQuickAddClientPayItem() {
+    if (quickClientPayIdx === "") return;
+    const preset = CLIENT_COST_ITEM_PRESETS[parseInt(quickClientPayIdx, 10)];
+    if (!preset) return;
+    addClientCostItem({
+      category: preset.category,
+      description: preset.description,
+      type: preset.type,
+      rate: parseFloat(quickClientPayRate) || 0,
+    });
+    setQuickClientPayIdx("");
+    setQuickClientPayRate("");
+  }
+
+  function updateClientCostItem(id: string, patch: Partial<ClientCostItem>) {
+    const next = clientCostItems.map((it) => (it.id === id ? { ...it, ...patch } : it));
+    setProject((p) => ({ ...p, markups: { ...markups, principalCostItems: next } }));
+  }
+
+  function persistClientCostItems() {
+    supabase.from("projects").update({ markups }).eq("id", project.id);
+  }
+
+  function removeClientCostItem(id: string) {
+    const next = clientCostItems.filter((it) => it.id !== id);
+    setMarkupsAndPersist({ ...markups, principalCostItems: next });
+  }
+
+  // --- Cash flow ---
+  const cashFlowMonths = markups.cashFlowMonths ?? 12;
+  function setCashFlowMonths(months: number) {
+    setMarkupsAndPersist({ ...markups, cashFlowMonths: months });
+  }
+  const cashFlowRows = useMemo(
+    () => cashFlowSchedule(build.totalProjectCost, cashFlowMonths, project.project_date),
+    [build.totalProjectCost, cashFlowMonths, project.project_date]
+  );
+  const maxMonthlySpend = Math.max(1, ...cashFlowRows.map((r) => r.amount));
+
   const byType = costTypeTotals(rates, items);
   const catRows = categories
     .map((c) => ({ name: c.name, color: c.color, value: categoryTotal(rates, items, c.id) }))
@@ -146,6 +249,7 @@ export default function SummaryTab({
     { name: "Labour", color: "var(--cost-labour)", value: byType.labour },
     { name: "Plant", color: "var(--cost-plant)", value: byType.plant },
     { name: "Material", color: "var(--cost-material)", value: byType.material },
+    { name: "Subcontract", color: "var(--cost-subcontract)", value: byType.subcontract },
     { name: "Risk, contingency, overhead & margin", color: "var(--cost-markup)", value: build.risk + build.cont + build.overhead + build.margin },
   ].filter((r) => r.value > 0);
 
@@ -169,10 +273,13 @@ export default function SummaryTab({
     const rows: string[][] = [];
     categories.forEach((cat) => {
       items.filter((i) => i.category_id === cat.id).forEach((it) => {
-        const unitRate = (it.labour.concat(it.plant, it.material) as any[]).reduce((sum, c) => {
-          const r = rates.find((rr) => rr.id === c.ref);
-          return sum + (r ? c.perUnit * r.rate : 0);
-        }, 0);
+        const unitRate =
+          it.rate_mode === "flat"
+            ? it.flat_rate || 0
+            : (it.labour.concat(it.plant, it.material, it.subcontract || []) as any[]).reduce((sum, c) => {
+                const r = rates.find((rr) => rr.id === c.ref);
+                return sum + (r ? c.perUnit * r.rate : 0);
+              }, 0);
         rows.push([cat.name, it.description, it.unit, String(it.qty), unitRate.toFixed(2), (unitRate * it.qty).toFixed(2)]);
       });
     });
@@ -217,8 +324,9 @@ export default function SummaryTab({
   }
 
   // Only the flat-percentage markup fields — NOT all of `keyof Markups`, since
-  // that now also includes non-numeric fields (preliminariesMode, preliminariesItems)
-  // added for the itemised build-up, which can't be bound to a numeric <input>.
+  // that now also includes non-numeric fields (preliminariesMode, preliminariesItems,
+  // principalCostMode, principalCostItems, etc.) added for the itemised build-ups,
+  // which can't be bound to a numeric <input>.
   type NumericMarkupKey = "preliminaries" | "contingency" | "overhead" | "margin" | "principalCost" | "gst";
 
   function MarkupRow({ label, value, mkKey }: { label: string; value: number; mkKey?: NumericMarkupKey }) {
@@ -553,6 +661,293 @@ export default function SummaryTab({
       </div>
 
       <div className="section">
+        <div className="section-head"><h3>Client Cost</h3><span className="hint">The client's (Principal's) own project administration — separate from the contractor's price</span></div>
+        <div className="card" style={{ padding: "14px 22px" }}>
+          <div style={{ display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+              <input
+                type="radio"
+                name="client-cost-mode"
+                checked={clientCostMode === "percent"}
+                onChange={() => setClientCostMode("percent")}
+              />
+              Simple % of contract price
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+              <input
+                type="radio"
+                name="client-cost-mode"
+                checked={clientCostMode === "buildup"}
+                onChange={() => setClientCostMode("buildup")}
+              />
+              Itemised build-up
+            </label>
+          </div>
+
+          {clientCostMode === "buildup" && (
+            <div style={{ marginTop: 14 }}>
+              <div className="field" style={{ maxWidth: 260, marginBottom: 14 }}>
+                <label>Client administration duration (weeks)</label>
+                <input
+                  type="number"
+                  className="mono"
+                  step="1"
+                  min={0}
+                  value={clientCostDurationWeeks}
+                  onChange={(e) => setProject((p) => ({ ...p, markups: { ...markups, clientCostDurationWeeks: parseFloat(e.target.value) || 0 } }))}
+                  onBlur={(e) => setClientCostDurationWeeks(parseFloat(e.target.value) || 0)}
+                />
+              </div>
+              <p className="hint" style={{ marginBottom: 10 }}>
+                Kept separate from the contractor's construction duration above, since the client's own administration
+                usually spans more than just the construction period — concept, design, delivery and finalisation.
+                Fixed items are a one-off cost; time-related items are a $/week rate × this duration.
+              </p>
+
+              <div className="card rate-table-wrap" style={{ boxShadow: "none", border: "1px solid var(--line)", padding: 12, marginBottom: 14 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 8 }}>
+                  Quick add — client project team
+                </div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Role</th>
+                      {quickClientRole === "__custom__" && <th style={{ width: 200 }}>Custom role name</th>}
+                      <th style={{ width: 130 }} className="num">$ / week</th>
+                      <th style={{ width: 120 }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <select value={quickClientRole} onChange={(e) => setQuickClientRole(e.target.value)}>
+                          <option value="">Select a role…</option>
+                          {CLIENT_STAFF_PRESETS.map((role) => (
+                            <option key={role} value={role}>{role}</option>
+                          ))}
+                          <option value="__custom__">Custom role…</option>
+                        </select>
+                      </td>
+                      {quickClientRole === "__custom__" && (
+                        <td>
+                          <input
+                            type="text"
+                            value={quickClientCustomRole}
+                            onChange={(e) => setQuickClientCustomRole(e.target.value)}
+                            placeholder="e.g. Utilities Coordinator"
+                          />
+                        </td>
+                      )}
+                      <td className="num">
+                        <input
+                          type="number"
+                          className="mono"
+                          step="0.01"
+                          min={0}
+                          value={quickClientRate}
+                          onChange={(e) => setQuickClientRate(e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <button
+                          className="btn btn-sm"
+                          onClick={handleQuickAddClientStaff}
+                          disabled={!quickClientRole || (quickClientRole === "__custom__" && !quickClientCustomRole.trim())}
+                        >
+                          + Add to list
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p className="hint" style={{ marginTop: 8, marginBottom: 0 }}>
+                  Pick a common client-side role (or type your own), set its weekly rate, and it's added below as a
+                  time-related item under Project management.
+                </p>
+              </div>
+
+              <div className="card rate-table-wrap" style={{ boxShadow: "none", border: "1px solid var(--line)", padding: 12, marginBottom: 14 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 8 }}>
+                  Quick add — studies, investigations &amp; approvals
+                </div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th style={{ width: 130 }} className="num">
+                        {selectedClientPayPreset?.type === "time_related" ? "$ / week" : "$ (one-off)"}
+                      </th>
+                      <th style={{ width: 120 }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <select value={quickClientPayIdx} onChange={(e) => setQuickClientPayIdx(e.target.value)}>
+                          <option value="">Select an item…</option>
+                          {CLIENT_COST_ITEM_PRESETS.map((preset, i) => (
+                            <option key={preset.description} value={String(i)}>{preset.description}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="num">
+                        <input
+                          type="number"
+                          className="mono"
+                          step="0.01"
+                          min={0}
+                          value={quickClientPayRate}
+                          onChange={(e) => setQuickClientPayRate(e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <button className="btn btn-sm" onClick={handleQuickAddClientPayItem} disabled={quickClientPayIdx === ""}>
+                          + Add to list
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p className="hint" style={{ marginTop: 8, marginBottom: 0 }}>
+                  Covers approvals, investigations, design and property-acquisition type pay items — each is added
+                  with a sensible default category and Fixed/$-per-week type, which you can still change below.
+                </p>
+              </div>
+
+              <div className="card rate-table-wrap" style={{ boxShadow: "none", border: "1px solid var(--line)" }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Description</th>
+                      <th style={{ width: 190 }}>Category</th>
+                      <th style={{ width: 130 }}>Type</th>
+                      <th className="num" style={{ width: 120 }}>Rate</th>
+                      <th className="num" style={{ width: 120 }}>Total</th>
+                      <th style={{ width: 40 }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {clientCostItems.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="empty">No client cost items yet — add one below.</td>
+                      </tr>
+                    )}
+                    {clientCostItems.map((it) => (
+                      <tr key={it.id}>
+                        <td>
+                          <input
+                            type="text"
+                            value={it.description}
+                            onChange={(e) => updateClientCostItem(it.id, { description: e.target.value })}
+                            onBlur={persistClientCostItems}
+                          />
+                        </td>
+                        <td>
+                          <select
+                            value={it.category}
+                            onChange={(e) => { updateClientCostItem(it.id, { category: e.target.value as ClientCostCategory }); persistClientCostItems(); }}
+                          >
+                            {Object.entries(CLIENT_COST_CATEGORY_LABELS).map(([key, label]) => (
+                              <option key={key} value={key}>{label}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td>
+                          <select
+                            value={it.type}
+                            onChange={(e) => { updateClientCostItem(it.id, { type: e.target.value as "fixed" | "time_related" }); persistClientCostItems(); }}
+                          >
+                            <option value="fixed">Fixed</option>
+                            <option value="time_related">$/week</option>
+                          </select>
+                        </td>
+                        <td className="num">
+                          <input
+                            type="number"
+                            className="mono"
+                            step="0.01"
+                            value={it.rate}
+                            onChange={(e) => updateClientCostItem(it.id, { rate: parseFloat(e.target.value) || 0 })}
+                            onBlur={persistClientCostItems}
+                          />
+                        </td>
+                        <td className="num mono">{formatMoney(clientCostItemTotal(it, clientCostDurationWeeks), currency)}</td>
+                        <td>
+                          <button className="btn btn-ghost btn-sm btn-danger" title="Remove item" onClick={() => removeClientCostItem(it.id)}>✕</button>
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="grand-total-row">
+                      <td className="label-cell" colSpan={4}>Total client cost</td>
+                      <td className="num mono">{formatMoney(clientCostBuildupTotal(clientCostItems, clientCostDurationWeeks), currency)}</td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <button className="btn btn-sm" style={{ marginTop: 10 }} onClick={() => addClientCostItem()}>+ Add item</button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-head"><h3>Cash Flow</h3><span className="hint">An even monthly spread of the total project cost, from the project date</span></div>
+        <div className="card" style={{ padding: "18px 22px" }}>
+          <div className="field" style={{ maxWidth: 220, marginBottom: 14 }}>
+            <label>Spread over how many months</label>
+            <input
+              type="number"
+              className="mono"
+              step="1"
+              min={1}
+              value={cashFlowMonths}
+              onChange={(e) => setProject((p) => ({ ...p, markups: { ...markups, cashFlowMonths: parseFloat(e.target.value) || 1 } }))}
+              onBlur={(e) => setCashFlowMonths(parseFloat(e.target.value) || 1)}
+            />
+          </div>
+          <p className="hint" style={{ marginBottom: 14 }}>
+            A straight-line spread, not a shaped construction curve — use it for a first-pass view of roughly how
+            much is spent per month, not as a contractual payment schedule.
+          </p>
+          <div className="card rate-table-wrap" style={{ boxShadow: "none", border: "1px solid var(--line)" }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  <th></th>
+                  <th className="num" style={{ width: 130 }}>Spend</th>
+                  <th className="num" style={{ width: 130 }}>Cumulative</th>
+                  <th className="num" style={{ width: 70 }}>%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cashFlowRows.map((row) => (
+                  <tr key={row.label}>
+                    <td className="label-cell">{row.label}</td>
+                    <td style={{ minWidth: 120 }}>
+                      <div style={{ background: "var(--surface-2)", borderRadius: 4, height: 10, overflow: "hidden" }}>
+                        <div
+                          style={{
+                            width: `${(row.amount / maxMonthlySpend) * 100}%`,
+                            height: "100%",
+                            background: "var(--blueprint)",
+                          }}
+                        />
+                      </div>
+                    </td>
+                    <td className="num mono">{formatMoney(row.amount, currency)}</td>
+                    <td className="num mono">{formatMoney(row.cumulative, currency)}</td>
+                    <td className="num mono">{Math.round(row.cumulativePct)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div className="section">
         <div className="section-head"><h3>Cost build-up</h3><span className="hint">Editable percentages — applied in sequence</span></div>
         <div className="card" style={{ padding: "6px 22px" }}>
           <table className="markup-table">
@@ -574,7 +969,15 @@ export default function SummaryTab({
               <tr><td className="label-cell">Subtotal (ex tax)</td><td></td><td className="num mono" style={{ fontWeight: 600 }}>{formatMoney(build.s3, currency)}</td></tr>
               <MarkupRow label="Tax (GST / VAT / Sales tax)" value={build.gst} mkKey="gst" />
               <tr className="grand-total-row"><td className="label-cell">Contract price</td><td></td><td className="num">{formatMoney(build.contractPrice, currency)}</td></tr>
-              <MarkupRow label="Client's administrative cost" value={build.principalCost} mkKey="principalCost" />
+              {clientCostMode === "percent" ? (
+                <MarkupRow label="Client's administrative cost" value={build.principalCost} mkKey="principalCost" />
+              ) : (
+                <tr>
+                  <td className="label-cell">Client's administrative cost <span className="hint">(itemised — edit above)</span></td>
+                  <td></td>
+                  <td className="num mono" style={{ fontWeight: 600 }}>{formatMoney(build.principalCost, currency)}</td>
+                </tr>
+              )}
               <tr className="grand-total-row"><td className="label-cell">Total project cost</td><td></td><td className="num">{formatMoney(build.totalProjectCost, currency)}</td></tr>
             </tbody>
           </table>
