@@ -56,10 +56,10 @@ export default function HelpPage() {
         <div className="section-head"><h3>Rate Library</h3></div>
         <div className="card" style={{ padding: "18px 22px" }}>
           <p>
-            Your workspace's own labour, plant, and material rates, reused across every
-            project. Every new workspace starts with indicative rates so it works immediately
-            — replace them with your own real supplier quotes and labour agreements before
-            relying on this for a real tender.
+            Your workspace's own labour, plant, material, and subcontract rates, reused across
+            every project. Every new workspace starts with indicative rates so it works
+            immediately — replace them with your own real supplier quotes, labour agreements,
+            and subcontractor pricing before relying on this for a real tender.
           </p>
           <p>
             <b>🔎 Search the web</b> (the box at the top, and the button on each rate row) opens
@@ -79,16 +79,40 @@ export default function HelpPage() {
             to open its build-up.
           </p>
           <p>
-            A build-up assembles a line item's unit rate from its actual Labour, Plant, and
-            Material components, each pulled from your Rate Library with a "qty per unit" you
-            set — not a lump-sum guess. If a column shows "None" and clicking "+ add" does
-            nothing, your Rate Library doesn't have any items of that kind yet — add some there
-            first.
+            A build-up assembles a line item's unit rate from its actual Labour, Plant,
+            Material, and Subcontract components, each pulled from your Rate Library with a
+            "qty per unit" you set — not a lump-sum guess. If a column shows "None" and clicking
+            "+ add" does nothing, your Rate Library doesn't have any items of that kind yet — add
+            some there first.
+          </p>
+          <p>
+            Every line item can also be switched to a <b>Flat rate ($)</b> instead of building up
+            from parts — open the item and choose "Flat rate" if you'd rather just type its unit
+            rate directly. This is useful for a quick allowance, a subcontractor's lump-sum
+            quote for the whole item, or anything you don't want to break down into
+            labour/plant/material/subcontract. Switching back to "Build up" doesn't lose the flat
+            rate you typed — it's just not used while build-up mode is selected.
           </p>
           <p>
             When your workspace's unit system (see Settings) differs from a line item's own
             unit, a small greyed "≈" line shows the converted quantity and rate alongside it —
             the stored numbers themselves never change, only what's shown.
+          </p>
+          <p>
+            <b>⇪ Import line items</b> (button above the category list) lets you bring in
+            priced line items from another spreadsheet instead of typing them in one by one.
+            Upload an Excel (.xlsx) or .csv file — if the workbook has more than one tab, you'll
+            be asked which one to import from — or paste rows copied directly from Excel or
+            Google Sheets. The importer looks for a row containing column headings like
+            Description, Unit, Quantity, and Rate (however they're worded or ordered, and however
+            far down the sheet they sit), then reads every row below it: a row with a description
+            but no usable quantity or rate is treated as a section heading and becomes a new
+            category, and a priced row underneath becomes a line item in that category. You get a
+            preview with a checkbox per item before anything is actually imported, and you can
+            rename each category or send it into an existing category instead of creating a new
+            one. Imported items come in as Flat rate items, since a spreadsheet row typically
+            carries one ready-made rate rather than a labour/plant/material breakdown — you can
+            switch any of them to a build-up afterwards if you want to break the rate down further.
           </p>
         </div>
       </div>
@@ -196,6 +220,25 @@ export default function HelpPage() {
             price, and total project cost. Treat it as a decision tool for setting your own
             contingency, not something to hand to a client on a competitive fixed-price bid —
             they want your price, not your worst case.
+          </p>
+          <p>
+            <b>Client Cost</b> — the client's (Principal's) own project administration, shown
+            separately after the contract price — can be priced the same two ways as
+            Preliminaries. <b>Simple %</b> (the default) applies a flat percentage of the
+            contract price. <b>Itemised build-up</b> lets you list it out instead: client-side
+            roles (Project Director, Design Manager, PUP Coordinator, and more, plus a Custom
+            role option) as <b>$/week Time-related</b> items, and one-off <b>Fixed</b> items
+            like a geotechnical investigation, survey, or environmental approvals — with its own
+            duration field, kept separate from the contractor's construction duration above,
+            since the client's own administration usually spans more of the project (concept,
+            design, delivery, and finalisation) than just the construction period.
+          </p>
+          <p>
+            <b>Cash Flow</b> spreads the total project cost evenly across however many months you
+            set, starting from the project's date, and shows it as a month-by-month table with a
+            simple bar per month. It's a straight-line spread rather than a shaped construction
+            curve — a first-pass view of roughly how much is spent per month, not a contractual
+            payment schedule.
           </p>
         </div>
       </div>
