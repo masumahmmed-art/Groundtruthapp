@@ -10,6 +10,7 @@ const SECTIONS: { key: RateKind; title: string; defaultUnit: string }[] = [
   { key: "labour", title: "Labour", defaultUnit: "hour" },
   { key: "plant", title: "Plant & Equipment", defaultUnit: "hour" },
   { key: "material", title: "Material", defaultUnit: "unit" },
+  { key: "subcontract", title: "Subcontract", defaultUnit: "item" },
 ];
 
 function webSearchUrl(query: string) {
@@ -24,6 +25,7 @@ const KIND_SEARCH_PHRASE: Record<RateKind, string> = {
   labour: "labour rate labor rate",
   plant: "hire rate rental rate equipment",
   material: "supply price material cost",
+  subcontract: "subcontractor rate subcontract price",
 };
 
 export default function RatesClient({
