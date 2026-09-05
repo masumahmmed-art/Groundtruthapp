@@ -10,12 +10,14 @@ import ProjectTab from "./ProjectTab";
 import EstimateTab from "./EstimateTab";
 import RiskTab from "./RiskTab";
 import SummaryTab from "./SummaryTab";
+import DashboardTab from "./DashboardTab";
 
 const TABS = [
   { id: "project", label: "Project" },
   { id: "estimate", label: "Estimate" },
   { id: "risk", label: "Risk & Location" },
   { id: "summary", label: "Summary" },
+  { id: "dashboard", label: "Dashboard" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -98,6 +100,18 @@ export default function EstimatorClient({
           project={project}
           setProject={setProject}
           categories={categories}
+          items={items}
+          risks={risks}
+          rates={rates}
+          build={build}
+          currency={currency}
+        />
+      )}
+      {activeTab === "dashboard" && (
+        <DashboardTab
+          project={project}
+          categories={categories}
+          setCategories={setCategories}
           items={items}
           risks={risks}
           rates={rates}
