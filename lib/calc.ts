@@ -498,3 +498,75 @@ export function cashFlowSchedule(totalProjectCost: number, months: number, start
   }
   return rows;
 }
+
+// ---- Dashboard: Major Category roll-up ----
+//
+// A project's categories are often imported from a large, granular BOQ
+// (dozens of pay-item categories) rather than typed by hand, so grouping
+// them into a handful of high-level "Major Categories" (Earthworks, Roads &
+// Pavements, Drainage, Structures & Bridgework, etc.) is deliberately a
+// one-time MANUAL mapping the estimator does once per project — via the
+// Dashboard tab's mapping panel — rather than an automatic keyword guess
+// that could silently misclassify an unfamiliar category name.
+
+/** Suggested Major Category names shown in the Dashboard's mapping datalist. Not exhaustive — any free text can be typed instead. */
+export const MAJOR_CATEGORY_PRESETS: string[] = [
+  "Earthworks",
+  "Roads & Pavements",
+  "Drainage",
+  "Structures & Bridgework",
+  "Traffic Management & Signage",
+  "Utilities & Services",
+  "Landscaping & Environmental",
+  "Site Establishment & Preliminaries",
+  "Other",
+];
+
+// A rotating palette for Dashboard groupings, since Major Categories are
+// free text (not one of the four fixed --cat-* colours DEFAULT_CATEGORIES
+// uses) — reuses the same CSS variables already defined elsewhere so no new
+// colours need to be added to the stylesheet.
+export const DASHBOARD_GROUP_COLORS: string[] = [
+  "var(--cat-earth)",
+  "var(--cat-pave)",
+  "var(--cat-drain)",
+  "var(--cat-struct)",
+  "var(--cost-labour)",
+  "var(--cost-plant)",
+  "var(--cost-material)",
+  "var(--cost-subcontract)",
+  "var(--cost-markup)",
+];
+
+export interface MajorCategoryGroup {
+  name: string;
+  value: number;
+  categoryIds: string[];
+}
+
+/**
+ * Rolls every category's direct cost up into its assigned Major Category
+ * (categories.major_category), for the Dashboard tab's high-level chart.
+ * Categories that haven't been mapped yet (major_category null/blank) are
+ * grouped under "Unmapped" so their cost never silently disappears from the
+ * total — the Dashboard's mapping panel is how you clear that bucket.
+ */
+export function majorCategoryTotals(
+  rates: RateItemRow[],
+  items: LineItemRow[],
+  categories: CategoryRow[]
+): MajorCategoryGroup[] {
+  const groups = new Map<string, MajorCategoryGroup>();
+  for (const cat of categories) {
+    const key = (cat.major_category || "").trim() || "Unmapped";
+    const total = categoryTotal(rates, items, cat.id);
+    const existing = groups.get(key);
+    if (existing) {
+      existing.value += total;
+      existing.categoryIds.push(cat.id);
+    } else {
+      groups.set(key, { name: key, value: total, categoryIds: [cat.id] });
+    }
+  }
+  return Array.from(groups.values()).sort((a, b) => b.value - a.value);
+}
