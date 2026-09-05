@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "./actions";
 import RailNav from "./RailNav";
+import TopSearch from "./TopSearch";
 import { OrgSettingsProvider } from "@/lib/OrgSettingsContext";
 import type { UnitSystem } from "@/lib/units";
 
@@ -47,7 +48,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </nav>
       <main className="content">
-        <OrgSettingsProvider value={{ currency, unitSystem }}>{children}</OrgSettingsProvider>
+        <div className="topbar no-print">
+          <TopSearch />
+        </div>
+        <div className="content-inner">
+          <OrgSettingsProvider value={{ currency, unitSystem }}>{children}</OrgSettingsProvider>
+        </div>
       </main>
     </div>
   );
