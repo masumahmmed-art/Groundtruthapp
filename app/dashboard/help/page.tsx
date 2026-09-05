@@ -42,7 +42,7 @@ export default function HelpPage() {
         </div>
       </div>
 
-      <div className="section">
+      <div className="section" id="workspace">
         <div className="section-head"><h3>Your workspace</h3></div>
         <div className="card" style={{ padding: "18px 22px" }}>
           <p>
@@ -52,7 +52,7 @@ export default function HelpPage() {
           </p>
         </div>
       </div>
-      <div className="section">
+      <div className="section" id="rate-library">
         <div className="section-head"><h3>Rate Library</h3></div>
         <div className="card" style={{ padding: "18px 22px" }}>
           <p>
@@ -70,7 +70,7 @@ export default function HelpPage() {
           </p>
         </div>
       </div>
-      <div className="section">
+      <div className="section" id="estimate">
         <div className="section-head"><h3>Estimate — Bill of Quantities</h3></div>
         <div className="card" style={{ padding: "18px 22px" }}>
           <p>
@@ -116,7 +116,7 @@ export default function HelpPage() {
           </p>
         </div>
       </div>
-      <div className="section">
+      <div className="section" id="risk-location">
         <div className="section-head"><h3>Risk & Location</h3></div>
         <div className="card" style={{ padding: "18px 22px" }}>
           <p>
@@ -179,7 +179,7 @@ export default function HelpPage() {
           </p>
         </div>
       </div>
-      <div className="section">
+      <div className="section" id="summary">
         <div className="section-head"><h3>Summary</h3></div>
         <div className="card" style={{ padding: "18px 22px" }}>
           <p>
@@ -242,7 +242,7 @@ export default function HelpPage() {
           </p>
         </div>
       </div>
-      <div className="section">
+      <div className="section" id="settings">
         <div className="section-head"><h3>Settings</h3></div>
         <div className="card" style={{ padding: "18px 22px" }}>
           <p>
@@ -253,7 +253,7 @@ export default function HelpPage() {
           </p>
         </div>
       </div>
-      <div className="section">
+      <div className="section" id="account">
         <div className="section-head"><h3>Your account</h3></div>
         <div className="card" style={{ padding: "18px 22px" }}>
           <p>
