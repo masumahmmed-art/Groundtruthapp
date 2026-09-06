@@ -320,6 +320,14 @@ td input[type="number"] { text-align: right; }
 .tabs a, .tabs button { background: none; border: none; padding: 9px 4px; margin-right: 20px; font-size: 13px; font-weight: 600; color: var(--ink-faint); border-bottom: 2px solid transparent; border-radius: 0; text-decoration: none; }
 .tabs a.active, .tabs button.active { color: var(--ink); border-bottom-color: var(--accent); }
 
+/* Tab-group switcher — sits above .tabs and picks which set of tabs is shown below it (e.g. "Estimate" vs "Cost Control"), so a project with many tabs doesn't show them all in one flat row. */
+.tab-groups { display: flex; gap: 3px; padding: 3px; background: var(--surface-2); border-radius: 8px; width: fit-content; margin-bottom: 14px; }
+.tab-groups button {
+  background: none; border: none; padding: 7px 16px; font-size: 12.5px; font-weight: 600;
+  color: var(--ink-faint); border-radius: 6px; cursor: pointer;
+}
+.tab-groups button.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+
 ::selection { background: var(--accent-soft); }
 
 /* ---- auth pages ---- */
