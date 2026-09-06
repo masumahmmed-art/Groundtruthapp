@@ -570,3 +570,122 @@ export function majorCategoryTotals(
   }
   return Array.from(groups.values()).sort((a, b) => b.value - a.value);
 }
+
+// ---- Programme: category-level schedule, driving time-phased Planned Value ----
+//
+// Earned Value needs a time-phased BUDGET baseline ("Planned Value") — how
+// much you expected to have spent by a given date — rather than the even
+// spread the Cash Flow section uses (which spreads the WHOLE project cost,
+// including overhead/margin/tax, purely for billing-forecast purposes).
+// Planned Value here is deliberately scoped to each category's own direct
+// cost budget (DJC) spread across ITS OWN planned start/end window, not an
+// even spread across the whole project — that's the actual point of adding
+// a programme. It's also deliberately scoped to direct cost only (no
+// overhead/margin/tax): those are fee layered on top of work, not "work"
+// that can itself be ahead of or behind schedule.
+
+export interface ProgrammeMonth {
+  label: string; // e.g. "Mar 2027"
+  amount: number; // this month's planned spend
+  cumulative: number; // running total through this month — the Planned Value (PV) as of this month
+  cumulativePct: number; // running total as a % of the full programme budget, 0-100
+}
+
+interface MonthKey {
+  year: number;
+  month: number; // 0-11
+}
+
+function toMonthKey(d: Date): MonthKey {
+  return { year: d.getFullYear(), month: d.getMonth() };
+}
+function monthsBetween(a: MonthKey, b: MonthKey): number {
+  return (b.year - a.year) * 12 + (b.month - a.month);
+}
+function parseDateSafe(s: string | null | undefined): Date | null {
+  if (!s) return null;
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+/**
+ * The overall programme window — the earliest planned_start and latest
+ * planned_end across every category that has BOTH dates set. Returns null
+ * if no category has been scheduled yet (nothing to show a Programme for).
+ */
+export function programmeWindow(categories: CategoryRow[]): { start: Date; end: Date } | null {
+  let start: Date | null = null;
+  let end: Date | null = null;
+  for (const c of categories) {
+    const s = parseDateSafe(c.planned_start);
+    const e = parseDateSafe(c.planned_end);
+    if (!s || !e) continue;
+    if (!start || s < start) start = s;
+    if (!end || e > end) end = e;
+  }
+  if (!start || !end) return null;
+  return { start, end };
+}
+
+/**
+ * Time-phased Planned Value. Each scheduled category's direct-cost budget
+ * (categoryTotal) is spread evenly across its OWN planned start-end window
+ * (inclusive months). Any category that hasn't been scheduled yet (missing
+ * one or both dates) falls back to an even spread across the WHOLE
+ * programme window instead of silently dropping out of the total — same
+ * "don't lose anything unmapped" approach as the Dashboard's Major Category
+ * grouping. Returns an empty array until at least one category has been
+ * scheduled (see programmeWindow).
+ */
+export function plannedValueSchedule(
+  rates: RateItemRow[],
+  items: LineItemRow[],
+  categories: CategoryRow[]
+): ProgrammeMonth[] {
+  const window = programmeWindow(categories);
+  if (!window) return [];
+
+  const startKey = toMonthKey(window.start);
+  const endKey = toMonthKey(window.end);
+  const totalMonths = Math.max(1, monthsBetween(startKey, endKey) + 1);
+  const monthlyTotals: number[] = new Array(totalMonths).fill(0);
+
+  for (const cat of categories) {
+    const budget = categoryTotal(rates, items, cat.id);
+    if (budget <= 0) continue;
+    const s = parseDateSafe(cat.planned_start);
+    const e = parseDateSafe(cat.planned_end);
+    if (s && e) {
+      const catStart = toMonthKey(s);
+      const catEnd = toMonthKey(e);
+      const catMonths = Math.max(1, monthsBetween(catStart, catEnd) + 1);
+      const perMonth = budget / catMonths;
+      const offset = monthsBetween(startKey, catStart);
+      for (let i = 0; i < catMonths; i++) {
+        const idx = offset + i;
+        if (idx >= 0 && idx < totalMonths) monthlyTotals[idx] += perMonth;
+      }
+    } else {
+      // Not yet scheduled — spread evenly across the whole programme window
+      // rather than dropping it out of Planned Value.
+      const perMonth = budget / totalMonths;
+      for (let i = 0; i < totalMonths; i++) monthlyTotals[i] += perMonth;
+    }
+  }
+
+  const grandTotal = monthlyTotals.reduce((s, v) => s + v, 0);
+  const fmt = new Intl.DateTimeFormat("en-AU", { month: "short", year: "numeric" });
+  const rows: ProgrammeMonth[] = [];
+  let cumulative = 0;
+  for (let i = 0; i < totalMonths; i++) {
+    cumulative += monthlyTotals[i];
+    const d = new Date(startKey.year, startKey.month + i, 1);
+    rows.push({
+      label: fmt.format(d),
+      amount: monthlyTotals[i],
+      cumulative,
+      cumulativePct: grandTotal > 0 ? (cumulative / grandTotal) * 100 : 0,
+    });
+  }
+  return rows;
+}
