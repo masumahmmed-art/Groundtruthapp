@@ -190,6 +190,16 @@ export type CostType = "labour" | "plant" | "material" | "subcontract";
  * the Actuals tab. The ledger is summed (by category, by cost type, or
  * overall) rather than being a single running total, so there's a full,
  * auditable history of what was actually spent and when.
+ *
+ * For Labour/Plant/Material, the amount is meant to come from the same
+ * Rate Library used in the first-principles estimate rather than a typed
+ * guess: rate_item_id + quantity record which rate was used and how much
+ * of it, and `amount` is calculated from those (quantity × that rate
+ * item's rate) at the moment the entry is added or edited — frozen from
+ * then on, like a recorded invoice, so later correcting the Rate Library
+ * doesn't silently rewrite past actual cost history. rate_item_id is null
+ * and `amount` is typed directly for Subcontract (and for any entry
+ * deliberately entered as a manual amount instead of quantity × rate).
  */
 export interface ActualCostRow {
   id: string;
@@ -197,7 +207,12 @@ export interface ActualCostRow {
   category_id: string | null;
   entry_date: string;
   cost_type: CostType;
+  /** The Rate Library item this entry's amount was calculated from, or null for a manually-typed amount (always null for Subcontract). */
+  rate_item_id: string | null;
+  /** Quantity against rate_item_id's rate (e.g. hours, tonnes) — 0 when rate_item_id is null. */
+  quantity: number;
   amount: number;
+  /** Free text — used as an invoice number for Subcontract entries, or a general note otherwise. */
   description: string;
   created_at: string;
 }
