@@ -157,6 +157,10 @@ export interface CategoryRow {
   planned_start?: string | null;
   /** Planned end date ("YYYY-MM-DD") for this category's work — see planned_start. */
   planned_end?: string | null;
+  /** Finish-to-Start scheduling link: this category can't start until the referenced category's planned_end (plus predecessor_lag_days) has passed. Null = no dependency, planned_start is set directly. A simplified subset of Microsoft Project's Predecessor field (Finish-to-Start only). */
+  predecessor_category_id?: string | null;
+  /** Extra days to wait after the predecessor's planned_end before this category can start (0 = starts the next day). Only meaningful when predecessor_category_id is set — can be negative to allow overlap with the predecessor. */
+  predecessor_lag_days?: number;
 }
 
 export interface LineItemRow {
@@ -174,6 +178,45 @@ export interface LineItemRow {
   /** Used only when rate_mode is "flat" — the unit rate, typed directly or set by the spreadsheet importer. */
   flat_rate?: number;
   sort_order: number;
+  /** 0-100 — how much of this line item's scope is actually done, typed in on the Actuals tab. Drives Earned Value (EV = this item's budgeted total × percent_complete / 100). Defaults to 0 for older rows created before this field existed. */
+  percent_complete?: number;
+}
+
+export type CostType = "labour" | "plant" | "material" | "subcontract";
+
+/**
+ * One dated entry in the actual Direct Job Cost (DJC) ledger — a real
+ * invoice or timesheet cost, logged against a category and cost type, on
+ * the Actuals tab. The ledger is summed (by category, by cost type, or
+ * overall) rather than being a single running total, so there's a full,
+ * auditable history of what was actually spent and when.
+ */
+export interface ActualCostRow {
+  id: string;
+  project_id: string;
+  category_id: string | null;
+  entry_date: string;
+  cost_type: CostType;
+  amount: number;
+  description: string;
+  created_at: string;
+}
+
+/**
+ * One dated entry in the actual Indirect Job Cost (IJC) ledger — hours
+ * worked by a Position, logged on the Actuals tab. The actual $ cost isn't
+ * stored here; it's always calculated on the fly as hours × that position's
+ * fully-loaded rate (see fullyLoadedRate/hourlyEquivalentRate in lib/calc),
+ * so it stays correct if the position's rate is later corrected.
+ */
+export interface ActualHoursRow {
+  id: string;
+  project_id: string;
+  position_id: string | null;
+  entry_date: string;
+  hours: number;
+  description: string;
+  created_at: string;
 }
 
 /**
@@ -288,6 +331,16 @@ export interface Database {
         Row: PositionRow;
         Insert: Partial<PositionRow> & { project_id: string };
         Update: Partial<PositionRow>;
+      };
+      actual_costs: {
+        Row: ActualCostRow;
+        Insert: Partial<ActualCostRow> & { project_id: string };
+        Update: Partial<ActualCostRow>;
+      };
+      actual_hours: {
+        Row: ActualHoursRow;
+        Insert: Partial<ActualHoursRow> & { project_id: string };
+        Update: Partial<ActualHoursRow>;
       };
     };
   };
