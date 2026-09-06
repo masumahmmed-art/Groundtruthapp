@@ -153,6 +153,10 @@ export interface CategoryRow {
   sort_order: number;
   /** Rolls this category up under a higher-level group (e.g. "Earthworks", "Drainage") on the Dashboard tab. Free text, set once per project via the Dashboard's mapping panel — null/blank shows up there as "Unmapped" until set. */
   major_category?: string | null;
+  /** Planned start date ("YYYY-MM-DD") for this category's work, set on the Programme tab. Drives the time-phased Planned Value baseline used for Earned Value — null if this category hasn't been scheduled yet. */
+  planned_start?: string | null;
+  /** Planned end date ("YYYY-MM-DD") for this category's work — see planned_start. */
+  planned_end?: string | null;
 }
 
 export interface LineItemRow {
@@ -170,6 +174,31 @@ export interface LineItemRow {
   /** Used only when rate_mode is "flat" — the unit rate, typed directly or set by the spreadsheet importer. */
   flat_rate?: number;
   sort_order: number;
+}
+
+/**
+ * One Primavera P6 (.xer) import for a project — a dated snapshot of every
+ * category's planned dates at the moment of that import, so schedule
+ * changes between imports (e.g. this month's re-baseline vs last month's)
+ * can be compared later. See programme_snapshot_categories for the actual
+ * per-category dates each snapshot captured.
+ */
+export interface ProgrammeSnapshotRow {
+  id: string;
+  project_id: string;
+  imported_at: string;
+  source_filename: string;
+  label: string;
+}
+
+/** One category's planned dates as captured by a specific ProgrammeSnapshotRow — see that type for context. category_name is a frozen copy so history reads correctly even if the category is later renamed or deleted (category_id then goes null). */
+export interface ProgrammeSnapshotCategoryRow {
+  id: string;
+  snapshot_id: string;
+  category_id: string | null;
+  category_name: string;
+  planned_start: string | null;
+  planned_end: string | null;
 }
 
 export interface OrganizationRow {
@@ -217,6 +246,16 @@ export interface Database {
         Row: RiskItemRow;
         Insert: Partial<RiskItemRow> & { project_id: string };
         Update: Partial<RiskItemRow>;
+      };
+      programme_snapshots: {
+        Row: ProgrammeSnapshotRow;
+        Insert: Partial<ProgrammeSnapshotRow> & { project_id: string };
+        Update: Partial<ProgrammeSnapshotRow>;
+      };
+      programme_snapshot_categories: {
+        Row: ProgrammeSnapshotCategoryRow;
+        Insert: Partial<ProgrammeSnapshotCategoryRow> & { snapshot_id: string };
+        Update: Partial<ProgrammeSnapshotCategoryRow>;
       };
     };
   };
