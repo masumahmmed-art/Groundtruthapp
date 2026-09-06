@@ -302,6 +302,14 @@ td input[type="number"] { text-align: right; }
 .filter-chip .sw { width: 8px; height: 8px; border-radius: 2px; flex: none; }
 .filter-chip.off { opacity: 0.5; }
 
+.gantt { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 4px; }
+.gantt-row { display: flex; align-items: center; gap: 12px; }
+.gantt-label { width: 220px; flex: none; font-size: 12.5px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gantt-track { position: relative; flex: 1; height: 16px; background: var(--surface-2); border-radius: 3px; }
+.gantt-bar { position: absolute; top: 0; height: 100%; border-radius: 3px; min-width: 3px; }
+.gantt-unscheduled { font-size: 11px; color: var(--ink-faint); font-style: italic; }
+.gantt-axis { display: flex; margin-left: 232px; font-size: 10.5px; color: var(--ink-faint); justify-content: space-between; margin-top: 2px; }
+
 .markup-table td { font-family: var(--font-mono); }
 .markup-table td.label-cell { font-family: var(--font-body); }
 .markup-table input { width: 70px; }
