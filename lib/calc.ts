@@ -5,6 +5,7 @@ import type {
   ClientCostItem,
   LineItemRow,
   Markups,
+  PositionRow,
   PreliminaryCategory,
   PreliminaryItem,
   RateItemRow,
@@ -688,4 +689,48 @@ export function plannedValueSchedule(
     });
   }
   return rows;
+}
+
+// ---------------------------------------------------------------------------
+// Positions (Indirect Job Cost register)
+// ---------------------------------------------------------------------------
+
+export const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
+  wage: "Wage",
+  salaried: "Salaried",
+};
+
+export const RATE_BASIS_LABELS: Record<string, string> = {
+  hour: "$/hour",
+  week: "$/week",
+  annum: "$/annum",
+};
+
+/** Assumed hours-per-week used only to compare an hourly rate against a weekly one below - not stored, shown as a hint wherever it's used. */
+export const ASSUMED_HOURS_PER_WEEK = 40;
+/** Assumed weeks-per-year used only to compare an annual salary against a weekly one below - not stored, shown as a hint wherever it's used. */
+export const ASSUMED_WEEKS_PER_YEAR = 52;
+
+/**
+ * A position's fully-recovered rate, in its own rate_basis. "wage" positions
+ * always come back as their raw base_rate - the multiplier is ignored even if
+ * one is somehow stored, since a wage rate already IS the true cost. Only
+ * "salaried" positions apply their rcm.
+ */
+export function fullyLoadedRate(position: PositionRow): number {
+  if (position.employment_type === "wage") return position.base_rate;
+  return position.base_rate * (position.rcm || 1);
+}
+
+/** Converts a fully-loaded rate from its own basis to a weekly figure, using the assumed hours/weeks above - for rolling up a mixed register (some hourly, some annual) into one comparable total. */
+export function toWeeklyEquivalent(position: PositionRow): number {
+  const loaded = fullyLoadedRate(position);
+  if (position.rate_basis === "hour") return loaded * ASSUMED_HOURS_PER_WEEK;
+  if (position.rate_basis === "annum") return loaded / ASSUMED_WEEKS_PER_YEAR;
+  return loaded;
+}
+
+/** Sum of every position's fully-loaded cost, expressed as a weekly figure - see toWeeklyEquivalent. */
+export function totalWeeklyIndirectCost(positions: PositionRow[]): number {
+  return positions.reduce((sum, p) => sum + toWeeklyEquivalent(p), 0);
 }
