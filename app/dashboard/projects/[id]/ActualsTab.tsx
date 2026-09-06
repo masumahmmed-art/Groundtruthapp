@@ -17,13 +17,9 @@ import {
   actualDjcByCategory,
   actualHoursCost,
   categoryTotal,
-  directTotal,
-  itemLineTotal,
-  lineItemEarnedValue,
   rateById,
   totalActualDjc,
   totalActualIjc,
-  totalEarnedValue,
 } from "@/lib/calc";
 import { formatMoney } from "@/lib/units";
 
@@ -35,7 +31,6 @@ export default function ActualsTab({
   project,
   categories,
   items,
-  setItems,
   positions,
   actualCosts,
   setActualCosts,
@@ -47,7 +42,6 @@ export default function ActualsTab({
   project: ProjectRow;
   categories: CategoryRow[];
   items: LineItemRow[];
-  setItems: (updater: (i: LineItemRow[]) => LineItemRow[]) => void;
   positions: PositionRow[];
   actualCosts: ActualCostRow[];
   setActualCosts: (updater: (a: ActualCostRow[]) => ActualCostRow[]) => void;
@@ -57,23 +51,6 @@ export default function ActualsTab({
   currency: string;
 }) {
   const supabase = createClient();
-  const categoryName = (id: string | null) => categories.find((c) => c.id === id)?.name || "—";
-
-  // --- Progress (% complete) -> Earned Value ---
-  function updateItemLocal(id: string, patch: Partial<LineItemRow>) {
-    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
-  }
-  async function persistItem(id: string, patch: Partial<LineItemRow>) {
-    await supabase.from("line_items").update(patch).eq("id", id);
-  }
-  function changePercentComplete(id: string, value: string) {
-    const pct = Math.max(0, Math.min(100, parseFloat(value) || 0));
-    updateItemLocal(id, { percent_complete: pct });
-    persistItem(id, { percent_complete: pct });
-  }
-
-  const budget = useMemo(() => directTotal(rates, items), [rates, items]);
-  const earnedValue = useMemo(() => totalEarnedValue(rates, items), [rates, items]);
 
   // --- Direct Job Cost ledger ---
   // Every field is editable in place (not just add-then-delete) — the same
@@ -198,61 +175,19 @@ export default function ActualsTab({
       <div className="titleblock">
         <div>
           <h2 style={{ fontSize: 20 }}>Actuals</h2>
-          <div className="meta">Real progress and real spend — % complete for Earned Value, plus the Direct and Indirect Job Cost ledgers.</div>
+          <div className="meta">Real spend — the Direct and Indirect Job Cost ledgers. See the Earned Value tab for progress and cost/schedule performance.</div>
         </div>
         <div className="stamp">
-          Earned Value
+          Total Actual Cost
           <br />
-          <span className="mono" style={{ fontSize: 16, color: "var(--ink)" }}>{formatMoney(earnedValue, currency)}</span>
+          <span className="mono" style={{ fontSize: 16, color: "var(--ink)" }}>{formatMoney(totalDjc + totalIjc, currency)}</span>
         </div>
       </div>
 
       <div className="kpi-row">
-        <div className="kpi"><div className="label">Budget (direct cost)</div><div className="value">{formatMoney(budget, currency)}</div><div className="sub">Full estimate, before overhead/margin</div></div>
-        <div className="kpi"><div className="label">Earned Value (EV)</div><div className="value">{formatMoney(earnedValue, currency)}</div><div className="sub">Budget × % complete, per line item</div></div>
-        <div className="kpi"><div className="label">Actual Cost (AC)</div><div className="value">{formatMoney(totalDjc + totalIjc, currency)}</div><div className="sub">Actual DJC {formatMoney(totalDjc, currency)} + IJC {formatMoney(totalIjc, currency)}</div></div>
-      </div>
-
-      <div className="section">
-        <div className="section-head"><h3>Progress</h3><span className="hint">% complete per line item drives Earned Value</span></div>
-        <div className="hint" style={{ marginBottom: 10 }}>
-          Update each line item's % complete as work happens on site. Earned Value (EV) is that line item's full
-          budgeted total × its % complete — this is what gets compared against Planned Value (on the Programme tab)
-          and Actual Cost (below) for schedule and cost variance.
-        </div>
-        <div className="card rate-table-wrap" style={{ maxHeight: 360, overflowY: "auto" }}>
-          <table>
-            <thead>
-              <tr>
-                <th style={{ width: 140 }}>Category</th>
-                <th className="label-cell">Description</th>
-                <th className="num" style={{ width: 110 }}>Budget</th>
-                <th className="num" style={{ width: 90 }}>% complete</th>
-                <th className="num" style={{ width: 110 }}>Earned Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.length === 0 && (
-                <tr><td colSpan={5} className="empty">No line items yet — add some on the Estimate tab first.</td></tr>
-              )}
-              {items.map((it) => (
-                <tr key={it.id}>
-                  <td>{categoryName(it.category_id)}</td>
-                  <td className="label-cell">{it.description}</td>
-                  <td className="num mono">{formatMoney(itemLineTotal(rates, it), currency)}</td>
-                  <td className="num">
-                    <input
-                      type="number" className="mono" min={0} max={100} step={1}
-                      value={it.percent_complete ?? 0}
-                      onChange={(e) => changePercentComplete(it.id, e.target.value)}
-                    /> %
-                  </td>
-                  <td className="num mono">{formatMoney(lineItemEarnedValue(rates, it), currency)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <div className="kpi"><div className="label">Direct Job Cost (DJC)</div><div className="value">{formatMoney(totalDjc, currency)}</div><div className="sub">Labour, Plant, Material, Subcontract</div></div>
+        <div className="kpi"><div className="label">Indirect Job Cost (IJC)</div><div className="value">{formatMoney(totalIjc, currency)}</div><div className="sub">Hours × each Position's fully-loaded rate</div></div>
+        <div className="kpi"><div className="label">Total Actual Cost (AC)</div><div className="value">{formatMoney(totalDjc + totalIjc, currency)}</div><div className="sub">Compared against Earned Value on the Earned Value tab</div></div>
       </div>
 
       <div className="section">
