@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import type { CategoryRow, LineItemRow, Markups, ProjectRow, RateItemRow, RiskItemRow } from "@/lib/types";
+import type { CategoryRow, LineItemRow, Markups, PositionRow, ProjectRow, RateItemRow, RiskItemRow } from "@/lib/types";
 import { fullBuildup } from "@/lib/calc";
 import { formatMoney } from "@/lib/units";
 import { useOrgSettings } from "@/lib/OrgSettingsContext";
@@ -11,6 +11,7 @@ import EstimateTab from "./EstimateTab";
 import RiskTab from "./RiskTab";
 import SummaryTab from "./SummaryTab";
 import ProgrammeTab from "./ProgrammeTab";
+import PositionsTab from "./PositionsTab";
 import DashboardTab from "./DashboardTab";
 
 const TABS = [
@@ -19,6 +20,7 @@ const TABS = [
   { id: "risk", label: "Risk & Location" },
   { id: "summary", label: "Summary" },
   { id: "programme", label: "Programme" },
+  { id: "positions", label: "Positions" },
   { id: "dashboard", label: "Dashboard" },
 ] as const;
 
@@ -29,12 +31,14 @@ export default function EstimatorClient({
   initialCategories,
   initialItems,
   initialRisks,
+  initialPositions,
   rates,
 }: {
   project: ProjectRow;
   initialCategories: CategoryRow[];
   initialItems: LineItemRow[];
   initialRisks: RiskItemRow[];
+  initialPositions: PositionRow[];
   rates: RateItemRow[];
 }) {
   const { currency, unitSystem } = useOrgSettings();
@@ -43,6 +47,7 @@ export default function EstimatorClient({
   const [categories, setCategories] = useState(initialCategories);
   const [items, setItems] = useState(initialItems);
   const [risks, setRisks] = useState(initialRisks);
+  const [positions, setPositions] = useState(initialPositions);
 
   const build = useMemo(
     () => fullBuildup(rates, items, project.markups as Markups, risks),
@@ -118,6 +123,9 @@ export default function EstimatorClient({
           rates={rates}
           currency={currency}
         />
+      )}
+      {activeTab === "positions" && (
+        <PositionsTab project={project} positions={positions} setPositions={setPositions} currency={currency} />
       )}
       {activeTab === "dashboard" && (
         <DashboardTab
