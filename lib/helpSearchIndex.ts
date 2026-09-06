@@ -147,10 +147,18 @@ export const helpSearchIndex: HelpTopic[] = [
   {
     id: "actuals",
     title: "Actuals",
-    description: "% complete, Earned Value, and the Direct/Indirect Job Cost ledgers.",
-    keywords: ["actuals", "percent complete", "% complete", "earned value", "ev", "actual cost", "ac", "direct job cost", "djc", "indirect job cost", "ijc", "ledger", "evm", "cpi", "spi"],
+    description: "Direct/Indirect Job Cost ledgers — rate-linked, fully editable.",
+    keywords: ["actuals", "actual cost", "ac", "direct job cost", "djc", "indirect job cost", "ijc", "ledger", "rate item", "quantity", "invoice number", "subcontract"],
     helpAnchor: "actuals",
     pdfPage: 10,
+  },
+  {
+    id: "earned-value",
+    title: "Earned Value",
+    description: "% complete, Earned Value, and Earned Value Management.",
+    keywords: ["earned value", "ev", "percent complete", "% complete", "earned value management", "evm", "cpi", "spi", "planned value", "actual cost"],
+    helpAnchor: "earned-value",
+    pdfPage: 11,
   },
   {
     id: "dashboard",
@@ -158,7 +166,7 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "One rolled-up view — cost by category, cash flow, resource type.",
     keywords: ["dashboard", "major category", "report", "customise", "customize", "filter", "print"],
     helpAnchor: "dashboard",
-    pdfPage: 11,
+    pdfPage: 12,
   },
   {
     id: "settings",
@@ -174,6 +182,6 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "Forgot password, signing up with an existing email.",
     keywords: ["account", "password", "forgot password", "login", "sign in", "sign up"],
     helpAnchor: "account",
-    pdfPage: 12,
+    pdfPage: 15,
   },
 ];
