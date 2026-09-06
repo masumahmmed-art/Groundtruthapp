@@ -2,7 +2,17 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import type { CategoryRow, LineItemRow, Markups, PositionRow, ProjectRow, RateItemRow, RiskItemRow } from "@/lib/types";
+import type {
+  ActualCostRow,
+  ActualHoursRow,
+  CategoryRow,
+  LineItemRow,
+  Markups,
+  PositionRow,
+  ProjectRow,
+  RateItemRow,
+  RiskItemRow,
+} from "@/lib/types";
 import { fullBuildup } from "@/lib/calc";
 import { formatMoney } from "@/lib/units";
 import { useOrgSettings } from "@/lib/OrgSettingsContext";
@@ -12,6 +22,7 @@ import RiskTab from "./RiskTab";
 import SummaryTab from "./SummaryTab";
 import ProgrammeTab from "./ProgrammeTab";
 import PositionsTab from "./PositionsTab";
+import ActualsTab from "./ActualsTab";
 import DashboardTab from "./DashboardTab";
 
 const TABS = [
@@ -21,6 +32,7 @@ const TABS = [
   { id: "summary", label: "Summary" },
   { id: "programme", label: "Programme" },
   { id: "positions", label: "Positions" },
+  { id: "actuals", label: "Actuals" },
   { id: "dashboard", label: "Dashboard" },
 ] as const;
 
@@ -32,6 +44,8 @@ export default function EstimatorClient({
   initialItems,
   initialRisks,
   initialPositions,
+  initialActualCosts,
+  initialActualHours,
   rates,
 }: {
   project: ProjectRow;
@@ -39,6 +53,8 @@ export default function EstimatorClient({
   initialItems: LineItemRow[];
   initialRisks: RiskItemRow[];
   initialPositions: PositionRow[];
+  initialActualCosts: ActualCostRow[];
+  initialActualHours: ActualHoursRow[];
   rates: RateItemRow[];
 }) {
   const { currency, unitSystem } = useOrgSettings();
@@ -48,6 +64,8 @@ export default function EstimatorClient({
   const [items, setItems] = useState(initialItems);
   const [risks, setRisks] = useState(initialRisks);
   const [positions, setPositions] = useState(initialPositions);
+  const [actualCosts, setActualCosts] = useState(initialActualCosts);
+  const [actualHours, setActualHours] = useState(initialActualHours);
 
   const build = useMemo(
     () => fullBuildup(rates, items, project.markups as Markups, risks),
@@ -126,6 +144,21 @@ export default function EstimatorClient({
       )}
       {activeTab === "positions" && (
         <PositionsTab project={project} positions={positions} setPositions={setPositions} currency={currency} />
+      )}
+      {activeTab === "actuals" && (
+        <ActualsTab
+          project={project}
+          categories={categories}
+          items={items}
+          setItems={setItems}
+          positions={positions}
+          actualCosts={actualCosts}
+          setActualCosts={setActualCosts}
+          actualHours={actualHours}
+          setActualHours={setActualHours}
+          rates={rates}
+          currency={currency}
+        />
       )}
       {activeTab === "dashboard" && (
         <DashboardTab
