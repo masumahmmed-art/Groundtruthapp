@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type {
   ActualCostRow,
@@ -20,6 +20,7 @@ import {
   directTotal,
   itemLineTotal,
   lineItemEarnedValue,
+  rateById,
   totalActualDjc,
   totalActualIjc,
   totalEarnedValue,
@@ -57,7 +58,6 @@ export default function ActualsTab({
 }) {
   const supabase = createClient();
   const categoryName = (id: string | null) => categories.find((c) => c.id === id)?.name || "—";
-  const positionName = (id: string | null) => positions.find((p) => p.id === id)?.name || "—";
 
   // --- Progress (% complete) -> Earned Value ---
   function updateItemLocal(id: string, patch: Partial<LineItemRow>) {
@@ -76,32 +76,78 @@ export default function ActualsTab({
   const earnedValue = useMemo(() => totalEarnedValue(rates, items), [rates, items]);
 
   // --- Direct Job Cost ledger ---
-  const [djcDate, setDjcDate] = useState(todayIso());
-  const [djcCategory, setDjcCategory] = useState("");
-  const [djcType, setDjcType] = useState<CostType>("labour");
-  const [djcAmount, setDjcAmount] = useState("");
-  const [djcDesc, setDjcDesc] = useState("");
+  // Every field is editable in place (not just add-then-delete) — the same
+  // pattern as the Risk register on the Risk & Location tab. For Labour,
+  // Plant, and Material, picking a Rate Library item plus a quantity
+  // calculates the amount automatically (hours/qty × that item's rate,
+  // exactly like a line item's build-up in the Estimate tab) instead of a
+  // typed guess — "Manual amount" is still there as a fallback for anything
+  // that doesn't fit a rate item. Subcontract has no rate item to pick from
+  // (a subcontractor's invoice isn't priced off the Rate Library), so it's
+  // always a typed amount, and its free-text field doubles as an invoice
+  // number field.
+  function updateCostLocal(id: string, patch: Partial<ActualCostRow>) {
+    setActualCosts((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  }
+  async function persistCost(id: string, patch: Partial<ActualCostRow>) {
+    await supabase.from("actual_costs").update(patch).eq("id", id);
+  }
 
   async function addActualCost() {
-    if (!djcCategory || !djcAmount) return;
     const { data, error } = await supabase
       .from("actual_costs")
       .insert({
         project_id: project.id,
-        category_id: djcCategory,
-        entry_date: djcDate,
-        cost_type: djcType,
-        amount: parseFloat(djcAmount) || 0,
-        description: djcDesc,
+        category_id: categories[0]?.id || null,
+        entry_date: todayIso(),
+        cost_type: "labour",
+        rate_item_id: null,
+        quantity: 0,
+        amount: 0,
+        description: "",
       })
       .select("*")
       .single();
-    if (!error && data) {
-      setActualCosts((prev) => [data as ActualCostRow, ...prev]);
-      setDjcAmount("");
-      setDjcDesc("");
-    }
+    if (!error && data) setActualCosts((prev) => [data as ActualCostRow, ...prev]);
   }
+
+  function changeCostType(row: ActualCostRow, nextType: CostType) {
+    // A different cost type has a different (or no) set of matching rate
+    // items, so any rate-item link resets — pick a fresh one, or use
+    // Manual amount.
+    const patch: Partial<ActualCostRow> = { cost_type: nextType, rate_item_id: null, quantity: 0 };
+    updateCostLocal(row.id, patch);
+    persistCost(row.id, patch);
+  }
+
+  function changeRateItem(row: ActualCostRow, rateItemId: string) {
+    if (!rateItemId) {
+      const patch: Partial<ActualCostRow> = { rate_item_id: null, quantity: 0 };
+      updateCostLocal(row.id, patch);
+      persistCost(row.id, patch);
+      return;
+    }
+    const rate = rateById(rates, rateItemId);
+    const qty = row.quantity || 0;
+    const patch: Partial<ActualCostRow> = { rate_item_id: rateItemId, amount: qty * (rate?.rate || 0) };
+    updateCostLocal(row.id, patch);
+    persistCost(row.id, patch);
+  }
+
+  function changeQuantity(row: ActualCostRow, value: string) {
+    const qty = parseFloat(value) || 0;
+    const rate = row.rate_item_id ? rateById(rates, row.rate_item_id) : undefined;
+    const patch: Partial<ActualCostRow> = rate ? { quantity: qty, amount: qty * rate.rate } : { quantity: qty };
+    updateCostLocal(row.id, patch);
+    persistCost(row.id, patch);
+  }
+
+  function changeCostAmount(row: ActualCostRow, value: string) {
+    const patch: Partial<ActualCostRow> = { amount: parseFloat(value) || 0 };
+    updateCostLocal(row.id, patch);
+    persistCost(row.id, patch);
+  }
+
   async function removeActualCost(id: string) {
     setActualCosts((prev) => prev.filter((r) => r.id !== id));
     await supabase.from("actual_costs").delete().eq("id", id);
@@ -115,29 +161,26 @@ export default function ActualsTab({
   );
 
   // --- Indirect Job Cost ledger ---
-  const [ijcDate, setIjcDate] = useState(todayIso());
-  const [ijcPosition, setIjcPosition] = useState("");
-  const [ijcHours, setIjcHours] = useState("");
-  const [ijcDesc, setIjcDesc] = useState("");
+  function updateHoursLocal(id: string, patch: Partial<ActualHoursRow>) {
+    setActualHours((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  }
+  async function persistHours(id: string, patch: Partial<ActualHoursRow>) {
+    await supabase.from("actual_hours").update(patch).eq("id", id);
+  }
 
   async function addActualHours() {
-    if (!ijcPosition || !ijcHours) return;
     const { data, error } = await supabase
       .from("actual_hours")
       .insert({
         project_id: project.id,
-        position_id: ijcPosition,
-        entry_date: ijcDate,
-        hours: parseFloat(ijcHours) || 0,
-        description: ijcDesc,
+        position_id: positions[0]?.id || null,
+        entry_date: todayIso(),
+        hours: 0,
+        description: "",
       })
       .select("*")
       .single();
-    if (!error && data) {
-      setActualHours((prev) => [data as ActualHoursRow, ...prev]);
-      setIjcHours("");
-      setIjcDesc("");
-    }
+    if (!error && data) setActualHours((prev) => [data as ActualHoursRow, ...prev]);
   }
   async function removeActualHours(id: string) {
     setActualHours((prev) => prev.filter((r) => r.id !== id));
@@ -213,68 +256,111 @@ export default function ActualsTab({
       </div>
 
       <div className="section">
-        <div className="section-head"><h3>Direct Job Cost — actual ledger</h3><span className="hint">Labour, Plant, Material, Subcontract</span></div>
-        <div className="card" style={{ padding: 18, marginBottom: 14 }}>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
-            <div className="field" style={{ width: 150 }}>
-              <label>Date</label>
-              <input type="date" value={djcDate} onChange={(e) => setDjcDate(e.target.value)} />
-            </div>
-            <div className="field" style={{ width: 200 }}>
-              <label>Category</label>
-              <select value={djcCategory} onChange={(e) => setDjcCategory(e.target.value)}>
-                <option value="">Select…</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="field" style={{ width: 140 }}>
-              <label>Cost type</label>
-              <select value={djcType} onChange={(e) => setDjcType(e.target.value as CostType)}>
-                {Object.entries(COST_TYPE_LABELS).map(([k, v]) => (
-                  <option key={k} value={k}>{v}</option>
-                ))}
-              </select>
-            </div>
-            <div className="field" style={{ width: 130 }}>
-              <label>Amount</label>
-              <input type="number" step="any" min={0} value={djcAmount} onChange={(e) => setDjcAmount(e.target.value)} placeholder="0.00" />
-            </div>
-            <div className="field" style={{ flex: "1 1 200px" }}>
-              <label>Description (optional)</label>
-              <input type="text" value={djcDesc} onChange={(e) => setDjcDesc(e.target.value)} placeholder="Invoice #, timesheet week, etc." />
-            </div>
-            <button className="btn btn-primary" onClick={addActualCost} disabled={!djcCategory || !djcAmount}>+ Add entry</button>
-          </div>
+        <div className="section-head">
+          <h3>Direct Job Cost — actual ledger</h3>
+          <button className="btn btn-sm" onClick={addActualCost}>+ Add entry</button>
         </div>
-
-        <div className="card rate-table-wrap" style={{ maxHeight: 320, overflowY: "auto", marginBottom: 14 }}>
+        <div className="hint" style={{ marginBottom: 10 }}>
+          For Labour, Plant, and Material, pick a Rate Library item and a quantity — the amount is calculated from
+          the same rates used in the estimate, the same way a line item's build-up works. Pick "Manual amount"
+          instead for anything that doesn't fit a rate item. Subcontract is always a typed amount, with its
+          description field doubling as an invoice number.
+        </div>
+        <div className="card rate-table-wrap" style={{ maxHeight: 420, overflowY: "auto", marginBottom: 14 }}>
           <table>
             <thead>
               <tr>
-                <th style={{ width: 100 }}>Date</th>
+                <th style={{ width: 130 }}>Date</th>
                 <th style={{ width: 160 }}>Category</th>
                 <th style={{ width: 110 }}>Cost type</th>
-                <th className="num" style={{ width: 110 }}>Amount</th>
-                <th>Description</th>
+                <th style={{ width: 220 }}>Rate item & quantity</th>
+                <th className="num" style={{ width: 120 }}>Amount</th>
+                <th style={{ width: 160 }}>{"Description / Invoice #"}</th>
                 <th style={{ width: 36 }}></th>
               </tr>
             </thead>
             <tbody>
               {sortedActualCosts.length === 0 && (
-                <tr><td colSpan={6} className="empty">No actual costs logged yet.</td></tr>
+                <tr><td colSpan={7} className="empty">No actual costs logged yet — click "+ Add entry" above.</td></tr>
               )}
-              {sortedActualCosts.map((r) => (
-                <tr key={r.id}>
-                  <td className="mono" style={{ fontSize: 12 }}>{r.entry_date}</td>
-                  <td>{categoryName(r.category_id)}</td>
-                  <td>{COST_TYPE_LABELS[r.cost_type]}</td>
-                  <td className="num mono">{formatMoney(r.amount, currency)}</td>
-                  <td>{r.description}</td>
-                  <td><button className="btn btn-ghost btn-sm btn-danger" onClick={() => removeActualCost(r.id)}>✕</button></td>
-                </tr>
-              ))}
+              {sortedActualCosts.map((r) => {
+                const matchingRates = rates.filter((rt) => rt.kind === r.cost_type);
+                const selectedRate = r.rate_item_id ? rateById(rates, r.rate_item_id) : undefined;
+                const isSubcontract = r.cost_type === "subcontract";
+                return (
+                  <tr key={r.id}>
+                    <td>
+                      <input
+                        type="date"
+                        value={r.entry_date}
+                        onChange={(e) => { updateCostLocal(r.id, { entry_date: e.target.value }); persistCost(r.id, { entry_date: e.target.value }); }}
+                      />
+                    </td>
+                    <td>
+                      <select
+                        value={r.category_id || ""}
+                        onChange={(e) => { const v = e.target.value || null; updateCostLocal(r.id, { category_id: v }); persistCost(r.id, { category_id: v }); }}
+                      >
+                        <option value="">Select…</option>
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <select value={r.cost_type} onChange={(e) => changeCostType(r, e.target.value as CostType)}>
+                        {Object.entries(COST_TYPE_LABELS).map(([k, v]) => (
+                          <option key={k} value={k}>{v}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      {isSubcontract ? (
+                        <span className="hint">— priced by invoice, not a rate —</span>
+                      ) : (
+                        <>
+                          <select value={r.rate_item_id || ""} onChange={(e) => changeRateItem(r, e.target.value)} style={{ width: "100%" }}>
+                            <option value="">Manual amount</option>
+                            {matchingRates.map((rt) => (
+                              <option key={rt.id} value={rt.id}>{rt.name} — {formatMoney(rt.rate, currency, 2)}/{rt.unit}</option>
+                            ))}
+                          </select>
+                          {r.rate_item_id && (
+                            <input
+                              type="number" className="mono" step="any" min={0}
+                              style={{ width: "100%", marginTop: 4 }}
+                              placeholder={`Qty (${selectedRate?.unit || "unit"})`}
+                              value={r.quantity}
+                              onChange={(e) => changeQuantity(r, e.target.value)}
+                            />
+                          )}
+                        </>
+                      )}
+                    </td>
+                    <td className="num">
+                      {!isSubcontract && r.rate_item_id ? (
+                        <span className="mono">{formatMoney(r.amount, currency)}</span>
+                      ) : (
+                        <input
+                          type="number" className="mono" step="any" min={0}
+                          value={r.amount}
+                          onChange={(e) => changeCostAmount(r, e.target.value)}
+                        />
+                      )}
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        value={r.description}
+                        placeholder={isSubcontract ? "e.g. INV-1042" : "Optional"}
+                        onChange={(e) => updateCostLocal(r.id, { description: e.target.value })}
+                        onBlur={(e) => persistCost(r.id, { description: e.target.value })}
+                      />
+                    </td>
+                    <td><button className="btn btn-ghost btn-sm btn-danger" onClick={() => removeActualCost(r.id)}>✕</button></td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -311,43 +397,23 @@ export default function ActualsTab({
       </div>
 
       <div className="section">
-        <div className="section-head"><h3>Indirect Job Cost — actual ledger</h3><span className="hint">Hours worked against each Position</span></div>
-        <div className="card" style={{ padding: 18, marginBottom: 14 }}>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
-            <div className="field" style={{ width: 150 }}>
-              <label>Date</label>
-              <input type="date" value={ijcDate} onChange={(e) => setIjcDate(e.target.value)} />
-            </div>
-            <div className="field" style={{ width: 200 }}>
-              <label>Position</label>
-              <select value={ijcPosition} onChange={(e) => setIjcPosition(e.target.value)}>
-                <option value="">Select…</option>
-                {positions.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="field" style={{ width: 110 }}>
-              <label>Hours</label>
-              <input type="number" step="any" min={0} value={ijcHours} onChange={(e) => setIjcHours(e.target.value)} placeholder="0" />
-            </div>
-            <div className="field" style={{ flex: "1 1 200px" }}>
-              <label>Description (optional)</label>
-              <input type="text" value={ijcDesc} onChange={(e) => setIjcDesc(e.target.value)} placeholder="Week ending, timesheet ref, etc." />
-            </div>
-            <button className="btn btn-primary" onClick={addActualHours} disabled={!ijcPosition || !ijcHours}>+ Add entry</button>
-          </div>
-          {positions.length === 0 && (
-            <div className="hint" style={{ marginTop: 10 }}>No positions yet — add some on the Positions tab first.</div>
-          )}
+        <div className="section-head">
+          <h3>Indirect Job Cost — actual ledger</h3>
+          <button className="btn btn-sm" onClick={addActualHours} disabled={positions.length === 0}>+ Add entry</button>
         </div>
-
+        {positions.length === 0 ? (
+          <div className="hint" style={{ marginBottom: 10 }}>No positions yet — add some on the Positions tab first.</div>
+        ) : (
+          <div className="hint" style={{ marginBottom: 10 }}>
+            Hours × that position's current fully-loaded rate — the cost isn't typed in, it's always calculated.
+          </div>
+        )}
         <div className="card rate-table-wrap" style={{ maxHeight: 320, overflowY: "auto" }}>
           <table>
             <thead>
               <tr>
-                <th style={{ width: 100 }}>Date</th>
-                <th style={{ width: 160 }}>Position</th>
+                <th style={{ width: 130 }}>Date</th>
+                <th style={{ width: 180 }}>Position</th>
                 <th className="num" style={{ width: 90 }}>Hours</th>
                 <th className="num" style={{ width: 110 }}>Cost</th>
                 <th>Description</th>
@@ -360,11 +426,41 @@ export default function ActualsTab({
               )}
               {sortedActualHours.map((r) => (
                 <tr key={r.id}>
-                  <td className="mono" style={{ fontSize: 12 }}>{r.entry_date}</td>
-                  <td>{positionName(r.position_id)}</td>
-                  <td className="num mono">{r.hours}</td>
+                  <td>
+                    <input
+                      type="date"
+                      value={r.entry_date}
+                      onChange={(e) => { updateHoursLocal(r.id, { entry_date: e.target.value }); persistHours(r.id, { entry_date: e.target.value }); }}
+                    />
+                  </td>
+                  <td>
+                    <select
+                      value={r.position_id || ""}
+                      onChange={(e) => { const v = e.target.value || null; updateHoursLocal(r.id, { position_id: v }); persistHours(r.id, { position_id: v }); }}
+                    >
+                      <option value="">Select…</option>
+                      {positions.map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="num">
+                    <input
+                      type="number" className="mono" step="any" min={0}
+                      value={r.hours}
+                      onChange={(e) => { const h = parseFloat(e.target.value) || 0; updateHoursLocal(r.id, { hours: h }); persistHours(r.id, { hours: h }); }}
+                    />
+                  </td>
                   <td className="num mono">{formatMoney(actualHoursCost(r, positions), currency)}</td>
-                  <td>{r.description}</td>
+                  <td>
+                    <input
+                      type="text"
+                      value={r.description}
+                      placeholder="Optional"
+                      onChange={(e) => updateHoursLocal(r.id, { description: e.target.value })}
+                      onBlur={(e) => persistHours(r.id, { description: e.target.value })}
+                    />
+                  </td>
                   <td><button className="btn btn-ghost btn-sm btn-danger" onClick={() => removeActualHours(r.id)}>✕</button></td>
                 </tr>
               ))}
