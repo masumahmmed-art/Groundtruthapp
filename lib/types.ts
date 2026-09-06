@@ -201,6 +201,33 @@ export interface ProgrammeSnapshotCategoryRow {
   planned_end: string | null;
 }
 
+export type EmploymentType = "wage" | "salaried";
+export type RateBasis = "hour" | "week" | "annum";
+
+/**
+ * One indirect-cost role captured against a project (e.g. Site Engineer,
+ * Safety Officer, Foreman) - the Positions register used for Indirect Job
+ * Cost (IJC) tracking and, later, the payment claim and Earned Value
+ * calculations.
+ *
+ * "wage" positions are paid a rate that already IS the true cost - rcm is
+ * locked at 1 and not editable in the UI. "salaried" positions are paid a
+ * fixed salary that needs loading up into a fully-recovered rate via an
+ * editable Reimbursable Cost Multiplier (rcm), to capture on-costs (leave,
+ * super, insurance, IT, site facilities, etc.) that aren't in the raw salary.
+ */
+export interface PositionRow {
+  id: string;
+  project_id: string;
+  name: string;
+  employment_type: EmploymentType;
+  rate_basis: RateBasis;
+  base_rate: number;
+  rcm: number;
+  notes: string;
+  sort_order: number;
+}
+
 export interface OrganizationRow {
   id: string;
   name: string;
@@ -256,6 +283,11 @@ export interface Database {
         Row: ProgrammeSnapshotCategoryRow;
         Insert: Partial<ProgrammeSnapshotCategoryRow> & { snapshot_id: string };
         Update: Partial<ProgrammeSnapshotCategoryRow>;
+      };
+      positions: {
+        Row: PositionRow;
+        Insert: Partial<PositionRow> & { project_id: string };
+        Update: Partial<PositionRow>;
       };
     };
   };
