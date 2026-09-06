@@ -23,6 +23,7 @@ import SummaryTab from "./SummaryTab";
 import ProgrammeTab from "./ProgrammeTab";
 import PositionsTab from "./PositionsTab";
 import ActualsTab from "./ActualsTab";
+import EarnedValueTab from "./EarnedValueTab";
 import DashboardTab from "./DashboardTab";
 
 // Tabs are grouped into two modes, reflecting the two things this app is
@@ -50,6 +51,7 @@ const TAB_GROUPS = [
       { id: "programme", label: "Programme" },
       { id: "positions", label: "Positions" },
       { id: "actuals", label: "Actuals" },
+      { id: "earned-value", label: "Earned Value" },
     ],
   },
 ] as const;
@@ -197,12 +199,23 @@ export default function EstimatorClient({
           project={project}
           categories={categories}
           items={items}
-          setItems={setItems}
           positions={positions}
           actualCosts={actualCosts}
           setActualCosts={setActualCosts}
           actualHours={actualHours}
           setActualHours={setActualHours}
+          rates={rates}
+          currency={currency}
+        />
+      )}
+      {activeTab === "earned-value" && (
+        <EarnedValueTab
+          categories={categories}
+          items={items}
+          setItems={setItems}
+          positions={positions}
+          actualCosts={actualCosts}
+          actualHours={actualHours}
           rates={rates}
           currency={currency}
         />
