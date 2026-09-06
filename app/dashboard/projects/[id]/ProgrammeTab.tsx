@@ -3,7 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { CategoryRow, LineItemRow, ProjectRow, ProgrammeSnapshotCategoryRow, ProgrammeSnapshotRow, RateItemRow } from "@/lib/types";
-import { categoryTotal, directTotal, plannedValueSchedule, programmeWindow } from "@/lib/calc";
+import {
+  categoryDurationDays,
+  categoryTotal,
+  directTotal,
+  plannedValueSchedule,
+  predecessorDrivenStart,
+  programmeWindow,
+  toIsoDateString,
+} from "@/lib/calc";
 import { formatMoney } from "@/lib/units";
 import ProgrammeImportDialog from "./ProgrammeImportDialog";
 
@@ -73,9 +81,56 @@ export default function ProgrammeTab({
   async function persistDate(id: string, field: "planned_start" | "planned_end", value: string) {
     await supabase.from("categories").update({ [field]: value || null }).eq("id", id);
   }
+  // A category's END date can drive the START date of whatever directly
+  // follows it (Finish-to-Start scheduling) — see the Predecessor column.
+  // Only direct successors need recalculating: each category's own END is
+  // always set by whoever's scheduling it, never derived, so a shift here
+  // doesn't need to ripple any further than one step.
+  async function cascadeFromEnd(changedId: string, newEnd: string) {
+    const changedCategory: CategoryRow = {
+      ...(categories.find((c) => c.id === changedId) as CategoryRow),
+      planned_end: newEnd || null,
+    };
+    const successors = categories.filter((c) => c.predecessor_category_id === changedId);
+    for (const succ of successors) {
+      const newStart = predecessorDrivenStart(succ, [...categories.filter((c) => c.id !== changedId), changedCategory]);
+      const iso = newStart ? toIsoDateString(newStart) : null;
+      if (iso !== (succ.planned_start || null)) {
+        setCategories((prev) => prev.map((c) => (c.id === succ.id ? { ...c, planned_start: iso } : c)));
+        await supabase.from("categories").update({ planned_start: iso }).eq("id", succ.id);
+      }
+    }
+  }
   function changeDate(id: string, field: "planned_start" | "planned_end", value: string) {
     updateDateLocal(id, field, value);
     persistDate(id, field, value);
+    if (field === "planned_end") cascadeFromEnd(id, value);
+  }
+
+  // Setting or changing a predecessor (or its lag) immediately recalculates
+  // THIS category's own start date — Finish-to-Start: it can't start until
+  // the predecessor finishes, plus any lag. Clearing the predecessor leaves
+  // the current start date as-is, now editable by hand again.
+  function changePredecessor(id: string, predecessorId: string) {
+    const cat = categories.find((c) => c.id === id);
+    if (!cat) return;
+    const predecessor_category_id = predecessorId || null;
+    const updated: CategoryRow = { ...cat, predecessor_category_id };
+    const newStart = predecessor_category_id ? predecessorDrivenStart(updated, categories) : null;
+    const iso = predecessor_category_id ? (newStart ? toIsoDateString(newStart) : null) : cat.planned_start || null;
+    setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, predecessor_category_id, planned_start: iso } : c)));
+    supabase.from("categories").update({ predecessor_category_id, planned_start: iso }).eq("id", id);
+  }
+
+  function changeLag(id: string, lagValue: string) {
+    const cat = categories.find((c) => c.id === id);
+    if (!cat) return;
+    const predecessor_lag_days = parseInt(lagValue, 10) || 0;
+    const updated: CategoryRow = { ...cat, predecessor_lag_days };
+    const newStart = cat.predecessor_category_id ? predecessorDrivenStart(updated, categories) : null;
+    const iso = cat.predecessor_category_id ? (newStart ? toIsoDateString(newStart) : null) : cat.planned_start || null;
+    setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, predecessor_lag_days, planned_start: iso } : c)));
+    supabase.from("categories").update({ predecessor_lag_days, planned_start: iso }).eq("id", id);
   }
 
   const scheduledCount = categories.filter((c) => c.planned_start && c.planned_end).length;
@@ -134,41 +189,80 @@ export default function ProgrammeTab({
             time-phased budget instead of an even spread. Any category left unscheduled is still included — its
             budget is simply spread evenly across the whole programme window below until you set its dates.
           </p>
+          <p style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>
+            <b>Predecessor</b> links one category to another, Microsoft-Project style: set it and this category's
+            planned start is calculated automatically as the day after the predecessor's planned end (plus any{" "}
+            <b>Lag</b> — extra days to wait, or a negative number to overlap). Only the start date is linked this way
+            — you still set each category's own end date directly, so a shift upstream moves a start date but never
+            silently changes anyone's duration. <b>Duration</b> is just a read-out of the days between a category's
+            own start and end.
+          </p>
           <div className="card rate-table-wrap" style={{ boxShadow: "none", border: "1px solid var(--line)", maxHeight: 360, overflowY: "auto" }}>
             <table>
               <thead>
                 <tr>
                   <th className="label-cell">Category</th>
-                  <th className="num" style={{ width: 130 }}>Budget</th>
-                  <th style={{ width: 160 }}>Planned start</th>
-                  <th style={{ width: 160 }}>Planned end</th>
+                  <th className="num" style={{ width: 120 }}>Budget</th>
+                  <th className="num" style={{ width: 80 }}>Duration</th>
+                  <th style={{ width: 170 }}>Predecessor</th>
+                  <th className="num" style={{ width: 70 }}>Lag (d)</th>
+                  <th style={{ width: 150 }}>Planned start</th>
+                  <th style={{ width: 150 }}>Planned end</th>
                 </tr>
               </thead>
               <tbody>
-                {categories.map((c) => (
-                  <tr key={c.id}>
-                    <td className="label-cell">
-                      <span className="sw" style={{ background: c.color, display: "inline-block", width: 9, height: 9, borderRadius: 2, marginRight: 7 }}></span>
-                      {c.name}
-                    </td>
-                    <td className="num mono">{formatMoney(categoryTotal(rates, items, c.id), currency)}</td>
-                    <td>
-                      <input
-                        type="date"
-                        value={c.planned_start || ""}
-                        onChange={(e) => changeDate(c.id, "planned_start", e.target.value)}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="date"
-                        value={c.planned_end || ""}
-                        min={c.planned_start || undefined}
-                        onChange={(e) => changeDate(c.id, "planned_end", e.target.value)}
-                      />
-                    </td>
-                  </tr>
-                ))}
+                {categories.map((c) => {
+                  const duration = categoryDurationDays(c);
+                  const hasPredecessor = Boolean(c.predecessor_category_id);
+                  return (
+                    <tr key={c.id}>
+                      <td className="label-cell">
+                        <span className="sw" style={{ background: c.color, display: "inline-block", width: 9, height: 9, borderRadius: 2, marginRight: 7 }}></span>
+                        {c.name}
+                      </td>
+                      <td className="num mono">{formatMoney(categoryTotal(rates, items, c.id), currency)}</td>
+                      <td className="num mono">{duration !== null ? `${duration}d` : "—"}</td>
+                      <td>
+                        <select
+                          value={c.predecessor_category_id || ""}
+                          onChange={(e) => changePredecessor(c.id, e.target.value)}
+                        >
+                          <option value="">None</option>
+                          {categories
+                            .filter((other) => other.id !== c.id)
+                            .map((other) => (
+                              <option key={other.id} value={other.id}>{other.name}</option>
+                            ))}
+                        </select>
+                      </td>
+                      <td className="num">
+                        <input
+                          type="number" className="mono" step={1}
+                          value={c.predecessor_lag_days ?? 0}
+                          disabled={!hasPredecessor}
+                          onChange={(e) => changeLag(c.id, e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="date"
+                          value={c.planned_start || ""}
+                          disabled={hasPredecessor}
+                          title={hasPredecessor ? "Auto-calculated from predecessor — remove the predecessor to set manually" : undefined}
+                          onChange={(e) => changeDate(c.id, "planned_start", e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="date"
+                          value={c.planned_end || ""}
+                          min={c.planned_start || undefined}
+                          onChange={(e) => changeDate(c.id, "planned_end", e.target.value)}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -189,6 +283,10 @@ export default function ProgrammeTab({
                   const scheduled = Boolean(s && e && !isNaN(s.getTime()) && !isNaN(e.getTime()));
                   const leftPct = scheduled ? Math.max(0, ((s!.getTime() - progWindow.start.getTime()) / windowSpanMs) * 100) : 0;
                   const widthPct = scheduled ? Math.max(1.5, ((e!.getTime() - s!.getTime()) / windowSpanMs) * 100) : 0;
+                  const predecessor = c.predecessor_category_id ? categories.find((o) => o.id === c.predecessor_category_id) : undefined;
+                  const predNote = predecessor
+                    ? ` (after ${predecessor.name}${c.predecessor_lag_days ? `, ${c.predecessor_lag_days! > 0 ? "+" : ""}${c.predecessor_lag_days}d lag` : ""})`
+                    : "";
                   return (
                     <div className="gantt-row" key={c.id}>
                       <div className="gantt-label" title={c.name}>{c.name}</div>
@@ -197,7 +295,7 @@ export default function ProgrammeTab({
                           <div
                             className="gantt-bar"
                             style={{ left: `${leftPct}%`, width: `${widthPct}%`, background: barColor(c, i) }}
-                            title={`${c.name}: ${fmtDate(s!)} – ${fmtDate(e!)}`}
+                            title={`${c.name}: ${fmtDate(s!)} – ${fmtDate(e!)}${predNote}`}
                           />
                         ) : (
                           <span className="gantt-unscheduled">Not yet scheduled</span>
