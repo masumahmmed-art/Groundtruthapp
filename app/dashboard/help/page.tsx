@@ -297,24 +297,37 @@ export default function HelpPage() {
         <div className="section-head"><h3>Actuals</h3></div>
         <div className="card" style={{ padding: "18px 22px" }}>
           <p>
-            Real progress and real spend, in three parts. <b>Progress</b> is where you type each line item's %
-            complete as work happens on site — Earned Value (EV) is that line item's full budgeted total × its
-            % complete, the per-line-item granularity this app uses for Earned Value.
+            Real spend, in two ledgers — every field in both is editable in place afterwards, not just
+            add-then-delete. (For % complete and Earned Value, see the <b>Earned Value</b> tab below.)
           </p>
           <p>
-            The <b>Direct Job Cost ledger</b> logs every real Labour, Plant, Material, or Subcontract cost as
-            its own dated entry against a category — a full auditable history rather than a single running
-            total, and never subject to any multiplier, since a labour rate is already the true cost.
+            The <b>Direct Job Cost ledger</b> logs every real Labour, Plant, or Material cost by picking a Rate
+            Library item and a quantity — the amount is calculated automatically from the same rates used in
+            the estimate, then frozen at that moment like a recorded invoice or timesheet, so correcting the
+            Rate Library afterwards doesn't silently rewrite past actual cost history. Pick "Manual amount"
+            instead for anything that doesn't fit a rate item. Subcontract costs are always typed directly,
+            since a subcontractor's invoice isn't priced off the Rate Library — its description field doubles
+            as an invoice number to track.
           </p>
           <p>
             The <b>Indirect Job Cost ledger</b> logs hours worked against a Position; the dollar cost isn't
             typed in, it's calculated automatically as hours × that position's current fully-loaded rate, so
             correcting a position's rate later automatically corrects its past actual cost too.
           </p>
+        </div>
+      </div>
+      <div className="section" id="earned-value">
+        <div className="section-head"><h3>Earned Value</h3></div>
+        <div className="card" style={{ padding: "18px 22px" }}>
           <p>
-            Together, Planned Value (Programme), Earned Value and Actual Cost (here) are the three inputs to
-            Earned Value Management — comparing what you expected to spend by now against what you've actually
-            achieved and actually spent.
+            Where you type each line item's % complete as work happens on site — Earned Value (EV) is that line
+            item's full budgeted total × its % complete, the per-line-item granularity this app uses for Earned
+            Value.
+          </p>
+          <p>
+            Together, Planned Value (Programme), Earned Value and Actual Cost (Actuals, shown alongside EV here
+            for reference) are the three figures behind Earned Value Management — comparing what you expected
+            to spend by now against what you've actually achieved and actually spent.
           </p>
         </div>
       </div>
