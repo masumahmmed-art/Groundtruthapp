@@ -242,6 +242,99 @@ export default function HelpPage() {
           </p>
         </div>
       </div>
+      <div className="section" id="programme">
+        <div className="section-head"><h3>Programme</h3></div>
+        <div className="card" style={{ padding: "18px 22px" }}>
+          <p>
+            Give each category a planned start and end date so Earned Value (see Actuals, below) can compare
+            progress against a realistic time-phased budget instead of an even spread. A category left
+            unscheduled is still included — its budget is simply spread evenly across the whole programme window
+            until you set its dates.
+          </p>
+          <p>
+            <b>Duration</b> is a read-only figure — the number of days between a category's own start and end —
+            never something you type in directly. <b>Predecessor and Lag</b> link one category's start to
+            another's finish, similar to Microsoft Project's Predecessor field (Finish-to-Start only, the most
+            common case). Set a category to follow another and its planned start recalculates automatically as
+            the day after the predecessor finishes, plus any Lag (in days) you set — positive adds a gap,
+            negative allows overlap. Only the start date is linked this way; you still set each category's own
+            end date directly.
+          </p>
+          <p>
+            <b>Import from Primavera P6</b> — upload a .xer export and each WBS node's activities are rolled up
+            to a single earliest-start/latest-end date, ready to map onto your existing categories or create new
+            ones. Every import is saved as a dated <b>snapshot</b> under Schedule history, so re-importing next
+            month lets you compare "then" against "now" for every category and see exactly how many days each
+            one has shifted.
+          </p>
+          <p>
+            <b>Planned Value</b> is deliberately different from Cash Flow (on the Summary/Dashboard tabs) — Cash
+            Flow spreads the whole billing total (including preliminaries, overhead, margin and tax) evenly for
+            a payment forecast, while Planned Value spreads only the direct-cost budget, phased to when each
+            category is actually scheduled, for comparison against real progress.
+          </p>
+        </div>
+      </div>
+      <div className="section" id="positions">
+        <div className="section-head"><h3>Positions</h3></div>
+        <div className="card" style={{ padding: "18px 22px" }}>
+          <p>
+            The Indirect Job Cost (IJC) register — one row per site or support role. Each position is flagged
+            <b> Wage</b> or <b>Salaried</b>. A Wage position (hourly site labour, for example) is paid a rate
+            that already IS the true cost, so no multiplier is ever applied — it's locked at 1.00×. A Salaried
+            position (typically an onsite overhead role — Site Engineer, Foreman, Safety Officer) is paid a
+            fixed salary that doesn't cover everything it actually costs, so an editable <b>Reimbursable Cost
+            Multiplier (RCM)</b> loads it up into a fully-recovered rate, capturing on-costs like leave, super,
+            insurances, IT access, and site facilities.
+          </p>
+          <p>
+            Each position's rate can be set per hour, per week, or per year — the tab shows each one's
+            fully-loaded rate and rolls the whole register into one comparable weekly total.
+          </p>
+        </div>
+      </div>
+      <div className="section" id="actuals">
+        <div className="section-head"><h3>Actuals</h3></div>
+        <div className="card" style={{ padding: "18px 22px" }}>
+          <p>
+            Real progress and real spend, in three parts. <b>Progress</b> is where you type each line item's %
+            complete as work happens on site — Earned Value (EV) is that line item's full budgeted total × its
+            % complete, the per-line-item granularity this app uses for Earned Value.
+          </p>
+          <p>
+            The <b>Direct Job Cost ledger</b> logs every real Labour, Plant, Material, or Subcontract cost as
+            its own dated entry against a category — a full auditable history rather than a single running
+            total, and never subject to any multiplier, since a labour rate is already the true cost.
+          </p>
+          <p>
+            The <b>Indirect Job Cost ledger</b> logs hours worked against a Position; the dollar cost isn't
+            typed in, it's calculated automatically as hours × that position's current fully-loaded rate, so
+            correcting a position's rate later automatically corrects its past actual cost too.
+          </p>
+          <p>
+            Together, Planned Value (Programme), Earned Value and Actual Cost (here) are the three inputs to
+            Earned Value Management — comparing what you expected to spend by now against what you've actually
+            achieved and actually spent.
+          </p>
+        </div>
+      </div>
+      <div className="section" id="dashboard">
+        <div className="section-head"><h3>Dashboard</h3></div>
+        <div className="card" style={{ padding: "18px 22px" }}>
+          <p>
+            Rolls the whole project up into one reporting view: cost by category, cash flow, and cost by
+            resource type (labour, plant, material, subcontract), without flipping between tabs. A one-time
+            <b> Major Category mapping</b> lets you group your individual categories under broader headings —
+            Earthworks, Bridgework, Drainage, and so on — so the top-level chart reads at a glance even on a
+            project with many detailed categories. Any category left unmapped still shows up, grouped under
+            "Unmapped," so nothing silently disappears from the total.
+          </p>
+          <p>
+            Sections can be shown or hidden, filtered by category or date range, and the whole thing can be
+            printed or saved as a PDF — a customisable snapshot of the project rather than a fixed report.
+          </p>
+        </div>
+      </div>
       <div className="section" id="settings">
         <div className="section-head"><h3>Settings</h3></div>
         <div className="card" style={{ padding: "18px 22px" }}>
