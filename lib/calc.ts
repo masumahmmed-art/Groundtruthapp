@@ -1,8 +1,11 @@
 import type {
+  ActualCostRow,
+  ActualHoursRow,
   BuildupComponent,
   CategoryRow,
   ClientCostCategory,
   ClientCostItem,
+  CostType,
   LineItemRow,
   Markups,
   PositionRow,
@@ -692,6 +695,55 @@ export function plannedValueSchedule(
 }
 
 // ---------------------------------------------------------------------------
+// Programme scheduling dependencies (Duration + Predecessor)
+// ---------------------------------------------------------------------------
+
+/**
+ * Days spanned by a category's planned window, inclusive of both ends (Mon
+ * to Mon = 1 day, Mon to Wed = 3 days) — shown as the read-only "Duration"
+ * column on the Programme tab. Not stored — always derived from
+ * planned_start/planned_end, so it can never drift out of sync with them.
+ */
+export function categoryDurationDays(cat: CategoryRow): number | null {
+  const s = parseDateSafe(cat.planned_start);
+  const e = parseDateSafe(cat.planned_end);
+  if (!s || !e) return null;
+  return Math.round((e.getTime() - s.getTime()) / 86400000) + 1;
+}
+
+/**
+ * The earliest this category can start, given its predecessor's planned end
+ * plus predecessor_lag_days — Finish-to-Start only (a simplified subset of
+ * Microsoft Project's relationship types, matching this app's scope): the
+ * successor can't start until the predecessor finishes, optionally plus an
+ * extra gap (or, with a negative lag, some overlap). Returns null if this
+ * category has no predecessor set, the predecessor can't be found, or the
+ * predecessor has no planned_end yet.
+ *
+ * This only ever drives the successor's START — each category's own END
+ * date is still set directly by whoever schedules it, so a predecessor
+ * shifting doesn't ripple through every downstream category's duration,
+ * only its earliest possible start.
+ */
+export function predecessorDrivenStart(cat: CategoryRow, categories: CategoryRow[]): Date | null {
+  if (!cat.predecessor_category_id) return null;
+  const predecessor = categories.find((c) => c.id === cat.predecessor_category_id);
+  const predecessorEnd = predecessor ? parseDateSafe(predecessor.planned_end) : null;
+  if (!predecessorEnd) return null;
+  const start = new Date(predecessorEnd);
+  start.setDate(start.getDate() + 1 + (cat.predecessor_lag_days || 0));
+  return start;
+}
+
+/** Formats a Date as "YYYY-MM-DD" in LOCAL time (unlike toISOString, which converts to UTC and can shift the date by a day) — the format Supabase's date columns expect. */
+export function toIsoDateString(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// ---------------------------------------------------------------------------
 // Positions (Indirect Job Cost register)
 // ---------------------------------------------------------------------------
 
@@ -733,4 +785,61 @@ export function toWeeklyEquivalent(position: PositionRow): number {
 /** Sum of every position's fully-loaded cost, expressed as a weekly figure - see toWeeklyEquivalent. */
 export function totalWeeklyIndirectCost(positions: PositionRow[]): number {
   return positions.reduce((sum, p) => sum + toWeeklyEquivalent(p), 0);
+}
+
+/** A position's fully-loaded rate converted to a plain $/hour figure, regardless of its own rate_basis — used to price actual-hours ledger entries against any position consistently. */
+export function hourlyEquivalentRate(position: PositionRow): number {
+  const loaded = fullyLoadedRate(position);
+  if (position.rate_basis === "hour") return loaded;
+  if (position.rate_basis === "week") return loaded / ASSUMED_HOURS_PER_WEEK;
+  return loaded / (ASSUMED_WEEKS_PER_YEAR * ASSUMED_HOURS_PER_WEEK);
+}
+
+// ---------------------------------------------------------------------------
+// Actuals: Direct Job Cost ledger, Indirect Job Cost ledger, Earned Value
+// ---------------------------------------------------------------------------
+
+export const COST_TYPE_LABELS: Record<CostType, string> = {
+  labour: "Labour",
+  plant: "Plant",
+  material: "Material",
+  subcontract: "Subcontract",
+};
+
+/** The $ cost of one actual-hours ledger entry — hours × the logged position's current fully-loaded hourly-equivalent rate. Returns 0 if the position can't be found (e.g. it was since deleted). */
+export function actualHoursCost(entry: ActualHoursRow, positions: PositionRow[]): number {
+  const position = positions.find((p) => p.id === entry.position_id);
+  if (!position) return 0;
+  return entry.hours * hourlyEquivalentRate(position);
+}
+
+/** Sum of every actual-cost ledger entry's amount — total Direct Job Cost actually spent to date, across all categories and cost types. */
+export function totalActualDjc(actualCosts: ActualCostRow[]): number {
+  return actualCosts.reduce((sum, r) => sum + r.amount, 0);
+}
+
+/** Sum of every actual-hours ledger entry's calculated cost — total Indirect Job Cost actually spent to date, across all positions. */
+export function totalActualIjc(actualHours: ActualHoursRow[], positions: PositionRow[]): number {
+  return actualHours.reduce((sum, r) => sum + actualHoursCost(r, positions), 0);
+}
+
+/** Actual DJC spend, rolled up per category then per cost type — e.g. result["<catId>"].labour. Categories with no entries simply don't appear as a key. */
+export function actualDjcByCategory(actualCosts: ActualCostRow[]): Record<string, Record<CostType, number>> {
+  const out: Record<string, Record<CostType, number>> = {};
+  for (const r of actualCosts) {
+    if (!r.category_id) continue;
+    if (!out[r.category_id]) out[r.category_id] = { labour: 0, plant: 0, material: 0, subcontract: 0 };
+    out[r.category_id][r.cost_type] += r.amount;
+  }
+  return out;
+}
+
+/** Earned Value of one line item: its full budgeted total × how complete it is (0-100%). This is the per-line-item granularity chosen for this app's Earned Value tracking. */
+export function lineItemEarnedValue(rates: RateItemRow[], item: LineItemRow): number {
+  return itemLineTotal(rates, item) * ((item.percent_complete || 0) / 100);
+}
+
+/** Total Earned Value (EV) across every line item — see lineItemEarnedValue. This is the direct-cost-only EV figure to compare against the Programme tab's Planned Value (PV) and the Actuals tab's Actual Cost (AC) for CV/SV/CPI/SPI. */
+export function totalEarnedValue(rates: RateItemRow[], items: LineItemRow[]): number {
+  return items.reduce((sum, it) => sum + lineItemEarnedValue(rates, it), 0);
 }
