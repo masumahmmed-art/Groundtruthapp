@@ -1,6 +1,15 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { CategoryRow, LineItemRow, PositionRow, ProjectRow, RateItemRow, RiskItemRow } from "@/lib/types";
+import type {
+  ActualCostRow,
+  ActualHoursRow,
+  CategoryRow,
+  LineItemRow,
+  PositionRow,
+  ProjectRow,
+  RateItemRow,
+  RiskItemRow,
+} from "@/lib/types";
 import EstimatorClient from "./EstimatorClient";
 
 export default async function ProjectPage({ params }: { params: { id: string } }) {
@@ -13,11 +22,20 @@ export default async function ProjectPage({ params }: { params: { id: string } }
   const { data: project } = await supabase.from("projects").select("*").eq("id", params.id).single();
   if (!project) notFound(); // RLS returns no row if this user's org doesn't own it
 
-  const [{ data: categories }, { data: rateItems }, { data: riskItems }, { data: positionItems }] = await Promise.all([
+  const [
+    { data: categories },
+    { data: rateItems },
+    { data: riskItems },
+    { data: positionItems },
+    { data: actualCostItems },
+    { data: actualHourItems },
+  ] = await Promise.all([
     supabase.from("categories").select("*").eq("project_id", params.id).order("sort_order"),
     supabase.from("rate_items").select("*").eq("org_id", project.org_id).order("sort_order"),
     supabase.from("risk_items").select("*").eq("project_id", params.id).order("sort_order"),
     supabase.from("positions").select("*").eq("project_id", params.id).order("sort_order"),
+    supabase.from("actual_costs").select("*").eq("project_id", params.id).order("entry_date", { ascending: false }),
+    supabase.from("actual_hours").select("*").eq("project_id", params.id).order("entry_date", { ascending: false }),
   ]);
 
   const catIds = (categories || []).map((c) => c.id);
@@ -34,6 +52,8 @@ export default async function ProjectPage({ params }: { params: { id: string } }
       initialItems={lineItems}
       initialRisks={(riskItems || []) as RiskItemRow[]}
       initialPositions={(positionItems || []) as PositionRow[]}
+      initialActualCosts={(actualCostItems || []) as ActualCostRow[]}
+      initialActualHours={(actualHourItems || []) as ActualHoursRow[]}
       rates={(rateItems || []) as RateItemRow[]}
     />
   );
