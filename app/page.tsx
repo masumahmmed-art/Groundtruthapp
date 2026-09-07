@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     title: "Ground Truth Estimator",
     description:
       "First-principles cost estimating for civil infrastructure projects, worldwide.",
-    url: "https://groundtruthestimator.com",
+    url: "https://www.groundtruthestimator.com",
     siteName: "Ground Truth Estimator",
     type: "website",
   },
@@ -32,7 +32,7 @@ const structuredData = {
   name: "Ground Truth Estimator",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
-  url: "https://groundtruthestimator.com",
+  url: "https://www.groundtruthestimator.com",
   description:
     "First-principles cost estimating for civil infrastructure projects, worldwide. Build labour, plant, and material rates into transparent build-ups, backed by an itemised risk register and a risk-adjusted price range.",
   offers: {
