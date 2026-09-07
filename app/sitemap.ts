@@ -6,19 +6,19 @@ import type { MetadataRoute } from "next";
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
-      url: "https://groundtruthestimator.com",
+      url: "https://www.groundtruthestimator.com",
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 1,
     },
     {
-      url: "https://groundtruthestimator.com/signup",
+      url: "https://www.groundtruthestimator.com/signup",
       lastModified: new Date(),
       changeFrequency: "yearly",
       priority: 0.5,
     },
     {
-      url: "https://groundtruthestimator.com/login",
+      url: "https://www.groundtruthestimator.com/login",
       lastModified: new Date(),
       changeFrequency: "yearly",
       priority: 0.3,
