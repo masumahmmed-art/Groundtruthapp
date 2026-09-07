@@ -166,7 +166,7 @@ a { color: var(--blueprint); }
 .rail-totals .value { font-family: var(--font-mono); font-size: 22px; font-weight: 600; color: var(--rail-text); margin-top: 3px; }
 .rail-totals .sub { font-size: 11px; color: var(--rail-text-dim); margin-top: 6px; }
 
-main.content { flex: 1; min-width: 0; max-width: 1180px; display: flex; flex-direction: column; }
+main.content { flex: 1; min-width: 0; max-width: 1440px; display: flex; flex-direction: column; }
 
 .content-inner { padding: 28px 34px 60px; }
 
@@ -238,6 +238,12 @@ td.num, th.num { text-align: right; }
 td input[type="text"], td input[type="number"] { width: 100%; min-width: 60px; }
 td input[type="number"] { text-align: right; }
 .rate-table-wrap { overflow-x: auto; }
+/* Locks a table's column widths to whatever's declared on its <th>s, instead
+   of letting a long nowrap header label or a <select>'s widest option force
+   a column (and the whole table) wider than intended — used on ledger-style
+   tables with several fixed-width columns (dates, dropdowns, small numeric
+   fields) so they fit the available width instead of needing to scroll. */
+.table-fixed { table-layout: fixed; }
 
 .btn {
   display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line-strong); background: var(--surface);
