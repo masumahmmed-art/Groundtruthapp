@@ -197,20 +197,23 @@ export default function ActualsTab({
         </div>
         <div className="hint" style={{ marginBottom: 10 }}>
           For Labour, Plant, and Material, pick a Rate Library item and a quantity — the amount is calculated from
-          the same rates used in the estimate, the same way a line item's build-up works. Pick "Manual amount"
-          instead for anything that doesn't fit a rate item. Subcontract is always a typed amount, with its
+          the same rates used in the estimate, the same way a line item's build-up works. That calculated amount
+          can still be corrected directly if what actually happened differs from the Rate Library (a one-off
+          higher rate, a discount, and so on) — just bear in mind that changing the quantity afterwards
+          recalculates the amount from the rate again, overwriting a manual correction. Pick "Manual amount"
+          instead for anything that doesn't fit a rate item at all. Subcontract is always a typed amount, with its
           description field doubling as an invoice number.
         </div>
         <div className="card rate-table-wrap" style={{ maxHeight: 420, overflowY: "auto", marginBottom: 14 }}>
-          <table>
+          <table className="table-fixed">
             <thead>
               <tr>
-                <th style={{ width: 130 }}>Date</th>
-                <th style={{ width: 160 }}>Category</th>
+                <th style={{ width: 120 }}>Date</th>
+                <th style={{ width: 170 }}>Category</th>
                 <th style={{ width: 110 }}>Cost type</th>
-                <th style={{ width: 220 }}>Rate item & quantity</th>
-                <th className="num" style={{ width: 120 }}>Amount</th>
-                <th style={{ width: 160 }}>{"Description / Invoice #"}</th>
+                <th style={{ width: 230 }}>Rate item & quantity</th>
+                <th className="num" style={{ width: 110 }}>Amount</th>
+                <th style={{ width: 220 }}>{"Description / Invoice #"}</th>
                 <th style={{ width: 36 }}></th>
               </tr>
             </thead>
@@ -273,15 +276,11 @@ export default function ActualsTab({
                       )}
                     </td>
                     <td className="num">
-                      {!isSubcontract && r.rate_item_id ? (
-                        <span className="mono">{formatMoney(r.amount, currency)}</span>
-                      ) : (
-                        <input
-                          type="number" className="mono" step="any" min={0}
-                          value={r.amount}
-                          onChange={(e) => changeCostAmount(r, e.target.value)}
-                        />
-                      )}
+                      <input
+                        type="number" className="mono" step="any" min={0}
+                        value={r.amount}
+                        onChange={(e) => changeCostAmount(r, e.target.value)}
+                      />
                     </td>
                     <td>
                       <input
@@ -344,7 +343,7 @@ export default function ActualsTab({
           </div>
         )}
         <div className="card rate-table-wrap" style={{ maxHeight: 320, overflowY: "auto" }}>
-          <table>
+          <table className="table-fixed">
             <thead>
               <tr>
                 <th style={{ width: 130 }}>Date</th>
