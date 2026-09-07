@@ -4,22 +4,22 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Ground Truth Estimator — First-Principles Cost Estimating for Civil Infrastructure",
+  title: "Ground Truth Estimator — Cost Estimating & Cost Control for Civil Infrastructure",
   description:
-    "Build civil infrastructure estimates from real labour, plant, and material rates — with a defensible risk-adjusted price range, not a guess. Free during early access.",
+    "Cost estimating and cost control for civil infrastructure — real rates, actual costs, and earned value in one place. Free during early access.",
   openGraph: {
-    title: "Ground Truth Estimator",
+    title: "Ground Truth Estimator — Cost Estimating & Cost Control",
     description:
-      "First-principles cost estimating for civil infrastructure projects, worldwide.",
+      "First-principles cost estimating and cost control for civil infrastructure projects, worldwide — real rates, actual costs, and earned value in one place.",
     url: "https://www.groundtruthestimator.com",
     siteName: "Ground Truth Estimator",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Ground Truth Estimator",
+    title: "Ground Truth Estimator — Cost Estimating & Cost Control",
     description:
-      "First-principles cost estimating for civil infrastructure projects, worldwide.",
+      "First-principles cost estimating and cost control for civil infrastructure projects, worldwide — real rates, actual costs, and earned value in one place.",
   },
 };
 
@@ -34,7 +34,7 @@ const structuredData = {
   operatingSystem: "Web",
   url: "https://www.groundtruthestimator.com",
   description:
-    "First-principles cost estimating for civil infrastructure projects, worldwide. Build labour, plant, and material rates into transparent build-ups, backed by an itemised risk register and a risk-adjusted price range.",
+    "First-principles cost estimating and cost control for civil infrastructure projects, worldwide. Build labour, plant, and material rates into transparent build-ups, then track actual costs and earned value against the plan — backed by an itemised risk register and a risk-adjusted price range.",
   offers: {
     "@type": "Offer",
     price: "0",
@@ -74,7 +74,7 @@ export default async function RootPage() {
       </header>
 
       <section className="landing-hero">
-        <p className="landing-eyebrow">First-principles cost estimating for civil infrastructure</p>
+        <p className="landing-eyebrow">First-principles cost estimating and cost control for civil infrastructure</p>
         <h1>
           Build estimates from the ground up — not from a gut-feel per-metre rate.
         </h1>
@@ -90,6 +90,12 @@ export default async function RootPage() {
           it. This shows the math behind every rate, and a best-case / expected /
           worst-case price range generated from your own risk register — not a
           contingency percentage picked to feel safe.
+        </p>
+        <p className="landing-lead">
+          Once work starts, the same numbers keep working: schedule categories on a
+          Programme, log real Labour, Plant, Material, and Subcontract cost as it
+          happens, and see Earned Value against the plan — cost control that picks up
+          where the estimate left off, not a separate spreadsheet.
         </p>
         <div className="landing-cta">
           <Link href="/signup" className="btn btn-primary">
@@ -167,6 +173,32 @@ export default async function RootPage() {
             hides the uncertainty.
           </p>
         </div>
+
+        <div className="feature-card" style={{ borderTopColor: "var(--cat-earth)" }}>
+          <span className="feature-tag" style={{ color: "var(--cat-earth)" }}>
+            Programme &amp; Positions
+          </span>
+          <h3>Schedule the work, register who&apos;s running it</h3>
+          <p>
+            Give each category a planned start and end date — link one to another&apos;s
+            finish the way Microsoft Project&apos;s Predecessor field does — and register
+            every site or support role&apos;s Wage or Salaried rate, ready to compare
+            against real cost.
+          </p>
+        </div>
+
+        <div className="feature-card" style={{ borderTopColor: "var(--cat-pave)" }}>
+          <span className="feature-tag" style={{ color: "var(--cat-pave)" }}>
+            Actuals &amp; Earned Value
+          </span>
+          <h3>Track real cost and progress, not just the estimate</h3>
+          <p>
+            Log real Labour, Plant, Material, and Subcontract cost against the same
+            Rate Library used in the estimate, record % complete as work happens, and
+            see Earned Value and Actual Cost — so the number you defended at tender
+            keeps being checked against the job.
+          </p>
+        </div>
       </section>
 
       <section className="landing-band">
@@ -185,7 +217,7 @@ export default async function RootPage() {
           <span className="mark">GT</span>
           <span className="landing-nav-name">Ground Truth Estimator</span>
         </div>
-        <p className="landing-fineprint">Cost estimating for civil infrastructure projects.</p>
+        <p className="landing-fineprint">Cost estimating and cost control for civil infrastructure projects.</p>
       </footer>
     </div>
   );
