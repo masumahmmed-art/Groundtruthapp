@@ -10,6 +10,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/dashboard", "/api"],
     },
-    sitemap: "https://groundtruthestimator.com/sitemap.xml",
+    sitemap: "https://www.groundtruthestimator.com/sitemap.xml",
   };
 }
