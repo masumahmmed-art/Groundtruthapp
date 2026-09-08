@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { signup } from "./actions";
 import Turnstile from "@/lib/Turnstile";
+import GaEvent from "@/lib/GaEvent";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
@@ -31,6 +32,7 @@ export default function SignupPage({
     return (
       <div className="auth-shell">
         <div className="auth-card">
+          <GaEvent name="sign_up" params={{ method: "email" }} />
           <div className="mark">GT</div>
           <h1>Check your email</h1>
           <p className="lead">
