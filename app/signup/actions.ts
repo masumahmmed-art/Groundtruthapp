@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 
 // Prefer an explicit site URL (set NEXT_PUBLIC_SITE_URL in Vercel's env vars
 // to your real domain). Falls back to the request's Origin header, which
@@ -24,11 +24,21 @@ export async function signup(formData: FormData) {
   const captchaToken = String(formData.get("cf-turnstile-response") || "") || undefined;
   const origin = resolveSiteUrl();
 
+  // Set by middleware.ts on first visit from a tagged link (?src=... or
+  // ?utm_source=...). Stored on the account itself so you can see where
+  // each real signup came from — check Supabase: Authentication > Users >
+  // click the user > User Metadata.
+  const signupSource = cookies().get("gt_src")?.value;
+
   const supabase = createClient();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: `${origin}/auth/callback`, captchaToken },
+    options: {
+      emailRedirectTo: `${origin}/auth/callback`,
+      captchaToken,
+      data: signupSource ? { signup_source: signupSource } : undefined,
+    },
   });
 
   if (error) {
