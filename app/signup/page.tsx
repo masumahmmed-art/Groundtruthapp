@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { signup } from "./actions";
 import Turnstile from "@/lib/Turnstile";
 import GaEvent from "@/lib/GaEvent";
@@ -29,10 +30,11 @@ export default function SignupPage({
   }
 
   if (searchParams["check-email"]) {
+    const signupSource = cookies().get("gt_src")?.value || "direct";
     return (
       <div className="auth-shell">
         <div className="auth-card">
-          <GaEvent name="sign_up" params={{ method: "email" }} />
+          <GaEvent name="sign_up" params={{ method: "email", source: signupSource }} />
           <div className="mark">GT</div>
           <h1>Check your email</h1>
           <p className="lead">
