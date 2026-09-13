@@ -2,8 +2,15 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { ProjectRow, RiskCategory, RiskItemRow } from "@/lib/types";
-import { riskAllowance, totalRiskAllowance, RISK_CATEGORY_LABELS } from "@/lib/calc";
+import type { InvestigationLevel, ProjectRow, RiskCategory, RiskItemRow, SiteNature } from "@/lib/types";
+import {
+  riskAllowance,
+  totalRiskAllowance,
+  RISK_CATEGORY_LABELS,
+  utilityStrikeProbability,
+  INVESTIGATION_LEVEL_RISK,
+  INVESTIGATION_LEVEL_LABELS,
+} from "@/lib/calc";
 import { formatMoney } from "@/lib/units";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -55,11 +62,13 @@ interface MarketResult {
 
 export default function RiskTab({
   project,
+  setProject,
   risks,
   setRisks,
   currency,
 }: {
   project: ProjectRow;
+  setProject: (updater: (p: ProjectRow) => ProjectRow) => void;
   risks: RiskItemRow[];
   setRisks: (updater: (r: RiskItemRow[]) => RiskItemRow[]) => void;
   currency: string;
@@ -227,15 +236,43 @@ export default function RiskTab({
     await supabase.from("risk_items").delete().eq("id", id);
   }
 
+  // Site nature / utility count / investigation level live on the project
+  // itself (not the risk register) — they're facts about the site that
+  // don't change visit to visit, so they're saved rather than re-asked
+  // every time like the weather/geotech lookups above.
+  function changeProject<K extends keyof ProjectRow>(key: K, value: ProjectRow[K]) {
+    setProject((p) => ({ ...p, [key]: value }));
+  }
+
+  async function persistProject<K extends keyof ProjectRow>(key: K, value: ProjectRow[K]) {
+    await supabase.from("projects").update({ [key]: value }).eq("id", project.id);
+  }
+
   const total = totalRiskAllowance(risks);
   const maxRain = result ? Math.max(...result.monthly.map((m) => m.avgRainfallMm), 1) : 1;
+
+  const utilityCount = project.utility_count ?? 0;
+  const utilitySuggestion =
+    project.site_nature === "brownfield" && utilityCount > 0
+      ? {
+          description: `Utility strike / clash — ${utilityCount} service${utilityCount === 1 ? "" : "s"} identified via Dial Before You Dig`,
+          probability: utilityStrikeProbability(utilityCount),
+        }
+      : null;
+
+  const investigationSuggestion = project.investigation_level
+    ? {
+        description: `Latent / unknown site conditions — ${INVESTIGATION_LEVEL_LABELS[project.investigation_level].toLowerCase()} undertaken`,
+        probability: INVESTIGATION_LEVEL_RISK[project.investigation_level],
+      }
+    : null;
 
   return (
     <div>
       <div className="titleblock">
         <div>
           <h2 style={{ fontSize: 20 }}>Risk & Location</h2>
-          <div className="meta">Itemised risk register (probability × cost impact) plus weather, geotechnical, flood, seismic, and market / price escalation lookups for the site.</div>
+          <div className="meta">Itemised risk register (probability × cost impact) plus site &amp; investigation risk, weather, geotechnical, flood, seismic, and market / price escalation lookups for the site.</div>
         </div>
         <div className="stamp">
           Risk allowance
@@ -352,6 +389,105 @@ export default function RiskTab({
               />
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-head">
+          <h3>Site &amp; investigation risk</h3>
+          <span className="hint">Suggested probabilities are a starting point — adjust them on the register</span>
+        </div>
+        <div className="card" style={{ padding: 18 }}>
+          <div className="field" style={{ marginBottom: 16 }}>
+            <label>Site nature</label>
+            <div style={{ display: "flex", gap: 6 }}>
+              {(["greenfield", "brownfield"] as SiteNature[]).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  className={"btn btn-sm" + (project.site_nature === v ? " btn-primary" : "")}
+                  onClick={() => { changeProject("site_nature", v); persistProject("site_nature", v); }}
+                >
+                  {v === "greenfield" ? "Greenfield" : "Brownfield"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {project.site_nature === "brownfield" && (
+            <div className="field" style={{ marginBottom: 16, maxWidth: 360 }}>
+              <label htmlFor="utility-count">Utility services identified (Dial Before You Dig referral)</label>
+              <input
+                id="utility-count"
+                type="number"
+                className="mono"
+                min={0}
+                step={1}
+                placeholder="e.g. 6"
+                value={project.utility_count ?? ""}
+                onChange={(e) => changeProject("utility_count", e.target.value === "" ? null : parseInt(e.target.value, 10) || 0)}
+                onBlur={(e) => persistProject("utility_count", e.target.value === "" ? null : parseInt(e.target.value, 10) || 0)}
+              />
+            </div>
+          )}
+
+          {utilitySuggestion && (
+            <div style={{ marginBottom: 20 }}>
+              <p style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "0 0 8px" }}>
+                Suggested: <b>{utilitySuggestion.description}</b>, {utilitySuggestion.probability}% probability.
+              </p>
+              <button
+                className="btn"
+                onClick={() =>
+                  addRisk({
+                    category: "utilities",
+                    description: utilitySuggestion.description,
+                    probability: utilitySuggestion.probability,
+                    impact: 0,
+                  })
+                }
+              >
+                + Add suggested risk to register
+              </button>
+            </div>
+          )}
+
+          <div className="field" style={{ marginBottom: 16 }}>
+            <label>Site investigation undertaken</label>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {(Object.keys(INVESTIGATION_LEVEL_LABELS) as InvestigationLevel[]).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  className={"btn btn-sm" + (project.investigation_level === v ? " btn-primary" : "")}
+                  onClick={() => { changeProject("investigation_level", v); persistProject("investigation_level", v); }}
+                >
+                  {INVESTIGATION_LEVEL_LABELS[v]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {investigationSuggestion && (
+            <div>
+              <p style={{ fontSize: 12.5, color: "var(--ink-soft)", margin: "0 0 8px" }}>
+                Suggested: <b>{investigationSuggestion.description}</b>, {investigationSuggestion.probability}% probability.
+              </p>
+              <button
+                className="btn"
+                onClick={() =>
+                  addRisk({
+                    category: "latent_conditions",
+                    description: investigationSuggestion.description,
+                    probability: investigationSuggestion.probability,
+                    impact: 0,
+                  })
+                }
+              >
+                + Add suggested risk to register
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
