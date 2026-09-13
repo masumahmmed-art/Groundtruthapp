@@ -437,7 +437,42 @@ export const RISK_CATEGORY_LABELS: Record<string, string> = {
   programme: "Programme",
   market: "Market / Price escalation",
   safety: "Safety",
+  utilities: "Utilities",
+  latent_conditions: "Latent conditions",
   other: "Other",
+};
+
+/**
+ * Suggested probability for a utility-strike / clash risk, based on how many
+ * separate services a Dial Before You Dig referral identified. These
+ * breakpoints are a starting point, not a standard — adjust freely on the
+ * Risk tab once you've added the suggestion; this only sets the initial
+ * probability.
+ */
+export function utilityStrikeProbability(utilityCount: number): number {
+  if (utilityCount <= 0) return 0;
+  if (utilityCount <= 3) return 15;
+  if (utilityCount <= 7) return 30;
+  if (utilityCount <= 15) return 45;
+  return 60;
+}
+
+/**
+ * Suggested probability for a latent/unknown site-conditions risk, based on
+ * how much ground investigation has actually been done. Less investigation
+ * means more of the site is still a guess. Same caveat as above — a starting
+ * point to adjust, not a fixed rule.
+ */
+export const INVESTIGATION_LEVEL_RISK: Record<string, number> = {
+  minimal: 45,
+  some: 25,
+  detailed: 10,
+};
+
+export const INVESTIGATION_LEVEL_LABELS: Record<string, string> = {
+  minimal: "Minimal (desktop study only)",
+  some: "Some (preliminary boreholes / test pits)",
+  detailed: "Detailed (comprehensive investigation)",
 };
 
 export const DEFAULT_CATEGORIES: { name: string; color: string }[] = [
