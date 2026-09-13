@@ -298,10 +298,29 @@ export default function SummaryTab({
   }
 
   function StackBar({ rows, total }: { rows: { name: string; color: string; value: number }[]; total: number }) {
+    // The bar itself is the at-a-glance view; the per-category legend below it
+    // repeats the same info as text and, on a project with many categories,
+    // can run to a dozen+ lines — most of the time nobody needs to read every
+    // one of those, so it starts collapsed and only takes up space once you
+    // actually ask for the breakdown.
+    const [open, setOpen] = useState(false);
     if (!rows.length || total <= 0) return <div className="empty">No costs yet — add line items in the Estimate tab.</div>;
     return (
       <>
-        <div className="stackbar">
+        <div
+          className="stackbar"
+          role="button"
+          tabIndex={0}
+          aria-expanded={open}
+          onClick={() => setOpen((o) => !o)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setOpen((o) => !o);
+            }
+          }}
+          style={{ cursor: "pointer" }}
+        >
           {rows.map((r) => {
             const w = (r.value / total) * 100;
             return (
@@ -311,14 +330,19 @@ export default function SummaryTab({
             );
           })}
         </div>
-        <div className="legend">
-          {rows.map((r) => (
-            <div className="legend-item" key={r.name}>
-              <span className="sw" style={{ background: r.color }}></span>
-              {r.name} <b>{formatMoney(r.value, currency)}</b>
-            </div>
-          ))}
-        </div>
+        <button type="button" className="btn btn-ghost btn-sm stackbar-toggle" onClick={() => setOpen((o) => !o)}>
+          {open ? "Hide breakdown ▲" : `Show breakdown (${rows.length}) ▼`}
+        </button>
+        {open && (
+          <div className="legend">
+            {rows.map((r) => (
+              <div className="legend-item" key={r.name}>
+                <span className="sw" style={{ background: r.color }}></span>
+                {r.name} <b>{formatMoney(r.value, currency)}</b>
+              </div>
+            ))}
+          </div>
+        )}
       </>
     );
   }
