@@ -167,7 +167,7 @@ export default function EstimatorClient({
         />
       )}
       {activeTab === "risk" && (
-        <RiskTab project={project} risks={risks} setRisks={setRisks} currency={currency} />
+        <RiskTab project={project} setProject={setProject} risks={risks} setRisks={setRisks} currency={currency} />
       )}
       {activeTab === "summary" && (
         <SummaryTab
