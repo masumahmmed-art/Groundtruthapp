@@ -108,7 +108,23 @@ export interface Markups {
   cashFlowMonths?: number;
 }
 
-export type RiskCategory = "weather" | "geotechnical" | "flood" | "seismic" | "programme" | "market" | "safety" | "other";
+export type RiskCategory =
+  | "weather"
+  | "geotechnical"
+  | "flood"
+  | "seismic"
+  | "programme"
+  | "market"
+  | "safety"
+  | "utilities"
+  | "latent_conditions"
+  | "other";
+
+/** Greenfield = undeveloped site. Brownfield = previously developed — drives the utility-strike risk suggestion. */
+export type SiteNature = "greenfield" | "brownfield";
+
+/** How much ground investigation has actually been done — drives the latent-conditions risk suggestion. */
+export type InvestigationLevel = "minimal" | "some" | "detailed";
 
 export interface RiskItemRow {
   id: string;
@@ -140,6 +156,12 @@ export interface ProjectRow {
   project_date: string;
   notes: string;
   markups: Markups;
+  /** Greenfield or brownfield — null until set on the Risk tab. Brownfield unlocks the utility-count field. */
+  site_nature: SiteNature | null;
+  /** Number of separate services identified in a Dial Before You Dig referral — only meaningful when site_nature is "brownfield". */
+  utility_count: number | null;
+  /** How much ground investigation has been done so far — feeds the suggested latent-conditions risk. */
+  investigation_level: InvestigationLevel | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
