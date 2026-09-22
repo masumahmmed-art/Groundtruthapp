@@ -212,6 +212,11 @@ export default async function RootPage() {
         </Link>
       </section>
 
+      <nav className="landing-foot-links" aria-label="Learn more">
+        <Link href="/cost-estimating-software">Cost estimating software</Link>
+        <Link href="/risk-register">Risk register &amp; contingency</Link>
+        <Link href="/earned-value-management">Earned value management</Link>
+      </nav>
       <footer className="landing-foot">
         <div className="landing-nav-brand">
           <span className="mark">GT</span>
