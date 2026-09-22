@@ -435,3 +435,24 @@ td input[type="number"] { text-align: right; }
 @media (max-width: 560px) {
   .landing-nav-links { gap: 10px; }
 }
+
+/* Long-form explainer sections on the topic landing pages (cost estimating,
+   risk register, EVM). Kept separate from .landing-hero, which is reserved
+   for the short marketing pitch. */
+.landing-article { max-width: 720px; margin: 0 auto; padding: 8px 24px 8px; }
+.landing-article h2 {
+  font-family: var(--font-display); font-size: clamp(19px, 2.4vw, 23px); color: var(--ink);
+  margin: 40px 0 12px;
+}
+.landing-article h2:first-child { margin-top: 0; }
+.landing-article p { font-size: 15px; line-height: 1.7; color: var(--ink-soft); margin: 0 0 16px; }
+.landing-article ul { margin: 0 0 16px 20px; padding: 0; }
+.landing-article li { font-size: 15px; line-height: 1.7; color: var(--ink-soft); margin-bottom: 6px; }
+.landing-article strong { color: var(--ink); }
+
+.landing-foot-links {
+  display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap;
+  padding: 0 clamp(20px, 5vw, 64px) 18px; font-size: 12.5px;
+}
+.landing-foot-links a { color: var(--ink-soft); text-decoration: none; }
+.landing-foot-links a:hover { color: var(--ink); text-decoration: underline; }
