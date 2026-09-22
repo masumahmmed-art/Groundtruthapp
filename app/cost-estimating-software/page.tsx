@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 
 const URL = "https://www.groundtruthestimator.com/cost-estimating-software";
 
@@ -42,7 +44,18 @@ const structuredData = {
   },
 };
 
-export default function CostEstimatingSoftwarePage() {
+// Logged-in visitors have no use for the marketing pitch or a duplicate
+// "create workspace" button (the auth middleware would just bounce them
+// straight to /dashboard anyway) — send them there directly, same as the
+// homepage does.
+export default async function CostEstimatingSoftwarePage() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) redirect("/dashboard");
+
   return (
     <div className="landing">
       <script
