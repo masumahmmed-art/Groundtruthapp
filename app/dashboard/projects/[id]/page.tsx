@@ -4,6 +4,7 @@ import type {
   ActualCostRow,
   ActualHoursRow,
   CategoryRow,
+  DrawingRow,
   LineItemRow,
   PositionRow,
   ProjectRow,
@@ -29,6 +30,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
     { data: positionItems },
     { data: actualCostItems },
     { data: actualHourItems },
+    { data: drawings },
   ] = await Promise.all([
     supabase.from("categories").select("*").eq("project_id", params.id).order("sort_order"),
     supabase.from("rate_items").select("*").eq("org_id", project.org_id).order("sort_order"),
@@ -36,6 +38,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
     supabase.from("positions").select("*").eq("project_id", params.id).order("sort_order"),
     supabase.from("actual_costs").select("*").eq("project_id", params.id).order("entry_date", { ascending: false }),
     supabase.from("actual_hours").select("*").eq("project_id", params.id).order("entry_date", { ascending: false }),
+    supabase.from("drawings").select("*").eq("project_id", params.id).order("created_at"),
   ]);
 
   const catIds = (categories || []).map((c) => c.id);
@@ -55,6 +58,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
       initialActualCosts={(actualCostItems || []) as ActualCostRow[]}
       initialActualHours={(actualHourItems || []) as ActualHoursRow[]}
       rates={(rateItems || []) as RateItemRow[]}
+      initialDrawings={(drawings || []) as DrawingRow[]}
     />
   );
 }

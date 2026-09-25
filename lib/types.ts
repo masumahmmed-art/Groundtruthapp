@@ -316,6 +316,52 @@ export interface OrganizationRow {
   created_at: string;
 }
 
+// ----------------------------------------------------------------------------
+// 2D drawing takeoff (supabase/migrations/002_takeoff.sql)
+// ----------------------------------------------------------------------------
+
+export type TakeoffKind = "length" | "area" | "count";
+
+export interface TakeoffPoint {
+  x: number;
+  y: number;
+}
+
+/** One page's calibration (supabase/migrations/003_page_scales.sql). */
+export interface PageScale {
+  px_per_unit: number;
+  unit: string;
+}
+
+export interface DrawingRow {
+  id: string;
+  project_id: string;
+  name: string;
+  storage_path: string;
+  page_count: number;
+  /** Legacy single scale; superseded by page_scales. */
+  scale_px_per_unit: number | null;
+  scale_unit: string;
+  scale_page: number;
+  /** Keyed by page number as a string. Missing if migration 003 hasn't been run. */
+  page_scales?: Record<string, PageScale>;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface TakeoffMeasurementRow {
+  id: string;
+  drawing_id: string;
+  page_number: number;
+  kind: TakeoffKind;
+  label: string;
+  geometry: TakeoffPoint[];
+  value: number;
+  line_item_id: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -378,6 +424,16 @@ export interface Database {
         Row: ActualHoursRow;
         Insert: Partial<ActualHoursRow> & { project_id: string };
         Update: Partial<ActualHoursRow>;
+      };
+      drawings: {
+        Row: DrawingRow;
+        Insert: Partial<DrawingRow> & { project_id: string; storage_path: string };
+        Update: Partial<DrawingRow>;
+      };
+      takeoff_measurements: {
+        Row: TakeoffMeasurementRow;
+        Insert: Partial<TakeoffMeasurementRow> & { drawing_id: string; kind: TakeoffKind; geometry: TakeoffPoint[] };
+        Update: Partial<TakeoffMeasurementRow>;
       };
     };
   };

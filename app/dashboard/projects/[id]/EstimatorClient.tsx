@@ -6,6 +6,7 @@ import type {
   ActualCostRow,
   ActualHoursRow,
   CategoryRow,
+  DrawingRow,
   LineItemRow,
   Markups,
   PositionRow,
@@ -25,6 +26,7 @@ import PositionsTab from "./PositionsTab";
 import ActualsTab from "./ActualsTab";
 import EarnedValueTab from "./EarnedValueTab";
 import DashboardTab from "./DashboardTab";
+import TakeoffTab from "./TakeoffTab";
 
 // Tabs are grouped into two modes, reflecting the two things this app is
 // used for at different times: putting together the tender price (Estimate)
@@ -38,6 +40,7 @@ const TAB_GROUPS = [
     label: "Estimate",
     tabs: [
       { id: "project", label: "Project" },
+      { id: "takeoff", label: "Takeoff" },
       { id: "estimate", label: "Estimate" },
       { id: "risk", label: "Risk & Location" },
       { id: "summary", label: "Summary" },
@@ -72,6 +75,7 @@ export default function EstimatorClient({
   initialActualCosts,
   initialActualHours,
   rates,
+  initialDrawings,
 }: {
   project: ProjectRow;
   initialCategories: CategoryRow[];
@@ -81,6 +85,7 @@ export default function EstimatorClient({
   initialActualCosts: ActualCostRow[];
   initialActualHours: ActualHoursRow[];
   rates: RateItemRow[];
+  initialDrawings: DrawingRow[];
 }) {
   const { currency, unitSystem } = useOrgSettings();
   const [activeTab, setActiveTab] = useState<TabId>("project");
@@ -154,6 +159,9 @@ export default function EstimatorClient({
       </div>
 
       {activeTab === "project" && <ProjectTab project={project} setProject={setProject} />}
+      {activeTab === "takeoff" && (
+        <TakeoffTab project={project} categories={categories} setItems={setItems} initialDrawings={initialDrawings} />
+      )}
       {activeTab === "estimate" && (
         <EstimateTab
           project={project}

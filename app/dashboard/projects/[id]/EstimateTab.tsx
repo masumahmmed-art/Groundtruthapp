@@ -32,16 +32,19 @@ export default function EstimateTab({
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [openItem, setOpenItem] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
+  const [addingCategory, setAddingCategory] = useState(false);
 
-  async function addCategory() {
-    const name = prompt("New category name:", "New Category");
-    if (!name) return;
+  // Returns an error message, or null on success.
+  async function addCategory(name: string): Promise<string | null> {
     const { data, error } = await supabase
       .from("categories")
       .insert({ project_id: project.id, name, color: "var(--ink-soft)", sort_order: categories.length + 1 })
       .select("*")
       .single();
-    if (!error && data) setCategories((prev) => [...prev, data as CategoryRow]);
+    if (error || !data) return "Could not add the category: " + (error?.message || "unknown error");
+    setCategories((prev) => [...prev, data as CategoryRow]);
+    setAddingCategory(false);
+    return null;
   }
 
   async function addItem(categoryId: string) {
@@ -205,8 +208,9 @@ export default function EstimateTab({
           </div>
         );
       })}
-      <div style={{ display: "flex", gap: 10 }}>
-        <button className="btn" onClick={addCategory}>+ Add category</button>
+      {addingCategory && <AddCategoryForm onAdd={addCategory} onCancel={() => setAddingCategory(false)} />}
+      <div style={{ display: "flex", gap: 10, marginTop: addingCategory ? 10 : 0 }}>
+        {!addingCategory && <button className="btn" onClick={() => setAddingCategory(true)}>+ Add category</button>}
         <button className="btn" onClick={() => setShowImport(true)}>⇪ Import line items</button>
       </div>
 
@@ -221,6 +225,43 @@ export default function EstimateTab({
         />
       )}
     </div>
+  );
+}
+
+// In-page replacement for window.prompt, which some embedded browsers don't support.
+function AddCategoryForm({
+  onAdd,
+  onCancel,
+}: {
+  onAdd: (name: string) => Promise<string | null>;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState("New Category");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const trimmed = name.trim();
+
+  return (
+    <form
+      className="card"
+      style={{ padding: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end", borderColor: "var(--accent)" }}
+      onSubmit={async (e) => {
+        e.preventDefault();
+        if (!trimmed || saving) return;
+        setSaving(true);
+        setError(await onAdd(trimmed));
+        setSaving(false);
+      }}
+      onKeyDown={(e) => { if (e.key === "Escape") onCancel(); }}
+    >
+      <div className="field" style={{ flex: "1 1 240px" }}>
+        <label>New category name</label>
+        <input type="text" autoFocus value={name} onChange={(e) => setName(e.target.value)} onFocus={(e) => e.target.select()} />
+      </div>
+      <button type="submit" className="btn btn-sm" disabled={!trimmed || saving}>{saving ? "Adding…" : "Add category"}</button>
+      <button type="button" className="btn btn-sm btn-ghost" onClick={onCancel}>Cancel</button>
+      {error && <div style={{ flexBasis: "100%", fontSize: 12, color: "var(--danger)" }}>{error}</div>}
+    </form>
   );
 }
 
