@@ -15,7 +15,8 @@ export default function HelpPage() {
             <p style={{ margin: 0 }}>
               A step-by-step manual covering first-principles estimating — the considerations
               behind a sound estimate — and a full walkthrough of using this software from
-              setting up your workspace through to exporting a finished estimate.
+              setting up your workspace through to exporting a finished estimate. Updated
+              September 2026 with a new chapter on Drawing Takeoff.
             </p>
           </div>
           <a
@@ -70,13 +71,57 @@ export default function HelpPage() {
           </p>
         </div>
       </div>
+      <div className="section" id="takeoff">
+        <div className="section-head"><h3>Drawing Takeoff</h3></div>
+        <div className="card" style={{ padding: "18px 22px" }}>
+          <p>
+            Measure quantities straight off your drawings. On a project's <b>Takeoff</b> tab
+            (in the Estimate group), click <b>+ Upload drawing</b> and choose a PDF. Each drawing
+            appears as a button along the top; use <b>← Page</b> / <b>Page →</b> to move through a
+            multi-page set.
+          </p>
+          <p>
+            <b>Set the scale first — once for each page.</b> Click <b>Set scale</b>, click two
+            points a known distance apart (the ends of the scale bar in the title block are ideal),
+            then type the real-world distance and unit in the box that appears. Every page has its
+            own scale, since sheets in a set are often drawn at different scales. On a page that
+            hasn't been calibrated yet, you can click <b>Use page N's scale</b> to reuse another
+            page's scale, or <b>Set scale for this page</b> to calibrate it separately. For accuracy,
+            calibrate over the longest known distance you can, and check the result by measuring
+            something whose size you already know — a drawing's printed ratio (e.g. 1:2500) is
+            usually for its original sheet size, so the scale bar is the safer reference.
+          </p>
+          <p>
+            <b>Zoom</b> with the <b>−</b> / <b>+</b> buttons, or hold <b>Ctrl</b> and roll the mouse
+            wheel over the drawing (a trackpad pinch works too) — wheel zoom centres on your
+            pointer. Click the percentage to fit the drawing back to the width. Zoom never affects
+            the accuracy of scales or measurements.
+          </p>
+          <p>
+            <b>Measure</b> with <b>+ Length</b> (click points along a line), <b>+ Area</b> (click each
+            corner — the shape closes automatically), or <b>+ Count</b> (click each item; no scale
+            needed). A live running total shows as you click, e.g. “Length so far: 124.6 m”. Click
+            <b> Finish</b>, add an optional label, and <b>Save measurement</b>. <b>Cancel</b> — or
+            moving to another page — discards a measurement in progress.
+          </p>
+          <p>
+            <b>Send to estimate</b> on a saved measurement, pick a category, adjust the description
+            or quantity if needed, and click <b>Add line item</b> — it appears on the Estimate tab
+            with that quantity and unit, ready for its rate to be built up. Sent measurements show
+            “✓ In estimate” and turn green on the drawing. Setting a page's scale again doesn't
+            recalculate measurements already taken — delete and re-measure those. Deleting a
+            measurement or drawing never removes line items already in the estimate.
+          </p>
+        </div>
+      </div>
       <div className="section" id="estimate">
         <div className="section-head"><h3>Estimate — Bill of Quantities</h3></div>
         <div className="card" style={{ padding: "18px 22px" }}>
           <p>
             Each project is broken into categories (earthworks, pavement, drainage,
-            structures, or your own). Inside each category, add line items — click a line item
-            to open its build-up.
+            structures, or your own — click <b>+ Add category</b>, type a name, and press Enter).
+            Inside each category, add line items, or send them across from the Takeoff tab — click a
+            line item to open its build-up.
           </p>
           <p>
             A build-up assembles a line item's unit rate from its actual Labour, Plant,

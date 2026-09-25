@@ -12,7 +12,8 @@
 //
 // Keep this in sync with:
 //  - app/dashboard/help/page.tsx section ids
-//  - the current page layout of guide.html / GroundTruthEstimatorUserGuide.pdf
+//  - the current page layout of docs/user-guide/guide.html → public/GroundTruthEstimatorUserGuide.pdf
+//    (see docs/user-guide/README.md for how to rebuild it and re-check page numbers)
 
 export interface HelpTopic {
   id: string;
@@ -49,12 +50,60 @@ export const helpSearchIndex: HelpTopic[] = [
     pdfPage: 5,
   },
   {
+    id: "takeoff",
+    title: "Drawing Takeoff",
+    description: "Upload a PDF drawing and measure lengths, areas and counts off it.",
+    keywords: [
+      "takeoff",
+      "take-off",
+      "take off",
+      "quantity takeoff",
+      "drawing",
+      "drawings",
+      "pdf",
+      "plan",
+      "upload drawing",
+      "measure",
+      "measurement",
+      "length",
+      "area",
+      "count",
+      "running total",
+    ],
+    helpAnchor: "takeoff",
+    pdfPage: 6,
+  },
+  {
+    id: "takeoff-scale",
+    title: "Set a drawing's scale",
+    description: "Calibrate each page from two points a known distance apart.",
+    keywords: ["scale", "set scale", "calibrate", "calibration", "scale bar", "1:500", "1:1000", "page scale", "per page"],
+    helpAnchor: "takeoff",
+    pdfPage: 6,
+  },
+  {
+    id: "takeoff-zoom",
+    title: "Zoom in on a drawing",
+    description: "−/+ buttons or Ctrl + mouse wheel for precise clicking.",
+    keywords: ["zoom", "magnify", "enlarge", "ctrl scroll", "mouse wheel", "pinch"],
+    helpAnchor: "takeoff",
+    pdfPage: 6,
+  },
+  {
+    id: "takeoff-send",
+    title: "Send a measurement to the estimate",
+    description: "Turn a measured quantity into a Bill of Quantities line item.",
+    keywords: ["send to estimate", "measurement to line item", "takeoff to boq", "in estimate", "add line item"],
+    helpAnchor: "takeoff",
+    pdfPage: 7,
+  },
+  {
     id: "estimate",
     title: "Estimate — Bill of Quantities",
     description: "Categories, line items, and build-ups.",
-    keywords: ["estimate", "bill of quantities", "boq", "line item", "build-up", "buildup", "category"],
+    keywords: ["estimate", "bill of quantities", "boq", "line item", "build-up", "buildup", "category", "add category"],
     helpAnchor: "estimate",
-    pdfPage: 6,
+    pdfPage: 8,
   },
   {
     id: "flat-rate",
@@ -62,7 +111,7 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "Pricing a line item with one all-in rate instead of a build-up.",
     keywords: ["flat rate", "lump sum rate", "flat", "no build-up"],
     helpAnchor: "estimate",
-    pdfPage: 6,
+    pdfPage: 8,
   },
   {
     id: "import",
@@ -70,7 +119,7 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "Bringing in a spreadsheet or pasted BOQ.",
     keywords: ["import", "spreadsheet", "excel", "xlsx", "paste", "csv", "upload"],
     helpAnchor: "estimate",
-    pdfPage: 6,
+    pdfPage: 8,
   },
   {
     id: "risk-location",
@@ -78,7 +127,7 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "Weather, geotechnical, flood, seismic and market lookups.",
     keywords: ["risk", "location", "weather", "geotechnical", "soil", "flood", "seismic", "market", "escalation", "lookup"],
     helpAnchor: "risk-location",
-    pdfPage: 7,
+    pdfPage: 9,
   },
   {
     id: "risk-register",
@@ -86,7 +135,7 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "Probability, impact, and Min/Max ranges for each risk.",
     keywords: ["risk register", "probability", "impact", "min max", "3-point estimate"],
     helpAnchor: "risk-location",
-    pdfPage: 7,
+    pdfPage: 9,
   },
   {
     id: "site-investigation-risk",
@@ -106,7 +155,7 @@ export const helpSearchIndex: HelpTopic[] = [
       "test pits",
     ],
     helpAnchor: "risk-location",
-    pdfPage: 7,
+    pdfPage: 9,
   },
   {
     id: "summary",
@@ -114,7 +163,7 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "Direct cost through to Total project cost.",
     keywords: ["summary", "cost cascade", "contingency", "overhead", "margin", "tax", "contract price", "export", "print"],
     helpAnchor: "summary",
-    pdfPage: 8,
+    pdfPage: 10,
   },
   {
     id: "preliminaries",
@@ -122,7 +171,7 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "Simple % vs itemised build-up, quick-add panels.",
     keywords: ["preliminaries", "indirect job costs", "general conditions", "quick add", "mobilisation", "time-related"],
     helpAnchor: "summary",
-    pdfPage: 8,
+    pdfPage: 10,
   },
   {
     id: "client-cost",
@@ -130,7 +179,7 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "The client/principal's administrative cost, itemised or as a %.",
     keywords: ["client cost", "principal's cost", "administrative cost"],
     helpAnchor: "summary",
-    pdfPage: 8,
+    pdfPage: 10,
   },
   {
     id: "cash-flow",
@@ -138,7 +187,7 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "A month-by-month spread of the total project cost.",
     keywords: ["cash flow", "cashflow", "monthly spread", "s-curve", "programme"],
     helpAnchor: "summary",
-    pdfPage: 8,
+    pdfPage: 10,
   },
   {
     id: "risk-range",
@@ -146,7 +195,7 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "Best-case / expected / worst-case simulation.",
     keywords: ["risk-adjusted", "price range", "simulation", "best case", "worst case", "monte carlo"],
     helpAnchor: "summary",
-    pdfPage: 8,
+    pdfPage: 10,
   },
   {
     id: "programme",
@@ -154,7 +203,7 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "Schedule dates, Duration, Predecessor/Lag, and Primavera P6 import.",
     keywords: ["programme", "program", "schedule", "duration", "predecessor", "successor", "lag", "primavera", "p6", "xer", "gantt", "planned value", "schedule history", "snapshot"],
     helpAnchor: "programme",
-    pdfPage: 9,
+    pdfPage: 11,
   },
   {
     id: "positions",
@@ -162,7 +211,7 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "The Indirect Job Cost register — Wage vs Salaried and the RCM.",
     keywords: ["positions", "indirect job cost", "ijc", "wage", "salaried", "reimbursable cost multiplier", "rcm", "onsite overhead"],
     helpAnchor: "positions",
-    pdfPage: 10,
+    pdfPage: 12,
   },
   {
     id: "actuals",
@@ -170,7 +219,7 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "Direct/Indirect Job Cost ledgers — rate-linked, fully editable.",
     keywords: ["actuals", "actual cost", "ac", "direct job cost", "djc", "indirect job cost", "ijc", "ledger", "rate item", "quantity", "invoice number", "subcontract"],
     helpAnchor: "actuals",
-    pdfPage: 10,
+    pdfPage: 12,
   },
   {
     id: "earned-value",
@@ -178,7 +227,7 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "% complete, Earned Value, and Earned Value Management.",
     keywords: ["earned value", "ev", "percent complete", "% complete", "earned value management", "evm", "cpi", "spi", "planned value", "actual cost"],
     helpAnchor: "earned-value",
-    pdfPage: 11,
+    pdfPage: 13,
   },
   {
     id: "dashboard",
@@ -186,7 +235,7 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "One rolled-up view — cost by category, cash flow, resource type.",
     keywords: ["dashboard", "major category", "report", "customise", "customize", "filter", "print"],
     helpAnchor: "dashboard",
-    pdfPage: 12,
+    pdfPage: 14,
   },
   {
     id: "settings",
@@ -202,6 +251,6 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "Forgot password, signing up with an existing email.",
     keywords: ["account", "password", "forgot password", "login", "sign in", "sign up"],
     helpAnchor: "account",
-    pdfPage: 15,
+    pdfPage: 17,
   },
 ];

@@ -1,0 +1,725 @@
+<!doctype html>
+<!--
+  Source for public/GroundTruthEstimatorUserGuide.pdf.
+  Edit this file, then rebuild the PDF — see docs/user-guide/README.md.
+  After rebuilding, update page numbers in:
+    - the Contents list below (the <span class="pg"> values)
+    - lib/helpSearchIndex.ts (pdfPage fields)
+-->
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<title>Ground Truth Estimator — User Guide</title>
+<style>
+  :root {
+    --ink: #1b2420;
+    --ink-soft: #4b564f;
+    --ink-faint: #7c857e;
+    --line: #d9dad2;
+    --surface-2: #f4f4ef;
+    --accent: #c1571a;
+    --dark: #1d201e;
+  }
+
+  @page {
+    size: A4;
+    margin: 26mm 22mm 22mm 22mm;
+    @bottom-left { content: "Ground Truth Estimator — User Guide"; font: 8pt Arial, Helvetica, sans-serif; color: #7c857e; border-top: 0.6pt solid #d9dad2; padding-top: 5pt; vertical-align: top; }
+    @bottom-right { content: "Page " counter(page); font: 8pt Arial, Helvetica, sans-serif; color: #7c857e; border-top: 0.6pt solid #d9dad2; padding-top: 5pt; vertical-align: top; }
+  }
+  @page cover {
+    margin: 0;
+    @bottom-left { content: none; }
+    @bottom-right { content: none; }
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.5; color: var(--ink-soft); }
+  p { margin: 0 0 8pt; }
+  b, strong { color: var(--ink); }
+  h1, h2, h3 { color: var(--ink); margin: 0; }
+
+  /* ---------- cover ---------- */
+  .cover { page: cover; break-after: page; }
+  .cover-band { background: var(--dark); padding: 34mm 22mm 12mm; display: flex; align-items: center; gap: 12pt; }
+  .logo { width: 36pt; height: 36pt; border-radius: 6pt; background: var(--accent); color: #fff; font-weight: 700; font-size: 15pt; display: flex; align-items: center; justify-content: center; }
+  .brand { color: #fff; font-size: 17pt; font-weight: 700; line-height: 1.2; }
+  .brand small { display: block; font-size: 8pt; font-weight: 400; color: #b9beb9; }
+  .cover-body { padding: 20mm 22mm 0; }
+  .cover-body h1 { font-size: 26pt; margin-bottom: 8pt; }
+  .cover-body .sub { font-size: 10.5pt; color: var(--ink-soft); padding-bottom: 12pt; border-bottom: 0.6pt solid var(--line); margin-bottom: 14pt; }
+  .cover-date { margin-top: 150mm; padding: 0 22mm; font-size: 9pt; color: var(--ink-faint); }
+
+  /* ---------- page furniture ---------- */
+  .page { break-before: page; }
+  .eyebrow { font-size: 8pt; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); margin-bottom: 6pt; }
+  .page-title { font-size: 19pt; margin-bottom: 10pt; }
+  .rule { border-bottom: 0.6pt solid var(--line); padding-bottom: 8pt; margin-bottom: 14pt; }
+  .lede { margin-bottom: 14pt; }
+
+  /* ---------- contents ---------- */
+  .toc-part { color: var(--accent); font-weight: 700; font-size: 10.5pt; margin: 14pt 0 6pt; }
+  .toc-row { display: flex; align-items: baseline; gap: 6pt; margin-bottom: 5pt; }
+  .toc-row .dots { flex: 1; border-bottom: 0.8pt dotted var(--line); transform: translateY(-3pt); }
+  .toc-row .new { font-size: 7pt; font-weight: 700; color: #fff; background: var(--accent); border-radius: 3pt; padding: 1pt 4pt; margin-left: 4pt; }
+
+  /* ---------- part one ---------- */
+  .quote { border-left: 2.5pt solid var(--accent); padding: 2pt 0 2pt 10pt; margin: 10pt 0 14pt; font-style: italic; color: var(--ink); }
+  .consideration h3 { font-size: 11pt; margin: 12pt 0 4pt; }
+
+  /* ---------- steps ---------- */
+  .step { margin-bottom: 18pt; }
+  .step-head { display: flex; align-items: center; gap: 9pt; margin-bottom: 8pt; break-after: avoid; }
+  .badge { width: 19pt; height: 19pt; flex: none; border-radius: 3pt; background: var(--accent); color: #fff; font-weight: 700; font-size: 10pt; display: flex; align-items: center; justify-content: center; }
+  .step-head h2 { font-size: 13.5pt; }
+  .step-body { padding-left: 28pt; }
+  .step-body h4 { color: var(--ink); font-size: 10pt; margin: 10pt 0 4pt; break-after: avoid; }
+  .where { font-size: 9pt; margin-top: 4pt; }
+  .where b { margin-right: 3pt; }
+  .tip { background: var(--surface-2); border-left: 2.5pt solid var(--accent); padding: 7pt 10pt; margin: 6pt 0 10pt; font-size: 9.5pt; break-inside: avoid; }
+  ol.steps { margin: 0 0 8pt; padding-left: 16pt; }
+  ol.steps li { margin-bottom: 3pt; }
+  ul.plain { margin: 0 0 8pt; padding-left: 14pt; }
+  ul.plain li { margin-bottom: 3pt; }
+  kbd { font-family: Arial, Helvetica, sans-serif; font-size: 8.5pt; border: 0.6pt solid var(--line); border-bottom-width: 1.2pt; border-radius: 3pt; padding: 0 3pt; color: var(--ink); background: #fff; }
+
+  /* ---------- quick reference ---------- */
+  table { width: 100%; border-collapse: collapse; font-size: 8.2pt; }
+  th { background: var(--dark); color: #fff; text-align: left; padding: 5pt 7pt; font-weight: 700; }
+  td { padding: 3pt 7pt; vertical-align: top; line-height: 1.35; }
+  tr:nth-child(even) td { background: var(--surface-2); }
+  tr { break-inside: avoid; }
+  td:first-child { width: 53%; }
+</style>
+</head>
+<body>
+
+<!-- ======================= COVER ======================= -->
+<section class="cover">
+  <div class="cover-band">
+    <div class="logo">GT</div>
+    <div class="brand">Ground Truth Estimator<small>groundtruthestimator.com</small></div>
+  </div>
+  <div class="cover-body">
+    <h1>User Guide</h1>
+    <div class="sub">First-Principles Estimating, and How to Use This Software</div>
+    <p>
+      This guide has two parts. Part One explains first-principles estimating itself — the considerations a proper
+      estimator works through before a number ever gets typed in. Part Two walks through Ground Truth Estimator step by
+      step, in the order you'll actually use it, from setting up your workspace and measuring quantities off your
+      drawings to sending out a finished estimate.
+    </p>
+  </div>
+  <div class="cover-date">Ground Truth Estimator — September 2026 edition, with Drawing Takeoff</div>
+</section>
+
+<!-- ======================= CONTENTS ======================= -->
+<section class="page" style="break-before: auto">
+  <div class="eyebrow">Contents</div>
+  <h1 class="page-title rule">What's in this guide</h1>
+
+  <div class="toc-part">Part One — First-Principles Estimating</div>
+  <div class="toc-row"><span>What “first principles” means, and why it matters</span><span class="dots"></span><span class="pg">3</span></div>
+  <div class="toc-row"><span>The ten considerations behind every sound estimate</span><span class="dots"></span><span class="pg">3</span></div>
+
+  <div class="toc-part">Part Two — Using Ground Truth Estimator</div>
+  <div class="toc-row"><span>Step 1. Set up your workspace</span><span class="dots"></span><span class="pg">5</span></div>
+  <div class="toc-row"><span>Step 2. Build your Rate Library</span><span class="dots"></span><span class="pg">5</span></div>
+  <div class="toc-row"><span>Step 3. Start a project</span><span class="dots"></span><span class="pg">5</span></div>
+  <div class="toc-row"><span>Step 4. Take off quantities from drawings<span class="new">NEW</span></span><span class="dots"></span><span class="pg">6</span></div>
+  <div class="toc-row"><span>Step 5. Build the estimate — and import line items</span><span class="dots"></span><span class="pg">8</span></div>
+  <div class="toc-row"><span>Step 6. Risk &amp; Location</span><span class="dots"></span><span class="pg">9</span></div>
+  <div class="toc-row"><span>Step 7. Review the Summary and export</span><span class="dots"></span><span class="pg">10</span></div>
+  <div class="toc-row"><span>Step 8. Programme — schedule your work</span><span class="dots"></span><span class="pg">11</span></div>
+  <div class="toc-row"><span>Step 9. Positions &amp; Actuals — record real cost</span><span class="dots"></span><span class="pg">12</span></div>
+  <div class="toc-row"><span>Step 10. Earned Value — progress and performance</span><span class="dots"></span><span class="pg">13</span></div>
+  <div class="toc-row"><span>Step 11. Dashboard — see it all in one place</span><span class="dots"></span><span class="pg">14</span></div>
+  <div class="toc-row"><span>Step 12. Keep it current</span><span class="dots"></span><span class="pg">15</span></div>
+  <div class="toc-row"><span>Quick reference — where do I…?</span><span class="dots"></span><span class="pg">16</span></div>
+  <div class="toc-row"><span>Your account</span><span class="dots"></span><span class="pg">17</span></div>
+</section>
+
+<!-- ======================= PART ONE ======================= -->
+<section class="page">
+  <div class="eyebrow">Part One</div>
+  <h1 class="page-title">First-Principles Estimating</h1>
+  <p>
+    “First-principles” estimating means building a price up from its real components — labour hours, plant hours, and
+    material quantities — rather than pulling a single per-metre or per-square-metre figure from memory or from a past
+    job that may not be comparable. It's slower than a gut-feel number, but it produces a price you can actually defend,
+    line by line, if a client, a quantity surveyor, or your own finance team asks “where did this number come from?”
+  </p>
+  <div class="quote">“A single lump-sum rate is a guess wearing a suit. A build-up is a guess you can cross-examine.”</div>
+
+  <h2 style="font-size:13.5pt; margin-bottom:6pt">The ten considerations behind every sound estimate</h2>
+  <p>
+    These apply whatever software you use — they're the discipline itself, not a feature list. Ground Truth Estimator is
+    built to walk you through them in this order.
+  </p>
+
+  <div class="consideration">
+    <h3>1. Understand the scope and the site</h3>
+    <p>
+      Before any number is typed, read the drawings, specification, and site conditions. Access, ground conditions,
+      staging area, existing services, and site constraints all change what labour and plant an item actually needs —
+      the same trench costs differently in open paddock versus a live urban road.
+    </p>
+    <h3>2. Break the work into logical categories</h3>
+    <p>
+      Group the project into work packages that make sense for how it will actually be built and managed — typically
+      earthworks and site works, roads and pavements, drainage and pipelines, and structures. This keeps the estimate
+      organised and makes it possible to compare category totals against past jobs.
+    </p>
+    <h3>3. Quantify each item properly (quantity take-off)</h3>
+    <p>
+      Measure real quantities off the drawings and specification — lengths, areas, volumes, counts. An estimate is only
+      as good as its quantities; a first-principles rate applied to a wrong quantity still produces a wrong price.
+      Ground Truth Estimator's Takeoff tab lets you measure lengths, areas, and counts straight off a PDF drawing and
+      send them into the estimate — see Step 4 in Part Two.
+    </p>
+    <h3>4. Build the rate up from labour, plant, and material</h3>
+    <p>
+      For every line item, work out what labour it actually takes (whose time, how many hours), what plant it needs
+      (machine and hire hours), and what material goes into it (quantity and unit cost) — then add those three together
+      to get the unit rate. This is the core of “first principles.”
+    </p>
+    <h3>5. Keep units of measure consistent</h3>
+    <p>
+      A rate quoted per linear metre is meaningless multiplied against a quantity measured in square metres. Confirm
+      every item's unit matches how it was actually quantified, and be explicit when converting between metric and
+      imperial so nothing gets lost in translation.
+    </p>
+    <h3>6. Assess risk as its own exercise — not a blanket percentage</h3>
+    <p>
+      Rather than adding a flat “10% for contingency” across the board, list out the specific things that could go
+      wrong — weather delays, unknown ground conditions, market price movement, programme slippage, safety incidents —
+      and estimate a probability and a cost impact for each. The sum of those gives a contingency figure you can
+      actually explain, item by item, rather than a number picked to feel safe.
+    </p>
+    <h3>7. Weigh location- and season-specific risk</h3>
+    <p>
+      Where and when the work happens matters. A project programmed through a wet season or a cyclone-prone period
+      carries real, quantifiable weather risk that a generic contingency percentage won't capture.
+    </p>
+    <h3>8. Apply markups deliberately, and keep tax separate</h3>
+    <p>
+      Preliminaries / Indirect Job Costs (site establishment, supervision, temporary works), overhead (your business's
+      running costs), and margin (profit) are three different things and should be considered separately, not lumped
+      into one “mark-up.” Sales tax (GST, VAT, or your local equivalent) is not a cost to the business at all — it
+      should be shown separately, not folded into the price you're trying to win the job on.
+    </p>
+    <p>
+      Where you have enough information to do it properly, apply this same discipline to preliminaries itself: build it
+      up from the real components — site supervision, temporary services, site facilities, insurances, bonds — rather
+      than estimating a flat percentage of direct cost. See Step 7 in Part Two.
+    </p>
+    <h3>9. Sanity-check the total</h3>
+    <p>
+      Once the build-up is complete, step back and compare the total — and the category breakdown — against past
+      projects, industry benchmarks, or a rough top-down check. A first-principles estimate that comes out wildly
+      different from experience is a signal to go back and check assumptions, not necessarily proof the number is right.
+    </p>
+    <h3>10. Document assumptions and keep rates current</h3>
+    <p>
+      Rates go stale. Labour agreements change, plant hire costs move, material prices fluctuate. A rate library is only
+      trustworthy if it's actively maintained against real supplier quotes and current agreements — treat every stored
+      rate as a placeholder until you've checked it recently.
+    </p>
+  </div>
+</section>
+
+<!-- ======================= PART TWO ======================= -->
+<section class="page">
+  <div class="eyebrow">Part Two</div>
+  <h1 class="page-title">Using Ground Truth Estimator, Step by Step</h1>
+  <p class="lede">
+    The software mirrors the discipline in Part One. Used in this order, it walks you through the same considerations a
+    first-principles estimator works through by hand — just faster, and with every figure stored, reusable, and
+    traceable.
+  </p>
+
+  <div class="step">
+    <div class="step-head"><span class="badge">1</span><h2>Set up your workspace</h2></div>
+    <div class="step-body">
+      <p>
+        When you create an account, a workspace is created for your company. Everything you build — rates, projects,
+        risk registers — belongs to that workspace and is never visible to anyone outside your organisation.
+      </p>
+      <p>
+        Before doing anything else, go to Settings and set your workspace's currency and preferred unit of measure
+        (metric or imperial). Every dollar figure in the app formats to that currency, and any rate or quantity entered
+        in the other unit system will show a small converted equivalent alongside it — without changing what you
+        actually typed.
+      </p>
+      <div class="where"><b>Where:</b> Left rail → Settings</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head"><span class="badge">2</span><h2>Build your Rate Library first</h2></div>
+    <div class="step-body">
+      <p>
+        Before starting a project, populate the Rate Library with your own real labour, plant, material, and subcontract
+        rates — not the indicative placeholders the app starts with. This is the foundation everything else is built
+        from, so it's worth getting right before you start pricing actual work.
+      </p>
+      <p>
+        Add rows under Labour, Plant &amp; Equipment, Material, and Subcontract. Each rate needs a description, a unit,
+        and a cost per that unit. If you're unsure of a current market rate, the “<b>Search the web</b>” button next to
+        each row opens a web search for that item so you can check current supplier, hire, or subcontractor pricing —
+        the search results are for your own reference; nothing is applied automatically.
+      </p>
+      <div class="where"><b>Where:</b> Left rail → Rate Library</div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head"><span class="badge">3</span><h2>Start a project</h2></div>
+    <div class="step-body">
+      <p>
+        From Projects, create a new project — either blank, or from the example project if you want to see a fully
+        worked estimate first. Give it a name, client, location, and prepared-by details; these appear on exports.
+      </p>
+      <p>
+        A new project comes pre-loaded with four standard categories (Earthworks &amp; Site Works, Roads &amp;
+        Pavements, Drainage &amp; Pipelines, Structures), which you can rename, reorder, or add to as the project
+        requires.
+      </p>
+      <div class="where"><b>Where:</b> Left rail → Projects → New Project</div>
+    </div>
+  </div>
+</section>
+
+<!-- ---------- Step 4: Takeoff (new) ---------- -->
+<section class="page">
+  <div class="step">
+    <div class="step-head"><span class="badge">4</span><h2>Take off quantities from drawings</h2></div>
+    <div class="step-body">
+      <p>
+        The Takeoff tab is where quantity take-off (consideration 3 in Part One) happens. Upload a 2D drawing as a PDF,
+        tell the app its scale, then trace lengths, areas, and counts directly on the drawing — and send each measured
+        quantity straight into the Bill of Quantities as a line item, ready for its rate to be built up in Step 5.
+      </p>
+
+      <h4>Upload a drawing</h4>
+      <p>
+        Click <b>+ Upload drawing</b> and choose a PDF. Each drawing appears as a button along the top of the tab — click
+        one to open it. For a multi-page drawing set, use <b>← Page</b> and <b>Page →</b> to move between sheets. Drawings
+        are stored privately in your workspace, alongside the project.
+      </p>
+
+      <h4>Set the scale — once for each page</h4>
+      <p>
+        Measurements are only meaningful once the app knows the drawing's scale, so this comes first. Click
+        <b>Set scale</b>, then click two points on the drawing a known distance apart — the ends of the scale bar in the
+        title block are ideal, or a dimensioned feature. A small box then asks for the real-world distance between those
+        two points and its unit (for example <kbd>100</kbd> and <kbd>m</kbd>); click <b>Set scale</b> to save it. The
+        blue information bar confirms “Page 1 scale set: calibrated in m.”
+      </p>
+      <p>
+        Every page has its own scale, because the sheets in a drawing set are often drawn at different scales. When you
+        open a page that hasn't been calibrated yet and another page of the same drawing has been, the app asks whether
+        this page is drawn at the same scale — click <b>Use page N's scale</b> to reuse it in one click, or
+        <b>Set scale for this page</b> to calibrate it separately.
+      </p>
+      <div class="tip">
+        <b>Tip — accuracy.</b> Calibrate over the longest known distance you can, zoomed in so you can click precisely: a
+        small miss on a short distance becomes a large error across a whole site. A drawing's printed ratio (for example
+        1:2500) is usually quoted for its original sheet size, so a reduced PDF won't match it — the scale bar shrinks
+        with the drawing and is always right. Check the result by measuring something whose size you already know.
+      </div>
+
+      <h4>Zoom in for precise clicking</h4>
+      <p>
+        Use the <b>−</b> and <b>+</b> buttons in the toolbar, or hold <kbd>Ctrl</kbd> and roll the mouse wheel over the
+        drawing (a trackpad pinch works too). Wheel zoom centres on your mouse pointer, so you can point at a detail and
+        roll straight in to it; scroll to move around a zoomed drawing, and click the percentage to fit it back to the
+        width. Zoom only changes how large the drawing is shown — measurements and scales are equally accurate at any
+        zoom level.
+      </p>
+
+      <h4>Measure lengths, areas, and counts</h4>
+      <ul class="plain">
+        <li><b>+ Length</b> — click points along a line (a kerb, a fence, a pipe run); for a bend, click more points.
+          The total is the sum of the straight segments between your clicks.</li>
+        <li><b>+ Area</b> — click each corner of a shape (a pad, a car park, a laydown area). The shape closes
+          automatically, and any outline works, not just rectangles.</li>
+        <li><b>+ Count</b> — click each item to count (pits, light poles, trees). Counting doesn't need a scale.</li>
+      </ul>
+      <p>
+        While you click, the information bar shows a live running total — for example “Length so far: 124.6 m” or
+        “Area so far: 2,310 m²” — so you can check a measurement before saving it. Click <b>Finish</b>, give the
+        measurement an optional label, and click <b>Save measurement</b>. <b>Cancel</b> discards the measurement in
+        progress, and moving to another page does too, so points can never land on the wrong sheet. Length and area need
+        the current page's scale; if it isn't set yet, the app tells you before anything is saved.
+      </p>
+
+      <h4>Send a quantity to the estimate</h4>
+      <p>
+        Saved measurements are listed beside the drawing for the page you're on, each with its quantity and unit
+        (m, m², or each). Click <b>→ Send to estimate</b> on one, pick the category, adjust the description or quantity
+        if you need to, and click <b>Add line item</b>. A new line item appears on the Estimate tab with that quantity and
+        unit, ready for its rate to be built up; the measurement is then marked “✓ In estimate” and drawn in green on the
+        drawing (measurements not yet sent are blue).
+      </p>
+      <p>
+        A saved measurement keeps the value it was measured with — setting a page's scale again doesn't recalculate
+        measurements already taken, so delete and re-measure any taken with the old scale. Deleting a measurement or a
+        whole drawing never removes line items already sent to the estimate; deleting that line item from the
+        estimate simply returns the measurement to “not yet sent.”
+      </p>
+      <div class="where"><b>Where:</b> Project → Estimate group → Takeoff tab</div>
+    </div>
+  </div>
+</section>
+
+<!-- ---------- Step 5: Estimate ---------- -->
+<section class="page">
+  <div class="step">
+    <div class="step-head"><span class="badge">5</span><h2>Build the estimate — and import line items</h2></div>
+    <div class="step-body">
+      <p>
+        Inside a project, the Estimate tab is where the first-principles build-up actually happens. Add line items under
+        each category — or send them across from the Takeoff tab (Step 4) — give each a description, unit, and quantity,
+        then build up its rate from your Rate Library, pulling in the specific labour, plant, material, and subcontract
+        components that make up that item, each with its own per-unit consumption. To add a category of your own, click
+        <b>+ Add category</b>, type its name, and press <kbd>Enter</kbd>.
+      </p>
+      <p>
+        The line item's rate is the sum of those components — exactly the discipline described in Part One. If a
+        component's unit is in the other measurement system from your workspace default, a small converted figure
+        appears alongside it so you can sanity-check without doing the maths by hand.
+      </p>
+      <p>
+        <b>Flat rate.</b> Not every item needs a full build-up. Open any line item and switch it to “Flat rate” to type
+        its unit rate directly instead — useful for a quick allowance or a subcontractor's lump-sum quote for the whole
+        item. Switching back to “Build up” doesn't lose the flat rate you typed; it's simply not used while build-up mode
+        is selected.
+      </p>
+      <p>
+        <b>Import line items.</b> The “⇪ Import line items” button lets you bring in priced items from another
+        spreadsheet instead of typing them in one by one. Upload an Excel (.xlsx) or .csv file — choosing which tab to
+        import from if the workbook has more than one — or paste rows copied directly from Excel or Google Sheets. The
+        importer finds the column headings (Description, Unit, Quantity, Rate — however far down the sheet they sit) and
+        reads every row beneath them: a row with a description but no usable quantity or rate becomes a new category
+        heading, and a priced row underneath becomes a line item in that category. A preview with a checkbox per item is
+        shown before anything is actually imported, and each category can be renamed or sent into an existing category.
+        Imported items come in as Flat rate items, since a spreadsheet row typically carries one ready-made rate rather
+        than a labour/plant/material breakdown.
+      </p>
+      <div class="where"><b>Where:</b> Project → Estimate tab</div>
+    </div>
+  </div>
+</section>
+
+<!-- ---------- Step 6: Risk & Location ---------- -->
+<section class="page">
+  <div class="step">
+    <div class="step-head"><span class="badge">6</span><h2>Work through Risk &amp; Location</h2></div>
+    <div class="step-body">
+      <p>
+        Move to the Risk &amp; Location tab and build the project's risk register as its own exercise, separate from the
+        base estimate — add each identified risk with a description, a probability (as a %), and a cost impact if it
+        occurs. The tab totals these into a risk allowance you can see and defend line by line, rather than a single
+        guessed contingency percentage. For a risk where the cost itself is uncertain, not just whether it happens, the
+        optional <b>Min</b> and <b>Max</b> columns let you enter a 3-point estimate instead of one fixed figure — leave
+        them blank for risks you already know the cost of; where they're set, the Summary tab's risk-adjusted price range
+        treats that risk as a spread rather than a single number.
+      </p>
+      <p>
+        <b>The cost impact — and Min/Max — are always your own entry.</b> None of the lookups below know this project's
+        dollar exposure, so none of them pre-fill a cost figure; each can only suggest a probability and a description
+        from the hazard or trend it finds. For the market lookup, a reasonable starting point is the value of the affected
+        material or trade package multiplied by the cost trend shown.
+      </p>
+      <p>
+        <b>Site &amp; investigation risk</b> turns two judgement calls most estimators make by instinct into an explicit
+        part of the register. Set whether the site is <b>greenfield</b> or <b>brownfield</b>, and for a brownfield site,
+        enter how many separate services were identified in the Dial Before You Dig referral — more services found
+        suggests a higher probability of an unplanned utility strike. Separately, choosing an investigation level —
+        <b>Minimal</b> (desktop study only), <b>Some</b> (preliminary boreholes or test pits), or <b>Detailed</b>
+        (comprehensive investigation) — suggests a probability of hitting latent conditions the investigation didn't
+        catch, naturally higher for a minimal investigation and lower for a detailed one. As with the five lookups below,
+        only a probability and description are suggested; the cost impact is still yours to set before adding either to
+        the register.
+      </p>
+      <p>
+        Enter the site location once and use it for five live lookups. The <b>weather risk lookup</b> pulls historical
+        climate data — average rainfall, rainy days, and cyclone-zone exposure. The <b>geotechnical / soil risk
+        lookup</b> checks free government soil survey data (USDA SSURGO in the United States, CSIRO's national Australian
+        Soil Classification in Australia) and can flag reactive clay, poor drainage, or a shallow water table. The
+        <b>flood risk lookup</b> checks FEMA's National Flood Hazard Layer for US sites, and the <b>seismic risk
+        lookup</b> checks USGS Design Maps (US) and Geoscience Australia's National Seismic Hazard Assessment (AU) — both
+        can flag an elevated hazard level worth a specific allowance. The <b>market / price escalation lookup</b> checks
+        free government cost and materials price statistics — the US Bureau of Labor Statistics, the Australian Bureau of
+        Statistics, the UK's Office for National Statistics, and Eurostat for EU member states — and can flag an
+        above-normal 12-month cost trend worth a bigger escalation allowance.
+      </p>
+      <p>
+        Each lookup that finds something relevant can suggest a pre-filled risk item with a probability, ready to add
+        straight to the register or adjust first. Outside the regions a lookup covers, it will say so plainly rather than
+        guess — add a risk row manually instead. All five are a desktop-level early warning, not a substitute for a real
+        site investigation, current supplier pricing, the actual FEMA FIRM panel, or a project-specific seismic
+        assessment.
+      </p>
+      <div class="where"><b>Where:</b> Project → Risk &amp; Location tab</div>
+    </div>
+  </div>
+</section>
+
+<!-- ---------- Step 7: Summary ---------- -->
+<section class="page">
+  <div class="step">
+    <div class="step-head"><span class="badge">7</span><h2>Review the Summary and export</h2></div>
+    <div class="step-body">
+      <p>
+        The Summary tab rolls everything up: direct costs by category, the risk allowance, and your markups —
+        preliminaries / indirect job costs, contingency, overhead, and margin — applied on top. Sales tax (GST / VAT /
+        Sales tax, depending on your workspace) is shown as a separate line, not folded into the price itself, and there's
+        a separate line for client-side administrative cost where relevant.
+      </p>
+      <p>
+        <b>Preliminaries / Indirect Job Costs</b> can be priced two ways. <b>Simple %</b> (the default) applies a flat
+        percentage of direct cost — quick, and reasonable for an early, rough-order estimate. <b>Itemised build-up</b>
+        applies the same first-principles discipline from Part One to preliminaries itself: instead of a guessed
+        percentage, list the real components — site supervision, temporary services, site facilities, insurances, bonds
+        and guarantees, mobilisation — each priced as either a one-off <b>Fixed</b> cost or a <b>$/week Time-related</b>
+        cost, multiplied automatically by the project duration you enter. Two <b>Quick add</b> panels above the itemised
+        list save re-typing common site-staff roles and pay items.
+      </p>
+      <p>
+        <b>Client Cost</b> can be priced the same two ways. This is the client's (Principal's) own project
+        administration, shown separately after the contract price. <b>Simple %</b> (the default) applies a flat
+        percentage of contract price. <b>Itemised build-up</b> lists it out instead — client-side roles (Project Director,
+        Design Manager, PUP Coordinator, and others) as $/week Time-related items, and one-off Fixed items like a
+        geotechnical investigation, survey, or environmental approvals — with its own project duration field, kept
+        separate from the contractor's construction duration, since the client's own administration usually spans more of
+        the project (concept, design, delivery, finalisation) than just the construction period.
+      </p>
+      <p>
+        The <b>Risk-adjusted price range</b> table simulates thousands of outcomes of your risk register — each risk
+        either happening, at its stated probability, or not, and spreading across its Min/Max range where you've set one
+        — and shows a best-case, expected, and worst-case figure for the risk allowance, contract price, and total
+        project cost. Treat it as a decision tool for setting your own contingency, not something to hand a client on a
+        competitive fixed-price bid — they want your price, not your worst case.
+      </p>
+      <p>
+        <b>Cash Flow</b> spreads the total project cost evenly across however many months you set, starting from the
+        project's date, shown as a month-by-month table with a simple bar per month — a straight-line spread for a
+        first-pass view of spend over time, not a contractual payment schedule.
+      </p>
+      <p>
+        Adjust markup percentages here and watch the total update live. When the estimate is ready, export it to CSV for
+        use in a proposal, tender, or your own reporting.
+      </p>
+      <div class="where"><b>Where:</b> Project → Summary tab</div>
+    </div>
+  </div>
+</section>
+
+<!-- ---------- Step 8: Programme ---------- -->
+<section class="page">
+  <div class="step">
+    <div class="step-head"><span class="badge">8</span><h2>Programme — schedule your work</h2></div>
+    <div class="step-body">
+      <p>
+        The Programme tab gives each category a planned start and end date, so Earned Value (see Step 10) can compare
+        real progress against a realistic time-phased budget instead of an even spread across the whole job. A category
+        left unscheduled is still included in the total — its budget is simply spread evenly across the whole programme
+        window until you set its dates.
+      </p>
+      <p>
+        <b>Duration</b> is a plain read-out — the number of days between a category's own start and end — so it's never
+        something you type in directly, only ever a reflection of the two dates.
+      </p>
+      <p>
+        <b>Predecessor and Lag</b> link one category's start to another's finish, similar to Microsoft Project's
+        Predecessor field (Finish-to-Start only, the most common case). Set “Roads &amp; Pavements” to follow
+        “Earthworks,” for example, and its planned start recalculates automatically as the day after Earthworks finishes,
+        plus whatever Lag (in days) you set — a positive lag adds a gap, a negative one allows overlap. Only the start
+        date is linked this way; you still set each category's own end date directly, so a shift upstream moves a start
+        date without silently stretching or shrinking anyone's duration.
+      </p>
+      <p>
+        <b>Import from Primavera P6.</b> Upload a .xer export and the app rolls each WBS node's activities up to a single
+        earliest-start / latest-end date, ready to map onto your existing categories (or create new ones). Every import
+        is saved as a dated snapshot, so re-importing next month lets you compare “then” against “now” for every category
+        and see exactly how many days each one has shifted — a simple way to re-benchmark the programme monthly without
+        losing the history.
+      </p>
+      <p>
+        <b>Planned Value</b> is deliberately different from Cash Flow (Step 7) — Cash Flow spreads the whole billing
+        total (including preliminaries, overhead, margin and tax) evenly for a payment forecast, while Planned Value
+        spreads only the direct-cost budget, phased to when each category is actually scheduled, for comparison against
+        real progress.
+      </p>
+      <div class="where"><b>Where:</b> Project → Programme tab</div>
+    </div>
+  </div>
+</section>
+
+<!-- ---------- Step 9: Positions & Actuals ---------- -->
+<section class="page">
+  <div class="step">
+    <div class="step-head"><span class="badge">9</span><h2>Positions &amp; Actuals — record real cost</h2></div>
+    <div class="step-body">
+      <p>
+        These two tabs record what's actually happening on site against the estimate: Positions is the register behind
+        Indirect Job Cost, and Actuals is where every real Direct and Indirect cost is logged. A separate Earned Value tab
+        (Step 10) turns recorded progress into the figures that compare all this against the plan.
+      </p>
+      <p>
+        <b>Positions</b> is the Indirect Job Cost register — one row per site or support role. Each position is flagged
+        <b>Wage</b> or <b>Salaried</b>. A Wage position (hourly site labour, for example) is paid a rate that already IS
+        the true cost, so no multiplier is ever applied — it's locked at 1.00×. A Salaried position (typically an onsite
+        overhead role — Site Engineer, Foreman, Safety Officer) is paid a fixed salary that doesn't cover everything it
+        actually costs, so an editable <b>Reimbursable Cost Multiplier (RCM)</b> loads it up into a fully-recovered rate,
+        capturing on-costs like leave, super, insurances, IT access, and site facilities. Each position's rate can be set
+        per hour, per week, or per year, and the tab converts everything to one comparable weekly total.
+      </p>
+      <p>
+        <b>Actuals</b> has two ledgers, and every entry in both can be edited in place afterwards — not just deleted and
+        re-entered. The <b>Direct Job Cost ledger</b> logs every real Labour, Plant, and Material cost by picking a Rate
+        Library item and a quantity — the amount is calculated automatically from the same rates used in the estimate,
+        then frozen at that moment like a recorded invoice or timesheet, so correcting the Rate Library afterwards
+        doesn't silently rewrite past actual cost history. Subcontract costs are still typed directly, since a
+        subcontractor's invoice isn't priced off the Rate Library — its description field doubles as an invoice number to
+        track. The <b>Indirect Job Cost ledger</b> logs hours worked against a Position; the dollar cost isn't typed in,
+        it's calculated automatically as hours × that position's current fully-loaded rate, so correcting a position's
+        rate later automatically corrects its past actual cost too.
+      </p>
+      <div class="where"><b>Where:</b> Project → Positions tab, Project → Actuals tab</div>
+    </div>
+  </div>
+</section>
+
+<!-- ---------- Step 10: Earned Value ---------- -->
+<section class="page">
+  <div class="step">
+    <div class="step-head"><span class="badge">10</span><h2>Earned Value — progress and performance</h2></div>
+    <div class="step-body">
+      <p>
+        The Earned Value tab is where you type each line item's % complete as work happens on site — Earned Value (EV) is
+        that line item's full budgeted total × its % complete, the per-line-item granularity this app uses for Earned
+        Value Management.
+      </p>
+      <p>
+        Together, Planned Value (Step 8, Programme), Earned Value, and Actual Cost (Step 9, Actuals, shown alongside EV
+        here for reference) are the three figures behind Earned Value Management — comparing what you expected to spend
+        by now against what you've actually achieved and actually spent.
+      </p>
+      <div class="where"><b>Where:</b> Project → Earned Value tab</div>
+    </div>
+  </div>
+</section>
+
+<!-- ---------- Step 11: Dashboard ---------- -->
+<section class="page">
+  <div class="step">
+    <div class="step-head"><span class="badge">11</span><h2>Dashboard — see it all in one place</h2></div>
+    <div class="step-body">
+      <p>
+        The Dashboard tab rolls the whole project up into one reporting view: cost by category, cash flow, and cost by
+        resource type (labour, plant, material, subcontract), without having to flip between tabs. A one-time
+        <b>Major Category mapping</b> lets you group your individual categories under broader headings — Earthworks,
+        Bridgework, Drainage, and so on — so the top-level chart reads at a glance even on a project with many detailed
+        categories. Any category left unmapped still shows up, grouped under “Unmapped,” so nothing silently disappears
+        from the total.
+      </p>
+      <p>
+        Sections can be shown or hidden, filtered by category or date range, and the whole thing can be printed or saved
+        as a PDF for a client update or an internal report — a customisable snapshot of the project rather than a fixed
+        report.
+      </p>
+      <div class="where"><b>Where:</b> Project → Dashboard tab</div>
+    </div>
+  </div>
+</section>
+
+<!-- ---------- Step 12: Keep it current ---------- -->
+<section class="page">
+  <div class="step">
+    <div class="step-head"><span class="badge">12</span><h2>Keep it current</h2></div>
+    <div class="step-body">
+      <p>
+        A first-principles estimate is only as good as the rates behind it. Revisit the Rate Library periodically against
+        real supplier quotes, current labour agreements, plant hire pricing, and subcontractor pricing — the “Search the
+        web” button is there specifically to make that check quick.
+      </p>
+      <p>
+        When a revised drawing arrives, upload it on the Takeoff tab alongside the original, set its scale, and
+        re-measure the items that changed. Measurements stay listed under the drawing and page they were taken from, so
+        it's clear which revision each quantity came off — it helps to include the revision in a measurement's label too.
+      </p>
+      <p>
+        Re-import your schedule from Primavera P6 periodically too — each import is saved as a dated snapshot, so the
+        Programme tab's Schedule history always shows how the plan has actually moved.
+      </p>
+      <p>
+        If you ever need to reset your password, use the “Forgot password?” link on the login screen; if you try to
+        create a second account with an email that's already registered, the app will tell you directly rather than
+        leaving you wondering why no email arrived.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================= QUICK REFERENCE ======================= -->
+<section class="page">
+  <div class="eyebrow">Quick Reference</div>
+  <h1 class="page-title">Where do I…?</h1>
+  <table>
+    <thead><tr><th>I want to…</th><th>Go to</th></tr></thead>
+    <tbody>
+      <tr><td>Set my workspace's currency or unit system</td><td>Settings</td></tr>
+      <tr><td>Add or edit a labour, plant, material, or subcontract rate</td><td>Rate Library</td></tr>
+      <tr><td>Check a current market rate for something</td><td>Rate Library → “Search the web” button</td></tr>
+      <tr><td>Start a new project</td><td>Projects → New Project</td></tr>
+      <tr><td>Upload a PDF drawing, then measure a length, area, or count off it</td><td>Project → Takeoff tab → + Upload drawing, then + Length / + Area / + Count</td></tr>
+      <tr><td>Set a drawing's scale (each page has its own)</td><td>Project → Takeoff tab → Set scale</td></tr>
+      <tr><td>Zoom in on a drawing</td><td>Project → Takeoff tab → − / + buttons, or Ctrl + mouse wheel</td></tr>
+      <tr><td>Send a measured quantity into the estimate</td><td>Project → Takeoff tab → measurement → Send to estimate</td></tr>
+      <tr><td>Add a category or line item to an estimate</td><td>Project → Estimate tab</td></tr>
+      <tr><td>Build up a line item's rate from labour/plant/material/subcontract</td><td>Project → Estimate tab → line item</td></tr>
+      <tr><td>Type a flat rate instead of building one up</td><td>Project → Estimate tab → line item → Flat rate</td></tr>
+      <tr><td>Import line items from a spreadsheet</td><td>Project → Estimate tab → Import line items</td></tr>
+      <tr><td>Add a risk, or run a site risk lookup</td><td>Project → Risk &amp; Location tab</td></tr>
+      <tr><td>Set site nature (greenfield/brownfield), utility count, or investigation level</td><td>Project → Risk &amp; Location tab</td></tr>
+      <tr><td>Adjust preliminaries / indirect job costs, contingency, overhead, or margin</td><td>Project → Summary tab</td></tr>
+      <tr><td>Switch preliminaries, or client cost, to an itemised build-up</td><td>Project → Summary tab → Preliminaries / Client Cost</td></tr>
+      <tr><td>Quick-add a common site-staff or client-team role</td><td>Project → Summary tab → Quick add</td></tr>
+      <tr><td>See spend spread over time</td><td>Project → Summary tab → Cash Flow</td></tr>
+      <tr><td>Export the estimate</td><td>Project → Summary tab → Export CSV</td></tr>
+      <tr><td>Schedule a category, or import a schedule from Primavera P6</td><td>Project → Programme tab</td></tr>
+      <tr><td>Link one category's start to another's finish (Predecessor)</td><td>Project → Programme tab → Predecessor / Lag</td></tr>
+      <tr><td>Compare this month's schedule against a past import</td><td>Project → Programme tab → Schedule history</td></tr>
+      <tr><td>Set up a Wage or Salaried position and its Reimbursable Cost Multiplier</td><td>Project → Positions tab</td></tr>
+      <tr><td>Log a Labour, Plant, or Material cost against a Rate Library item and quantity</td><td>Project → Actuals tab → Direct Job Cost ledger</td></tr>
+      <tr><td>Log a Subcontract cost with an invoice number</td><td>Project → Actuals tab → Direct Job Cost ledger</td></tr>
+      <tr><td>Log hours worked against a Position</td><td>Project → Actuals tab → Indirect Job Cost ledger</td></tr>
+      <tr><td>Edit an existing actual cost or hours entry</td><td>Project → Actuals tab → click into any field</td></tr>
+      <tr><td>Update a line item's % complete, or see Earned Value</td><td>Project → Earned Value tab</td></tr>
+      <tr><td>See cost by category, cash flow, and resource type in one view</td><td>Project → Dashboard tab</td></tr>
+      <tr><td>Reset a forgotten password</td><td>Login screen → Forgot password?</td></tr>
+      <tr><td>Re-read this guide</td><td>Left rail → Help</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ======================= ACCOUNT ======================= -->
+<section class="page">
+  <h1 class="page-title rule">Your account</h1>
+  <p>
+    Your workspace and everything in it — rates, projects, drawings, risk registers — is private to your organisation.
+    Signing in with an email that already has an account will tell you so directly rather than silently failing; use
+    “Forgot password?” on the login screen at any time to regain access without contacting support.
+  </p>
+  <p>
+    This guide covers the app as it stands today and will be updated as new features are added. If something here
+    doesn't match what you see on screen, the in-app Help page always reflects the current version.
+  </p>
+</section>
+
+</body>
+</html>
