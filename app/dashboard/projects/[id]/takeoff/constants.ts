@@ -12,7 +12,9 @@ export type Tool = "calibrate" | "length" | "area" | "count" | null;
 // canvas is shown; clicks are mapped back to native canvas pixels, so
 // measurements are unaffected.
 // Ctrl + mouse wheel zooms smoothly between the first and last level.
-export const ZOOM_LEVELS = [1, 1.5, 2, 3, 4];
+// Beyond 2 (RENDER_SCALE) the page is upscaled and looks softer, but clicks
+// still map exactly to native canvas pixels, so high zoom only helps precision.
+export const ZOOM_LEVELS = [1, 1.5, 2, 3, 4, 6, 8];
 export const MIN_ZOOM = ZOOM_LEVELS[0];
 export const MAX_ZOOM = ZOOM_LEVELS[ZOOM_LEVELS.length - 1];
 

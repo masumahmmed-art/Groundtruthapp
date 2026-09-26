@@ -49,6 +49,8 @@ export default function TakeoffTab({
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollBoxRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const selected = drawings.find((d) => d.id === selectedId) || null;
   // Every page has its own scale; length and area use the current page's.
@@ -136,24 +138,83 @@ export default function TakeoffTab({
     if (tool && points.length) {
       const color = tool === "calibrate" ? COLORS.calibrate : COLORS.inProgress;
       drawShape(ctx, points, tool === "calibrate" ? "length" : tool, color, false);
+      // Ring the last point — it's the one the arrow keys nudge.
+      const last = points[points.length - 1];
+      ctx.beginPath();
+      ctx.arc(last.x, last.y, 10, 0, Math.PI * 2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
     }
   }, [measurements, points, tool, page]);
+
+  // --- full screen ---------------------------------------------------------
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(document.fullscreenElement === cardRef.current && !!cardRef.current);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else {
+      cardRef.current?.requestFullscreen().catch(() => setNotice("Full screen isn't available in this browser."));
+    }
+  }
+
+  // --- keyboard fine-tuning ------------------------------------------------
+  // Arrow keys nudge the last point by one screen pixel (Shift: ten), Backspace
+  // removes it, Enter finishes. Ignored while typing in a field or while an
+  // input box is open. Re-subscribed each render so it sees current state.
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (!tool || pending) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return;
+      const arrows: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+      if (e.key in arrows) {
+        const overlay = overlayRef.current;
+        if (!overlay || !points.length) return;
+        e.preventDefault(); // don't scroll the drawing
+        const step = (overlay.width / overlay.getBoundingClientRect().width) * (e.shiftKey ? 10 : 1);
+        const [dx, dy] = arrows[e.key];
+        setPoints((prev) => {
+          if (!prev.length) return prev;
+          const last = prev[prev.length - 1];
+          const moved = {
+            x: Math.min(overlay.width, Math.max(0, last.x + dx * step)),
+            y: Math.min(overlay.height, Math.max(0, last.y + dy * step)),
+          };
+          return [...prev.slice(0, -1), moved];
+        });
+      } else if (e.key === "Backspace" && points.length) {
+        e.preventDefault();
+        undoPoint();
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        finishMeasurement();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   // --- click handling ------------------------------------------------------
 
   function handleCanvasClick(e: React.MouseEvent<HTMLCanvasElement>) {
     // While an input box is open the clicked points are frozen.
     if (!tool || pending) return;
+    // Calibration uses exactly two points; fine-tune them, then Enter distance.
+    if (tool === "calibrate" && points.length >= 2) return;
     const p = getCanvasPoint(overlayRef.current!, e);
-
-    if (tool === "calibrate") {
-      const next = [...points, p];
-      setPoints(next);
-      if (next.length === 2) setPending({ kind: "calibrate", defaultUnit: currentScale?.unit || selected?.scale_unit || "m" });
-      return;
-    }
-
     setPoints((prev) => [...prev, p]);
+  }
+
+  function undoPoint() {
+    setPoints((prev) => prev.slice(0, -1));
   }
 
   function saveCalibration(dist: number, unit: string) {
@@ -200,7 +261,11 @@ export default function TakeoffTab({
   }
 
   function finishMeasurement() {
-    if (!tool || tool === "calibrate" || !selected || !points.length) return;
+    if (tool === "calibrate") {
+      if (points.length === 2) setPending({ kind: "calibrate", defaultUnit: currentScale?.unit || selected?.scale_unit || "m" });
+      return;
+    }
+    if (!tool || !selected || !points.length) return;
     if (tool === "length" && points.length < 2) return;
     if (tool === "area" && points.length < 3) return;
     // Counting doesn't depend on scale.
@@ -341,20 +406,43 @@ export default function TakeoffTab({
       )}
 
       {selected && (
-        <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
-          <div className="card" style={{ padding: 12, flex: "1 1 560px" }}>
+        <div>
+          {/* Full width, with the measurements list below. In full screen the card fills the
+              screen and the drawing box stretches to fill whatever the toolbar leaves. */}
+          <div
+            ref={cardRef}
+            className="card"
+            style={
+              isFullscreen
+                ? { padding: 12, display: "flex", flexDirection: "column", height: "100vh", borderRadius: 0, background: "var(--surface)" }
+                : { padding: 12 }
+            }
+          >
             <TakeoffToolbar
               page={page}
               numPages={numPages}
               setPage={changePage}
               zoom={zoom}
               setZoom={setZoom}
+              isFullscreen={isFullscreen}
+              onToggleFullscreen={toggleFullscreen}
               tool={tool}
+              pointCount={points.length}
               onSelectTool={selectTool}
+              onUndo={undoPoint}
               onFinish={finishMeasurement}
               onCancel={cancelMeasurement}
               onDeleteDrawing={() => setPending({ kind: "deleteDrawing", drawing: selected })}
             />
+
+            {/* Warnings normally show above the drawing list; in full screen that's off-screen. */}
+            {isFullscreen && notice && (
+              <div className="note" role="alert" style={{ borderColor: "var(--danger)", marginBottom: 10 }}>
+                <span>⚠</span>
+                <span style={{ flex: 1 }}>{notice}</span>
+                <button className="btn btn-ghost btn-sm" aria-label="Dismiss" onClick={() => setNotice(null)}>✕</button>
+              </div>
+            )}
 
             {pending && (
               <PendingInput
@@ -362,9 +450,9 @@ export default function TakeoffTab({
                 onCalibrate={saveCalibration}
                 onLabel={saveMeasurement}
                 onDeleteDrawing={deleteDrawing}
-                // Calibration needs both points re-clicked; otherwise just close
-                // the box and keep any in-progress measurement.
-                onCancel={pending.kind === "calibrate" ? cancelMeasurement : () => setPending(null)}
+                // Just close the box: the points stay, so they can still be
+                // fine-tuned (or the whole thing cancelled from the toolbar).
+                onCancel={() => setPending(null)}
               />
             )}
 
@@ -385,10 +473,14 @@ export default function TakeoffTab({
                   ? <>Page {page} scale set: calibrated in <b>{currentScale.unit}</b>.</>
                   : <>Page {page} has no scale yet — click <b>Set scale</b>, then click two points a known distance apart on the drawing. (Count doesn&apos;t need a scale.)</>}
                 {" "}
-                {!pending && tool === "calibrate" && "Click the two points now…"}
+                {!pending && tool === "calibrate" && points.length < 2 && `Click the two points now… (${points.length} of 2)`}
+                {!pending && tool === "calibrate" && points.length === 2 &&
+                  "Fine-tune the ringed point with the arrow keys (Shift = bigger steps) or Backspace to redo it, then click Enter distance (or press Enter)."}
                 {!pending && tool === "length" && "Click each point along the length, then Finish."}
                 {!pending && tool === "area" && "Click each corner of the area, then Finish (auto-closes)."}
                 {!pending && tool === "count" && "Click each item to count, then Finish."}
+                {!pending && tool && tool !== "calibrate" && points.length > 0 &&
+                  " Arrow keys nudge the ringed point (Shift = bigger steps); Backspace removes it; Enter finishes."}
                 {runningTotal && (
                   <>
                     <br />
@@ -405,8 +497,9 @@ export default function TakeoffTab({
               style={{
                 position: "relative",
                 maxWidth: "100%",
-                maxHeight: "75vh",
-                aspectRatio: pageSize ? `${pageSize.width} / ${pageSize.height}` : undefined,
+                ...(isFullscreen
+                  ? { flex: "1 1 auto", minHeight: 0 }
+                  : { maxHeight: "75vh", aspectRatio: pageSize ? `${pageSize.width} / ${pageSize.height}` : undefined }),
                 overflow: "auto",
                 scrollbarGutter: "stable",
                 border: "1px solid var(--line)",
@@ -431,21 +524,23 @@ export default function TakeoffTab({
             </div>
           </div>
 
-          <div style={{ flex: "1 1 320px", minWidth: 300 }}>
+          <div style={{ marginTop: 18 }}>
             <h4 style={{ marginBottom: 8 }}>Measurements — page {page}</h4>
             {pageMeasurements.length === 0 && (
               <div className="empty">No measurements on this page yet.</div>
             )}
-            {pageMeasurements.map((m) => (
-              <MeasurementRow
-                key={m.id}
-                m={m}
-                scaleUnit={pageScale(selected, m.page_number)?.unit ?? selected.scale_unit}
-                categories={categories}
-                onDelete={() => deleteMeasurement(m)}
-                onPush={(categoryId, description, unit, qty) => pushToEstimate(m, categoryId, description, unit, qty)}
-              />
-            ))}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", columnGap: 12 }}>
+              {pageMeasurements.map((m) => (
+                <MeasurementRow
+                  key={m.id}
+                  m={m}
+                  scaleUnit={pageScale(selected, m.page_number)?.unit ?? selected.scale_unit}
+                  categories={categories}
+                  onDelete={() => deleteMeasurement(m)}
+                  onPush={(categoryId, description, unit, qty) => pushToEstimate(m, categoryId, description, unit, qty)}
+                />
+              ))}
+            </div>
           </div>
         </div>
       )}
