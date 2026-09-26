@@ -1,8 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { sendFeedbackEmail, type FeedbackEmailCategory } from "@/lib/feedbackEmail";
 
-export type FeedbackCategory = "bug" | "idea" | "general";
+export type FeedbackCategory = FeedbackEmailCategory;
 
 export async function submitFeedback(input: {
   category: FeedbackCategory;
@@ -37,35 +38,15 @@ export async function submitFeedback(input: {
 
   if (error) return { ok: false, error: "Could not save your feedback — please try again." };
 
-  // Best-effort email notification — never fails the submission if this
-  // fails, and does nothing at all until RESEND_API_KEY and
-  // FEEDBACK_NOTIFY_EMAIL are set as environment variables.
+  // Best-effort email notification — never fails the submission. Failures
+  // are logged inside sendFeedbackEmail (see lib/feedbackEmail.ts).
   try {
     await sendFeedbackEmail({ email: user.email ?? "unknown", category: input.category, message });
-  } catch {
+  } catch (err) {
     // The feedback row above is already saved — a failed notification
     // email is not a reason to tell the user their feedback didn't go in.
+    console.error("[feedback-email] Unexpected error:", err instanceof Error ? err.message : String(err));
   }
 
   return { ok: true };
-}
-
-async function sendFeedbackEmail(input: { email: string; category: FeedbackCategory; message: string }) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const notifyTo = process.env.FEEDBACK_NOTIFY_EMAIL;
-  if (!apiKey || !notifyTo) return;
-
-  await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: "Ground Truth Estimator <onboarding@resend.dev>",
-      to: [notifyTo],
-      subject: `New feedback (${input.category}) — Ground Truth Estimator`,
-      text: `From: ${input.email}\nCategory: ${input.category}\n\n${input.message}`,
-    }),
-  });
 }
