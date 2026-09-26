@@ -54,6 +54,8 @@ export default function TakeoffTab({
   const [points, setPoints] = useState<TakeoffPoint[]>([]);
   const [pending, setPending] = useState<Pending>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+  const [moving, setMoving] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
@@ -174,6 +176,58 @@ export default function TakeoffTab({
       setLookingForFile(false);
     };
   }, [selectedId, selected?.file_hash]);
+
+  // Moves a drawing added before migration 004 out of Storage: the PDF is saved
+  // to the user's Downloads (colleagues and other PCs will need that file),
+  // kept in this browser, and fingerprinted — and only then is the online copy
+  // deleted. The bytes are unchanged, so scales and measurements still fit.
+  async function moveDrawingToThisPc(d: DrawingRow) {
+    setPending(null);
+    setNotice(null);
+    setInfo(null);
+    if (!d.storage_path) return;
+    const path = d.storage_path;
+    setMoving(true);
+    try {
+      const { data: blob, error: dlErr } = await supabase.storage.from("drawings").download(path);
+      if (dlErr || !blob) throw dlErr || new Error("Could not download the drawing");
+      const bytes = await blob.arrayBuffer();
+      const hash = await fingerprint(bytes);
+
+      // Save a copy to the user's Downloads folder.
+      const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = d.name.toLowerCase().endsWith(".pdf") ? d.name : `${d.name}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+
+      await keepFile(hash, bytes);
+
+      const { data: updated, error: upErr } = await supabase
+        .from("drawings")
+        .update({ file_hash: hash, file_size: bytes.byteLength, storage_path: null })
+        .eq("id", d.id)
+        .select("*")
+        .single();
+      if (upErr || !updated) throw upErr || new Error("Could not update the drawing's details");
+      setDrawings((prev) => prev.map((x) => (x.id === d.id ? (updated as DrawingRow) : x)));
+
+      // Only now that the drawing no longer points at it, free the online copy.
+      const { error: rmErr } = await supabase.storage.from("drawings").remove([path]);
+      if (rmErr) {
+        setNotice(`“${d.name}” was moved to this computer, but its online copy couldn't be deleted (${rmErr.message}).`);
+      } else {
+        setInfo(`“${d.name}” is now kept on this computer, and a copy was saved to your Downloads folder — keep it where colleagues and your other computers can reach it.`);
+      }
+    } catch (err: any) {
+      setNotice(`Couldn't move “${d.name}”: ${err?.message || String(err)}. Nothing was deleted.`);
+    } finally {
+      setMoving(false);
+    }
+  }
 
   async function deleteDrawing(d: DrawingRow) {
     setPending(null);
@@ -499,7 +553,15 @@ export default function TakeoffTab({
         </div>
       )}
 
-      {drawings.length === 0 && <div className="empty">No drawings added yet. Click “+ Add drawing” and choose a PDF to get started.</div>}
+      {info && (
+        <div className="note" role="status">
+          <span>✓</span>
+          <span style={{ flex: 1 }}>{info}</span>
+          <button className="btn btn-ghost btn-sm" aria-label="Dismiss" onClick={() => setInfo(null)}>✕</button>
+        </div>
+      )}
+
+      {drawings.length === 0 &&<div className="empty">No drawings added yet. Click “+ Add drawing” and choose a PDF to get started.</div>}
 
       {drawings.length > 0 && (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
@@ -509,7 +571,9 @@ export default function TakeoffTab({
               className={"btn btn-sm" + (d.id === selectedId ? " active" : "")}
               onClick={() => setSelectedId(d.id)}
               style={d.id === selectedId ? { background: "var(--ink)", color: "#fff" } : {}}
+              title={d.storage_path ? "Stored online (added before drawings were kept on your computer)" : undefined}
             >
+              {d.storage_path ? "☁ " : ""}
               {d.name}
             </button>
           ))}
@@ -529,6 +593,35 @@ export default function TakeoffTab({
                 : { padding: 12 }
             }
           >
+            {selected.storage_path && !isFullscreen && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  flexWrap: "wrap",
+                  fontSize: 12.5,
+                  color: "var(--ink-soft)",
+                  background: "var(--surface-2)",
+                  border: "1px solid var(--line)",
+                  borderRadius: 5,
+                  padding: "7px 10px",
+                  marginBottom: 10,
+                }}
+              >
+                <span style={{ flex: "1 1 300px" }}>
+                  ☁ This drawing is <b>stored online</b> — it was added before drawings were kept on your computer. Move it
+                  to free up storage space.
+                </span>
+                <button
+                  className="btn btn-sm"
+                  disabled={moving}
+                  onClick={() => setPending({ kind: "moveDrawing", drawing: selected })}
+                >
+                  {moving ? "Moving…" : "Move to this computer"}
+                </button>
+              </div>
+            )}
             <TakeoffToolbar
               page={page}
               numPages={numPages}
@@ -561,6 +654,7 @@ export default function TakeoffTab({
                 onCalibrate={saveCalibration}
                 onLabel={saveMeasurement}
                 onDeleteDrawing={deleteDrawing}
+                onMoveDrawing={moveDrawingToThisPc}
                 // Just close the box: the points stay, so they can still be
                 // fine-tuned (or the whole thing cancelled from the toolbar).
                 onCancel={() => setPending(null)}

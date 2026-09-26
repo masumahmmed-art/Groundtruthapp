@@ -9,6 +9,7 @@ export type Pending =
   | { kind: "calibrate"; defaultUnit: string }
   | { kind: "label" }
   | { kind: "deleteDrawing"; drawing: DrawingRow }
+  | { kind: "moveDrawing"; drawing: DrawingRow }
   | null;
 
 const panelStyle: React.CSSProperties = {
@@ -26,16 +27,38 @@ export default function PendingInput({
   onCalibrate,
   onLabel,
   onDeleteDrawing,
+  onMoveDrawing,
   onCancel,
 }: {
   pending: Exclude<Pending, null>;
   onCalibrate: (distance: number, unit: string) => void;
   onLabel: (label: string) => void;
   onDeleteDrawing: (d: DrawingRow) => void;
+  onMoveDrawing: (d: DrawingRow) => void;
   onCancel: () => void;
 }) {
   if (pending.kind === "calibrate") return <CalibrateForm defaultUnit={pending.defaultUnit} onSave={onCalibrate} onCancel={onCancel} />;
   if (pending.kind === "label") return <LabelForm onSave={onLabel} onCancel={onCancel} />;
+  if (pending.kind === "moveDrawing") {
+    return (
+      <div className="card" style={panelStyle}>
+        <div style={{ flexBasis: "100%", fontSize: 13 }}>
+          <b>Move “{pending.drawing.name}” to this computer?</b>
+          <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+            <li>A copy of the PDF is <b>saved to your Downloads folder</b>, and this browser keeps its own copy.</li>
+            <li>The online copy is then <b>deleted</b> to free up storage. This can't be undone.</li>
+            <li>
+              Your scales and measurements don't change. Anyone else using this drawing — including you on another
+              computer — will need the PDF file itself, so keep the downloaded copy somewhere they can reach, such as your
+              shared drive.
+            </li>
+          </ul>
+        </div>
+        <button className="btn btn-sm btn-primary" onClick={() => onMoveDrawing(pending.drawing)}>Download &amp; move</button>
+        <button className="btn btn-sm btn-ghost" onClick={onCancel}>Cancel</button>
+      </div>
+    );
+  }
   return (
     <div className="card" style={panelStyle}>
       <div style={{ flex: "1 1 240px", fontSize: 13 }}>

@@ -91,6 +91,12 @@ export default function HelpPage() {
             just means opening the file once more.
           </p>
           <p>
+            Drawings added before this change are marked <b>☁</b> and are still stored online, so they open
+            anywhere. To free up that storage, open one and click <b>Move to this computer</b>: a copy of the
+            PDF is saved to your Downloads folder first (keep it where colleagues and your other computers
+            can reach it), then the online copy is deleted. Scales and measurements are unchanged.
+          </p>
+          <p>
             <b>Set the scale first — once for each page.</b> Click <b>Set scale</b>, click two
             points a known distance apart (the ends of the scale bar in the title block are ideal),
             then type the real-world distance and unit in the box that appears. Every page has its
