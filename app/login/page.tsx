@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { login } from "./actions";
-import Turnstile from "@/lib/Turnstile";
+import LoginForm from "./LoginForm";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
@@ -34,26 +33,11 @@ export default function LoginPage({
 
         {searchParams.error && <div className="auth-error" style={{ marginBottom: 14 }}>{searchParams.error}</div>}
 
-        <form className="auth-form" action={login}>
-          <input type="hidden" name="next" value={searchParams.next || "/dashboard"} />
-          <div className="field">
-            <label htmlFor="email">Email</label>
-            <input id="email" name="email" type="email" required defaultValue={searchParams.email} autoFocus />
-          </div>
-          <div className="field">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-              <label htmlFor="password">Password</label>
-              <Link href="/forgot-password" style={{ fontSize: 13 }}>
-                Forgot password?
-              </Link>
-            </div>
-            <input id="password" name="password" type="password" required minLength={6} />
-          </div>
-          <Turnstile siteKey={TURNSTILE_SITE_KEY} />
-          <button type="submit" className="btn btn-primary" style={{ justifyContent: "center", padding: "10px 13px" }}>
-            Log in
-          </button>
-        </form>
+        <LoginForm
+          next={searchParams.next || "/dashboard"}
+          defaultEmail={searchParams.email}
+          siteKey={TURNSTILE_SITE_KEY}
+        />
 
         <div className="auth-foot">
           Don&apos;t have a workspace yet? <Link href="/signup">Create one</Link>
