@@ -337,7 +337,12 @@ export interface DrawingRow {
   id: string;
   project_id: string;
   name: string;
-  storage_path: string;
+  /** Path in the "drawings" Storage bucket, for drawings uploaded before migration 004. Null = the PDF is kept on users' PCs. */
+  storage_path: string | null;
+  /** SHA-256 (hex) of the PDF's bytes, used to check a file opened later is the same one. Null for older uploaded drawings. */
+  file_hash?: string | null;
+  /** PDF size in bytes. */
+  file_size?: number | null;
   page_count: number;
   /** Legacy single scale; superseded by page_scales. */
   scale_px_per_unit: number | null;
@@ -427,7 +432,7 @@ export interface Database {
       };
       drawings: {
         Row: DrawingRow;
-        Insert: Partial<DrawingRow> & { project_id: string; storage_path: string };
+        Insert: Partial<DrawingRow> & { project_id: string };
         Update: Partial<DrawingRow>;
       };
       takeoff_measurements: {

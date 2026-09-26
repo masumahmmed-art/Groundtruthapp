@@ -21,6 +21,16 @@ import TakeoffToolbar from "./takeoff/TakeoffToolbar";
 import MeasurementRow from "./takeoff/MeasurementRow";
 import PendingInput, { type Pending } from "./takeoff/PendingInput";
 import PageScalePrompt from "./takeoff/PageScalePrompt";
+import { deleteLocalCopy, fingerprint, getLocalCopy, saveLocalCopy } from "@/lib/localDrawings";
+
+function formatBytes(n: number | null | undefined): string {
+  if (!n) return "";
+  return n >= 1024 * 1024 ? `${(n / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
+}
+
+function isPdf(file: File): boolean {
+  return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+}
 
 export default function TakeoffTab({
   project,
@@ -48,49 +58,132 @@ export default function TakeoffTab({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const openFileInputRef = useRef<HTMLInputElement>(null);
   const scrollBoxRef = useRef<HTMLDivElement>(null);
+  // Drawing PDFs opened this session, by fingerprint — avoids re-reading the browser's saved copy.
+  const sessionFiles = useRef(new Map<string, ArrayBuffer>());
+  const [local, setLocal] = useState<{ hash: string; bytes: ArrayBuffer } | null>(null);
+  const [lookingForFile, setLookingForFile] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const selected = drawings.find((d) => d.id === selectedId) || null;
   // Every page has its own scale; length and area use the current page's.
   const currentScale = selected ? pageScale(selected, page) : null;
+  // Drawings added since migration 004 are kept on users' PCs (no storage_path).
+  // Only use the loaded file if it's this drawing's — never another drawing's
+  // bytes left over from before a switch.
+  const isLocalDrawing = !!selected && !selected.storage_path;
+  const localBytes = isLocalDrawing && local && local.hash === selected.file_hash ? local.bytes : null;
+  const needsFile = isLocalDrawing && !localBytes;
 
-  // --- upload -----------------------------------------------------------
+  // Keeps the file for this session and saves a copy in this browser. Saving
+  // the copy is only a convenience — if the browser refuses, say so and carry on.
+  async function keepFile(hash: string, bytes: ArrayBuffer) {
+    sessionFiles.current.set(hash, bytes);
+    setLocal({ hash, bytes });
+    try {
+      await saveLocalCopy(hash, bytes);
+    } catch {
+      setNotice("Couldn't keep a copy of this drawing in this browser (it may be out of space), so you'll need to open the file again next time.");
+    }
+  }
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  // --- add a drawing (the PDF stays on this PC) ---------------------------
+
+  async function handleAddDrawing(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (file.type !== "application/pdf") {
+    if (!isPdf(file)) {
       setNotice("Please choose a PDF drawing.");
       return;
     }
     setNotice(null);
     setUploading(true);
     try {
-      const path = `${project.org_id}/${project.id}/${crypto.randomUUID()}.pdf`;
-      const { error: upErr } = await supabase.storage.from("drawings").upload(path, file);
-      if (upErr) throw upErr;
+      const bytes = await file.arrayBuffer();
+      const hash = await fingerprint(bytes);
+      const existing = drawings.find((d) => d.file_hash === hash);
+      if (existing) {
+        await keepFile(hash, bytes);
+        setSelectedId(existing.id);
+        setNotice(`This drawing is already in this project, as “${existing.name}”.`);
+        return;
+      }
       const { data, error } = await supabase
         .from("drawings")
-        .insert({ project_id: project.id, name: file.name, storage_path: path })
+        .insert({ project_id: project.id, name: file.name, file_hash: hash, file_size: file.size, storage_path: null })
         .select("*")
         .single();
-      if (error || !data) throw error || new Error("Could not save drawing");
+      if (error || !data) throw error || new Error("Could not save the drawing's details");
+      await keepFile(hash, bytes);
       setDrawings((prev) => [...prev, data as DrawingRow]);
       setSelectedId((data as DrawingRow).id);
     } catch (err: any) {
-      setNotice("Upload failed: " + (err?.message || String(err)));
+      setNotice("Couldn't add the drawing: " + (err?.message || String(err)));
     } finally {
       setUploading(false);
     }
   }
 
+  // --- open the file for a drawing kept on users' PCs ---------------------
+
+  async function handleOpenFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !selected?.file_hash) return;
+    if (!isPdf(file)) {
+      setNotice("Please choose a PDF drawing.");
+      return;
+    }
+    const bytes = await file.arrayBuffer();
+    const hash = await fingerprint(bytes);
+    if (hash !== selected.file_hash) {
+      setNotice(
+        `“${file.name}” isn't the same file that “${selected.name}” was added from — its contents are different, so ` +
+          "the measurements wouldn't line up. If it's a revised drawing, add it as a new drawing instead."
+      );
+      return;
+    }
+    setNotice(null);
+    await keepFile(hash, bytes);
+  }
+
+  // Look for this PC's copy of the selected drawing: first this session's, then the browser's saved copy.
+  useEffect(() => {
+    if (!selected || selected.storage_path || !selected.file_hash) return;
+    const hash = selected.file_hash;
+    const inSession = sessionFiles.current.get(hash);
+    if (inSession) {
+      setLocal({ hash, bytes: inSession });
+      return;
+    }
+    let cancelled = false;
+    setLookingForFile(true);
+    getLocalCopy(hash).then((bytes) => {
+      if (cancelled) return;
+      if (bytes) {
+        sessionFiles.current.set(hash, bytes);
+        setLocal({ hash, bytes });
+      }
+      setLookingForFile(false);
+    });
+    return () => {
+      cancelled = true;
+      setLookingForFile(false);
+    };
+  }, [selectedId, selected?.file_hash]);
+
   async function deleteDrawing(d: DrawingRow) {
     setPending(null);
-    await supabase.storage.from("drawings").remove([d.storage_path]);
+    if (d.storage_path) await supabase.storage.from("drawings").remove([d.storage_path]);
     await supabase.from("drawings").delete().eq("id", d.id);
+    // Drop this PC's copy too, unless another drawing in this project is the same file.
+    if (d.file_hash && !drawings.some((x) => x.id !== d.id && x.file_hash === d.file_hash)) {
+      sessionFiles.current.delete(d.file_hash);
+      deleteLocalCopy(d.file_hash);
+    }
     setDrawings((prev) => prev.filter((x) => x.id !== d.id));
     if (selectedId === d.id) setSelectedId(null);
   }
@@ -118,10 +211,17 @@ export default function TakeoffTab({
   // --- render the current page to canvas ---------------------------------
   // Must stay below the effect above so the reset runs first.
 
-  const { numPages, loadingPdf, pageSize } = usePdfPage({ supabase, selected, page, canvasRef, overlayRef });
+  const { numPages, loadingPdf, pageSize, renderCount } = usePdfPage({
+    supabase,
+    selected,
+    localBytes,
+    page,
+    canvasRef,
+    overlayRef,
+  });
 
-  // The scroll box only exists while a drawing is selected.
-  useWheelZoom({ boxRef: scrollBoxRef, zoom, setZoom, active: selectedId });
+  // The scroll box only exists while a drawing is selected and its file is available.
+  useWheelZoom({ boxRef: scrollBoxRef, zoom, setZoom, active: `${selectedId}:${needsFile}` });
 
   // --- draw overlay (in-progress + saved shapes for this page) -----------
 
@@ -146,7 +246,7 @@ export default function TakeoffTab({
       ctx.lineWidth = 1.5;
       ctx.stroke();
     }
-  }, [measurements, points, tool, page]);
+  }, [measurements, points, tool, page, renderCount]); // renderCount: each page render resizes (and so clears) the overlay
 
   // --- full screen ---------------------------------------------------------
 
@@ -377,14 +477,16 @@ export default function TakeoffTab({
         <div>
           <h2 style={{ fontSize: 20 }}>Drawing Takeoff</h2>
           <div className="meta">
-            Upload a 2D drawing, calibrate its scale, then trace lengths / areas / counts and send them
-            straight into the Bill of Quantities.
+            Add a 2D drawing (PDF), calibrate its scale, then trace lengths / areas / counts and send them
+            straight into the Bill of Quantities. Drawings stay on your computer — only their measurements
+            and scales are saved online.
           </div>
         </div>
         <div>
-          <input ref={fileInputRef} type="file" accept="application/pdf" style={{ display: "none" }} onChange={handleUpload} />
+          <input ref={fileInputRef} type="file" accept="application/pdf,.pdf" style={{ display: "none" }} onChange={handleAddDrawing} />
+          <input ref={openFileInputRef} type="file" accept="application/pdf,.pdf" style={{ display: "none" }} onChange={handleOpenFile} />
           <button className="btn" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-            {uploading ? "Uploading…" : "+ Upload drawing"}
+            {uploading ? "Adding…" : "+ Add drawing"}
           </button>
         </div>
       </div>
@@ -397,7 +499,7 @@ export default function TakeoffTab({
         </div>
       )}
 
-      {drawings.length === 0 && <div className="empty">No drawings uploaded yet. Upload a PDF to get started.</div>}
+      {drawings.length === 0 && <div className="empty">No drawings added yet. Click “+ Add drawing” and choose a PDF to get started.</div>}
 
       {drawings.length > 0 && (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
@@ -499,8 +601,29 @@ export default function TakeoffTab({
               </span>
             </div>
 
-            {/* The box keeps the page's proportions (capped at 75vh) and reserves scrollbar space,
-                so its size never changes while zooming and wheel zoom stays anchored under the cursor. */}
+            {needsFile ? (
+              <div className="card" style={{ padding: "22px 24px", borderColor: "var(--accent)", textAlign: "center" }}>
+                {lookingForFile ? (
+                  <div style={{ color: "var(--ink-faint)" }}>Looking for this drawing on this computer…</div>
+                ) : (
+                  <>
+                    <div style={{ fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>
+                      Open “{selected.name}”{selected.file_size ? ` (${formatBytes(selected.file_size)})` : ""} from this computer to view it
+                    </div>
+                    <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 14, maxWidth: 620, marginInline: "auto" }}>
+                      Drawings are kept on each person's computer rather than online. Open the same PDF file this drawing
+                      was added from — for example from your shared drive or email. The app checks it's exactly the same
+                      file, then keeps a copy in this browser so it opens straight away next time.
+                    </div>
+                    <button className="btn btn-primary" onClick={() => openFileInputRef.current?.click()}>
+                      Open file…
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
+            /* The box keeps the page's proportions (capped at 75vh) and reserves scrollbar space,
+               so its size never changes while zooming and wheel zoom stays anchored under the cursor. */
             <div
               ref={scrollBoxRef}
               style={{
@@ -531,6 +654,7 @@ export default function TakeoffTab({
                 }}
               />
             </div>
+            )}
           </div>
 
           <div style={{ marginTop: 18 }}>
