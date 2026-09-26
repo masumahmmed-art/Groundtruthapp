@@ -314,8 +314,10 @@
         Measurements are only meaningful once the app knows the drawing's scale, so this comes first. Click
         <b>Set scale</b>, then click two points on the drawing a known distance apart — the ends of the scale bar in the
         title block are ideal, or a dimensioned feature. A small box then asks for the real-world distance between those
-        two points and its unit (for example <kbd>100</kbd> and <kbd>m</kbd>); click <b>Set scale</b> to save it. The
-        blue information bar confirms “Page 1 scale set: calibrated in m.”
+        two points and its unit (for example <kbd>100</kbd> and <kbd>m</kbd>) — you can fine-tune either point before
+        typing (see below) — then click <b>Set scale</b> to save it. The blue information bar confirms “Page 1 scale
+        set: calibrated in m.” If the scale bar starts left of zero (a short extra section for small distances),
+        click the <b>0</b> mark itself, not the end of the bar.
       </p>
       <p>
         Every page has its own scale, because the sheets in a drawing set are often drawn at different scales. When you
@@ -332,11 +334,12 @@
 
       <h4>Zoom in for precise clicking</h4>
       <p>
-        Use the <b>−</b> and <b>+</b> buttons in the toolbar, or hold <kbd>Ctrl</kbd> and roll the mouse wheel over the
-        drawing (a trackpad pinch works too). Wheel zoom centres on your mouse pointer, so you can point at a detail and
-        roll straight in to it; scroll to move around a zoomed drawing, and click the percentage to fit it back to the
-        width. Zoom only changes how large the drawing is shown — measurements and scales are equally accurate at any
-        zoom level.
+        Use the <b>−</b> and <b>+</b> buttons in the toolbar (up to 800%), or hold <kbd>Ctrl</kbd> and roll the mouse
+        wheel over the drawing (a trackpad pinch works too). Wheel zoom centres on your mouse pointer, so you can point
+        at a detail and roll straight in to it; scroll to move around a zoomed drawing, and click the percentage to fit
+        it back to the width. Zoom only changes how large the drawing is shown — measurements and scales are equally
+        accurate at any zoom level. For more room, click <b>⛶ Full screen</b> to fill the whole screen with the
+        drawing and its toolbar; press <kbd>Esc</kbd> to return.
       </p>
 
       <h4>Measure lengths, areas, and counts</h4>
@@ -353,6 +356,15 @@
         measurement an optional label, and click <b>Save measurement</b>. <b>Cancel</b> discards the measurement in
         progress, and moving to another page does too, so points can never land on the wrong sheet. Length and area need
         the current page's scale; if it isn't set yet, the app tells you before anything is saved.
+      </p>
+
+      <h4>Fine-tune a point</h4>
+      <p>
+        The last point you placed is ringed. Press the arrow keys to nudge it one screen pixel at a time (hold
+        <kbd>Shift</kbd> for ten), watching the running total change as it moves; press <kbd>Backspace</kbd>, or click
+        <b>↶ Undo point</b>, to remove it and click again; press <kbd>Enter</kbd> to finish. This works while setting
+        the scale too — until you click into the distance box, the arrow keys move the ringed point — and that's where
+        it matters most, because any error in the scale carries into every measurement on that page.
       </p>
 
       <h4>Send a quantity to the estimate</h4>
@@ -678,7 +690,7 @@
       <tr><td>Start a new project</td><td>Projects → New Project</td></tr>
       <tr><td>Upload a PDF drawing, then measure a length, area, or count off it</td><td>Project → Takeoff tab → + Upload drawing, then + Length / + Area / + Count</td></tr>
       <tr><td>Set a drawing's scale (each page has its own)</td><td>Project → Takeoff tab → Set scale</td></tr>
-      <tr><td>Zoom in on a drawing</td><td>Project → Takeoff tab → − / + buttons, or Ctrl + mouse wheel</td></tr>
+      <tr><td>Zoom in, fill the screen, or fine-tune a point</td><td>Project → Takeoff tab → − / + or Ctrl + wheel; ⛶ Full screen; arrow keys</td></tr>
       <tr><td>Send a measured quantity into the estimate</td><td>Project → Takeoff tab → measurement → Send to estimate</td></tr>
       <tr><td>Add a category or line item to an estimate</td><td>Project → Estimate tab</td></tr>
       <tr><td>Build up a line item's rate from labour/plant/material/subcontract</td><td>Project → Estimate tab → line item</td></tr>

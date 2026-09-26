@@ -85,9 +85,17 @@ export const helpSearchIndex: HelpTopic[] = [
     id: "takeoff-zoom",
     title: "Zoom in on a drawing",
     description: "−/+ buttons or Ctrl + mouse wheel for precise clicking.",
-    keywords: ["zoom", "magnify", "enlarge", "ctrl scroll", "mouse wheel", "pinch"],
+    keywords: ["zoom", "magnify", "enlarge", "ctrl scroll", "mouse wheel", "pinch", "full screen", "fullscreen", "bigger drawing"],
     helpAnchor: "takeoff",
     pdfPage: 6,
+  },
+  {
+    id: "takeoff-finetune",
+    title: "Fine-tune a point",
+    description: "Nudge the last point with the arrow keys; Backspace to undo it.",
+    keywords: ["fine tune", "fine-tune", "nudge", "arrow keys", "precise", "accuracy", "undo point", "backspace", "adjust point"],
+    helpAnchor: "takeoff",
+    pdfPage: 7,
   },
   {
     id: "takeoff-send",

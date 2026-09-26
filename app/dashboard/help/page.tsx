@@ -92,10 +92,19 @@ export default function HelpPage() {
             usually for its original sheet size, so the scale bar is the safer reference.
           </p>
           <p>
-            <b>Zoom</b> with the <b>−</b> / <b>+</b> buttons, or hold <b>Ctrl</b> and roll the mouse
-            wheel over the drawing (a trackpad pinch works too) — wheel zoom centres on your
+            <b>Zoom</b> with the <b>−</b> / <b>+</b> buttons (up to 800%), or hold <b>Ctrl</b> and roll
+            the mouse wheel over the drawing (a trackpad pinch works too) — wheel zoom centres on your
             pointer. Click the percentage to fit the drawing back to the width. Zoom never affects
-            the accuracy of scales or measurements.
+            the accuracy of scales or measurements. For more room, <b>⛶ Full screen</b> fills your
+            whole screen with the drawing and its toolbar; press <b>Esc</b> to return.
+          </p>
+          <p>
+            <b>Fine-tune a point.</b> The last point you placed is ringed: the <b>arrow keys</b> nudge it
+            one screen pixel at a time (<b>Shift</b> + arrow for ten) while the running total updates,
+            <b>Backspace</b> or <b>↶ Undo point</b> removes it, and <b>Enter</b> finishes. This works while
+            setting the scale too — until you click into the distance box, the arrow keys move the ringed
+            point. Tip: if a scale bar starts left of zero, click the <b>0</b> mark itself, not the end of
+            the bar.
           </p>
           <p>
             <b>Measure</b> with <b>+ Length</b> (click points along a line), <b>+ Area</b> (click each
