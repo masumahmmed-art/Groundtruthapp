@@ -76,9 +76,19 @@ export default function HelpPage() {
         <div className="card" style={{ padding: "18px 22px" }}>
           <p>
             Measure quantities straight off your drawings. On a project's <b>Takeoff</b> tab
-            (in the Estimate group), click <b>+ Upload drawing</b> and choose a PDF. Each drawing
+            (in the Estimate group), click <b>+ Add drawing</b> and choose a PDF. Each drawing
             appears as a button along the top; use <b>← Page</b> / <b>Page →</b> to move through a
             multi-page set.
+          </p>
+          <p>
+            <b>Drawings stay on your computer.</b> The PDF itself isn't uploaded — only its name, size and
+            a fingerprint that identifies that exact file are saved online, together with its scales and
+            measurements. Your browser keeps its own copy, so the drawing opens straight away on this
+            computer next time. On <b>another computer</b>, another browser, or a private window — or for a
+            colleague — the drawing is listed but asks you to <b>Open file…</b>: choose the same PDF (from
+            your shared drive or email, for example). A different file is refused, so measurements never
+            land on the wrong version; add a revised drawing as a new drawing. Clearing your browser's data
+            just means opening the file once more.
           </p>
           <p>
             <b>Set the scale first — once for each page.</b> Click <b>Set scale</b>, click two

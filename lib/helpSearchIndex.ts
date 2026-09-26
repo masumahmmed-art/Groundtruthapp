@@ -52,7 +52,7 @@ export const helpSearchIndex: HelpTopic[] = [
   {
     id: "takeoff",
     title: "Drawing Takeoff",
-    description: "Upload a PDF drawing and measure lengths, areas and counts off it.",
+    description: "Add a PDF drawing (it stays on your computer) and measure lengths, areas and counts off it.",
     keywords: [
       "takeoff",
       "take-off",
@@ -63,6 +63,12 @@ export const helpSearchIndex: HelpTopic[] = [
       "pdf",
       "plan",
       "upload drawing",
+      "add drawing",
+      "open file",
+      "another computer",
+      "other pc",
+      "where are drawings stored",
+      "storage",
       "measure",
       "measurement",
       "length",
