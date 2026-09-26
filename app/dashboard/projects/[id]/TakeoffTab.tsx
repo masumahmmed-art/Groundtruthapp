@@ -166,14 +166,17 @@ export default function TakeoffTab({
 
   // --- keyboard fine-tuning ------------------------------------------------
   // Arrow keys nudge the last point by one screen pixel (Shift: ten), Backspace
-  // removes it, Enter finishes. Ignored while typing in a field or while an
-  // input box is open. Re-subscribed each render so it sees current state.
+  // removes it, Enter finishes. Ignored while typing in a field. While the
+  // scale's distance box is open the points can still be nudged; other input
+  // boxes freeze them. Re-subscribed each render so it sees current state.
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (!tool || pending) return;
+      if (!tool) return;
+      if (pending && pending.kind !== "calibrate") return;
       const target = e.target as HTMLElement | null;
       if (target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return;
+      if (pending && e.key === "Enter") return; // the distance box handles its own Enter
       const arrows: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
       if (e.key in arrows) {
         const overlay = overlayRef.current;
@@ -207,14 +210,20 @@ export default function TakeoffTab({
   function handleCanvasClick(e: React.MouseEvent<HTMLCanvasElement>) {
     // While an input box is open the clicked points are frozen.
     if (!tool || pending) return;
-    // Calibration uses exactly two points; fine-tune them, then Enter distance.
+    // Calibration uses exactly two points; the distance box opens on the second,
+    // and the points can still be fine-tuned with the arrow keys while it's open.
     if (tool === "calibrate" && points.length >= 2) return;
     const p = getCanvasPoint(overlayRef.current!, e);
     setPoints((prev) => [...prev, p]);
+    if (tool === "calibrate" && points.length === 1) {
+      setPending({ kind: "calibrate", defaultUnit: currentScale?.unit || selected?.scale_unit || "m" });
+    }
   }
 
   function undoPoint() {
     setPoints((prev) => prev.slice(0, -1));
+    // With a point gone, calibration no longer has two points to measure between.
+    if (pending?.kind === "calibrate") setPending(null);
   }
 
   function saveCalibration(dist: number, unit: string) {
@@ -475,7 +484,7 @@ export default function TakeoffTab({
                 {" "}
                 {!pending && tool === "calibrate" && points.length < 2 && `Click the two points now… (${points.length} of 2)`}
                 {!pending && tool === "calibrate" && points.length === 2 &&
-                  "Fine-tune the ringed point with the arrow keys (Shift = bigger steps) or Backspace to redo it, then click Enter distance (or press Enter)."}
+                  "Fine-tune the ringed point with the arrow keys (Shift = bigger steps) or Backspace to redo it, then click Enter distance."}
                 {!pending && tool === "length" && "Click each point along the length, then Finish."}
                 {!pending && tool === "area" && "Click each corner of the area, then Finish (auto-closes)."}
                 {!pending && tool === "count" && "Click each item to count, then Finish."}

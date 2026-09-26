@@ -72,7 +72,8 @@ function CalibrateForm({
     >
       <div className="field" style={{ width: 150 }}>
         <label>Real-world distance</label>
-        <input type="number" step="any" min="0" className="mono" autoFocus value={distance} onChange={(e) => setDistance(e.target.value)} />
+        {/* No autoFocus: until the field is clicked, the arrow keys nudge the ringed point on the drawing. */}
+        <input type="number" step="any" min="0" className="mono" value={distance} onChange={(e) => setDistance(e.target.value)} />
       </div>
       <div className="field" style={{ width: 90 }}>
         <label>Unit</label>
@@ -81,7 +82,9 @@ function CalibrateForm({
       <button type="submit" className="btn btn-sm" disabled={!valid}>Set scale</button>
       <button type="button" className="btn btn-sm btn-ghost" onClick={onCancel}>Cancel</button>
       <div style={{ flexBasis: "100%", fontSize: 12, color: "var(--ink-faint)" }}>
-        How far apart are the two points you clicked, in real life?
+        How far apart are the two points you clicked, in real life? Need to fine-tune first? Use the arrow keys
+        to nudge the ringed point (Shift = bigger steps), or Backspace to re-click it — then click into the
+        distance field.
       </div>
     </form>
   );
