@@ -140,6 +140,7 @@ export default function RiskRegisterPage() {
 
       <nav className="landing-foot-links" aria-label="Learn more">
         <Link href="/cost-estimating-software">Cost estimating software</Link>
+        <Link href="/drawing-takeoff">PDF drawing takeoff</Link>
         <Link href="/earned-value-management">Earned value management</Link>
         <Link href="/">Home</Link>
       </nav>

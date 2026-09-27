@@ -10,6 +10,14 @@ import { NextResponse, type NextRequest } from "next/server";
 // to capture (no tag in the URL, or a source was already captured earlier).
 const ATTRIBUTION_COOKIE = "gt_src";
 
+// Public marketing pages, readable without logging in (see middleware below).
+const MARKETING_PAGES = [
+  "/cost-estimating-software",
+  "/drawing-takeoff",
+  "/risk-register",
+  "/earned-value-management",
+];
+
 function firstTouchSource(request: NextRequest): string | null {
   if (request.cookies.get(ATTRIBUTION_COOKIE)) return null;
   const params = request.nextUrl.searchParams;
@@ -75,7 +83,11 @@ export async function middleware(request: NextRequest) {
   // code), and isAuthRoute would otherwise bounce them straight to
   // /dashboard before they get a chance to set a new password.
   const isResetPasswordRoute = path.startsWith("/reset-password");
-  const isPublicRoute = path === "/" || isAuthRoute || isResetPasswordRoute;
+  // Public marketing pages — must be readable logged out, or search engines
+  // (always logged out) just get redirected to /login. Keep in sync with
+  // app/sitemap.ts.
+  const isMarketingPage = MARKETING_PAGES.includes(path);
+  const isPublicRoute = path === "/" || isAuthRoute || isResetPasswordRoute || isMarketingPage;
 
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();

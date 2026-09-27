@@ -140,6 +140,16 @@ export default async function CostEstimatingSoftwarePage() {
           reverse-engineering it under pressure in a tender review.
         </p>
 
+        <h2>Quantities taken straight off your drawings</h2>
+        <p>
+          A build-up is only as good as the quantity it&apos;s multiplied by. Ground Truth
+          Estimator includes <Link href="/drawing-takeoff">PDF drawing takeoff</Link>: set a
+          scale for each page, measure lengths, areas, and counts with a live running total,
+          and send each quantity straight into the bill of quantities as a line item — ready
+          for its rate to be built up. Your drawings stay on your computer; only the
+          measurements are saved.
+        </p>
+
         <h2>A rate library you build once and reuse everywhere</h2>
         <p>
           Labour, plant, and material rates live in a single library scoped to your
@@ -171,6 +181,7 @@ export default async function CostEstimatingSoftwarePage() {
       </section>
 
       <nav className="landing-foot-links" aria-label="Learn more">
+        <Link href="/drawing-takeoff">PDF drawing takeoff</Link>
         <Link href="/risk-register">Risk register &amp; contingency</Link>
         <Link href="/earned-value-management">Earned value management</Link>
         <Link href="/">Home</Link>

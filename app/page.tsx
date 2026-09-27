@@ -127,6 +127,18 @@ export default async function RootPage() {
           </p>
         </div>
 
+        <div className="feature-card" style={{ borderTopColor: "var(--accent)" }}>
+          <span className="feature-tag" style={{ color: "var(--accent)" }}>
+            Drawing takeoff
+          </span>
+          <h3>Quantities straight off the drawing</h3>
+          <p>
+            Measure lengths, areas, and counts on your PDF drawings, with a scale for every
+            page and a live running total, then send them into the estimate.{" "}
+            <Link href="/drawing-takeoff">How takeoff works</Link>
+          </p>
+        </div>
+
         <div className="feature-card" style={{ borderTopColor: "var(--cat-pave)" }}>
           <span className="feature-tag" style={{ color: "var(--cat-pave)" }}>
             Build-up estimating
@@ -214,6 +226,7 @@ export default async function RootPage() {
 
       <nav className="landing-foot-links" aria-label="Learn more">
         <Link href="/cost-estimating-software">Cost estimating software</Link>
+        <Link href="/drawing-takeoff">PDF drawing takeoff</Link>
         <Link href="/risk-register">Risk register &amp; contingency</Link>
         <Link href="/earned-value-management">Earned value management</Link>
       </nav>
