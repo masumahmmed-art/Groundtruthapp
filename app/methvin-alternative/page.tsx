@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Methvin Alternative for Civil Estimating",
     description:
-      "An honest comparison of Ground Truth Estimator and Methvin — what each does best, and which suits a small-to-mid civil contractor.",
+      "An honest comparison of Ground Truth Estimator and Methvin — what each does best, and which suits a civil contractor.",
     url: URL,
     siteName: "Ground Truth Estimator",
     type: "website",
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Methvin Alternative for Civil Estimating",
     description:
-      "An honest comparison of Ground Truth Estimator and Methvin — what each does best, and which suits a small-to-mid civil contractor.",
+      "An honest comparison of Ground Truth Estimator and Methvin — what each does best, and which suits a civil contractor.",
   },
 };
 
@@ -83,7 +83,7 @@ export default function MethvinAlternativePage() {
         <p className="landing-lead">
           Methvin is an established estimating and project management suite. Ground Truth
           Estimator is newer and narrower: first-principles estimating, risk and cost control for
-          small-to-mid civil contractors — from drawing takeoff to Earned Value in one tool, free
+          civil contractors — from drawing takeoff to Earned Value in one tool, free
           to start. Here&apos;s an honest comparison.
         </p>
         <div className="landing-cta">
@@ -207,8 +207,8 @@ export default function MethvinAlternativePage() {
 
         <h2>Who Ground Truth Estimator is for</h2>
         <p>
-          Estimators, QS teams and project managers at small-to-mid civil and infrastructure
-          contractors — roads, drainage, earthworks and site works — who want every rate built up
+          Estimators, QS teams and project managers at civil contractors — roads, drainage,
+          earthworks and site works — who want every rate built up
           from first principles, every contingency backed by named risks, and one place to see how
           the job is tracking against its tender.
         </p>
