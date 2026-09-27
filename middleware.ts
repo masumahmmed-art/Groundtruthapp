@@ -10,12 +10,14 @@ import { NextResponse, type NextRequest } from "next/server";
 // to capture (no tag in the URL, or a source was already captured earlier).
 const ATTRIBUTION_COOKIE = "gt_src";
 
-// Public marketing pages, readable without logging in (see middleware below).
+// Public marketing pages (and the user guide), readable without logging in
+// (see middleware below).
 const MARKETING_PAGES = [
   "/cost-estimating-software",
   "/drawing-takeoff",
   "/risk-register",
   "/earned-value-management",
+  "/GroundTruthEstimatorUserGuide.pdf",
 ];
 
 function firstTouchSource(request: NextRequest): string | null {

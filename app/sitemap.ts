@@ -19,6 +19,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE}/drawing-takeoff`, lastModified: "2026-09-27", changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE}/risk-register`, lastModified: "2026-09-27", changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE}/earned-value-management`, lastModified: "2026-09-27", changeFrequency: "monthly", priority: 0.8 },
+    { url: `${SITE}/GroundTruthEstimatorUserGuide.pdf`, lastModified: "2026-09-27", changeFrequency: "monthly", priority: 0.6 },
     { url: `${SITE}/signup`, lastModified: "2026-09-10", changeFrequency: "yearly", priority: 0.5 },
     { url: `${SITE}/login`, lastModified: "2026-09-26", changeFrequency: "yearly", priority: 0.3 },
   ];

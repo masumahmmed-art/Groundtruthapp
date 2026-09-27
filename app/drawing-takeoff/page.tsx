@@ -147,6 +147,7 @@ export default function DrawingTakeoffPage() {
         <Link href="/cost-estimating-software">Cost estimating software</Link>
         <Link href="/risk-register">Risk register &amp; contingency</Link>
         <Link href="/earned-value-management">Earned value management</Link>
+        <a href="/GroundTruthEstimatorUserGuide.pdf">User guide (PDF)</a>
         <Link href="/">Home</Link>
       </nav>
       <footer className="landing-foot">

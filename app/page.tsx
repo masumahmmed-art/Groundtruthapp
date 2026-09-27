@@ -229,6 +229,7 @@ export default async function RootPage() {
         <Link href="/drawing-takeoff">PDF drawing takeoff</Link>
         <Link href="/risk-register">Risk register &amp; contingency</Link>
         <Link href="/earned-value-management">Earned value management</Link>
+        <a href="/GroundTruthEstimatorUserGuide.pdf">User guide (PDF)</a>
       </nav>
       <footer className="landing-foot">
         <div className="landing-nav-brand">
