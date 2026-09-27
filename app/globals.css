@@ -449,6 +449,10 @@ td input[type="number"] { text-align: right; }
 .landing-article ul { margin: 0 0 16px 20px; padding: 0; }
 .landing-article li { font-size: 15px; line-height: 1.7; color: var(--ink-soft); margin-bottom: 6px; }
 .landing-article strong { color: var(--ink); }
+.landing-table-wrap { overflow-x: auto; margin: 0 0 20px; }
+.landing-article table { font-size: 14px; line-height: 1.5; table-layout: fixed; }
+.landing-article th, .landing-article td { vertical-align: top; padding: 8px 10px; }
+.landing-article td { color: var(--ink-soft); }
 
 .landing-foot-links {
   display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap;

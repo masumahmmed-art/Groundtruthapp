@@ -184,6 +184,7 @@ export default async function CostEstimatingSoftwarePage() {
         <Link href="/drawing-takeoff">PDF drawing takeoff</Link>
         <Link href="/risk-register">Risk register &amp; contingency</Link>
         <Link href="/earned-value-management">Earned value management</Link>
+        <Link href="/methvin-alternative">Compare: Methvin</Link>
         <Link href="/">Home</Link>
       </nav>
       <footer className="landing-foot">

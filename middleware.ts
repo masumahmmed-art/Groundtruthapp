@@ -17,6 +17,7 @@ const MARKETING_PAGES = [
   "/drawing-takeoff",
   "/risk-register",
   "/earned-value-management",
+  "/methvin-alternative",
   "/GroundTruthEstimatorUserGuide.pdf",
 ];
 
