@@ -108,6 +108,10 @@ export default async function RootPage() {
         <p className="landing-fineprint">
           Free during early access — no credit card required.
         </p>
+        <p className="landing-hero-links">
+          <Link href="/methvin-alternative">Compare with Methvin →</Link>
+          <a href="/GroundTruthEstimatorUserGuide.pdf">Read the user guide (PDF) →</a>
+        </p>
         <p className="landing-fineprint">
           One workspace per company. Your rates and projects are never visible to
           anyone outside your organisation.

@@ -402,6 +402,9 @@ td input[type="number"] { text-align: right; }
 .landing-cta { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
 .landing-cta .btn { padding: 11px 20px; font-size: 14px; }
 .landing-fineprint { font-size: 12px; color: var(--ink-faint); margin: 18px 0 0; }
+.landing-hero-links { display: flex; justify-content: center; gap: 22px; flex-wrap: wrap; margin: 12px 0 0; font-size: 14px; font-weight: 600; }
+.landing-hero-links a { color: var(--accent); text-decoration: none; border-bottom: 1.5px solid currentColor; padding-bottom: 1px; }
+.landing-hero-links a:hover { opacity: 0.8; }
 
 .landing-features {
   max-width: 1080px; margin: 0 auto; padding: 0 24px 72px;
