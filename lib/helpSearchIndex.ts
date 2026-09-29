@@ -52,7 +52,7 @@ export const helpSearchIndex: HelpTopic[] = [
   {
     id: "takeoff",
     title: "Drawing Takeoff",
-    description: "Add a PDF drawing (it stays on your computer) and measure lengths, areas and counts off it.",
+    description: "Add a PDF or DXF drawing (it stays on your computer) and measure lengths, areas and counts off it.",
     keywords: [
       "takeoff",
       "take-off",

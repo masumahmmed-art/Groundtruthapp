@@ -88,3 +88,8 @@ export function unitLabel(kind: "length" | "area" | "count", scaleUnit: string):
   if (kind === "area") return `${scaleUnit}²`;
   return scaleUnit;
 }
+
+/** DXF drawings are told apart by file name (lib/dxf.ts draws them); everything else is a PDF. */
+export function isDxfName(name: string | null | undefined): boolean {
+  return !!name && name.toLowerCase().endsWith(".dxf");
+}

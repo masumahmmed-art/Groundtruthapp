@@ -137,7 +137,7 @@ export default async function RootPage() {
           </span>
           <h3>Quantities straight off the drawing</h3>
           <p>
-            Measure lengths, areas, and counts on your PDF drawings, with a scale for every
+            Measure lengths, areas, and counts on your PDF or DXF drawings, with a scale for every
             page and a live running total, then send them into the estimate.{" "}
             <Link href="/drawing-takeoff">How takeoff works</Link>
           </p>

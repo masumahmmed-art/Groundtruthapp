@@ -11,7 +11,7 @@ import type {
   TakeoffMeasurementRow,
   TakeoffPoint,
 } from "@/lib/types";
-import { calibratedPages, measurementValue, pageScale, scaleFromCalibration } from "@/lib/takeoff";
+import { calibratedPages, isDxfName, measurementValue, pageScale, scaleFromCalibration } from "@/lib/takeoff";
 import { numFmt } from "@/lib/calc";
 import { COLORS, type Tool } from "./takeoff/constants";
 import { drawShape, getCanvasPoint } from "./takeoff/drawShape";
@@ -31,6 +31,13 @@ function formatBytes(n: number | null | undefined): string {
 function isPdf(file: File): boolean {
   return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 }
+
+/** Drawings can be PDFs or DXFs (see lib/dxf.ts). */
+function isDrawingFile(file: File): boolean {
+  return isPdf(file) || isDxfName(file.name);
+}
+
+const DRAWING_ACCEPT = "application/pdf,.pdf,.dxf";
 
 export default function TakeoffTab({
   project,
@@ -97,8 +104,8 @@ export default function TakeoffTab({
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (!isPdf(file)) {
-      setNotice("Please choose a PDF drawing.");
+    if (!isDrawingFile(file)) {
+      setNotice("Please choose a PDF or DXF drawing. For a DWG, save it as a DXF from your CAD program first.");
       return;
     }
     setNotice(null);
@@ -135,8 +142,8 @@ export default function TakeoffTab({
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || !selected?.file_hash) return;
-    if (!isPdf(file)) {
-      setNotice("Please choose a PDF drawing.");
+    if (!isDrawingFile(file)) {
+      setNotice("Please choose the drawing's PDF or DXF file.");
       return;
     }
     const bytes = await file.arrayBuffer();
@@ -265,7 +272,7 @@ export default function TakeoffTab({
   // --- render the current page to canvas ---------------------------------
   // Must stay below the effect above so the reset runs first.
 
-  const { numPages, loadingPdf, pageSize, renderCount } = usePdfPage({
+  const { numPages, loadingPdf, pageSize, renderCount, dxfScale, renderError } = usePdfPage({
     supabase,
     selected,
     localBytes,
@@ -273,6 +280,15 @@ export default function TakeoffTab({
     canvasRef,
     overlayRef,
   });
+
+  // A DXF that states its units (mm, m, ...) needs no calibration: give it
+  // that scale the first time it's shown. A scale someone set by hand is kept.
+  useEffect(() => {
+    if (!selected || dxfScale?.drawingId !== selected.id || pageScale(selected, 1)) return;
+    savePageScale(dxfScale.scale);
+    setInfo(`Scale set automatically from the units saved in “${selected.name}”. Measure a known dimension to double-check it.`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dxfScale, selectedId]);
 
   // The scroll box only exists while a drawing is selected and its file is available.
   useWheelZoom({ boxRef: scrollBoxRef, zoom, setZoom, active: `${selectedId}:${needsFile}` });
@@ -531,14 +547,14 @@ export default function TakeoffTab({
         <div>
           <h2 style={{ fontSize: 20 }}>Drawing Takeoff</h2>
           <div className="meta">
-            Add a 2D drawing (PDF), calibrate its scale, then trace lengths / areas / counts and send them
+            Add a 2D drawing (PDF or DXF), calibrate its scale, then trace lengths / areas / counts and send them
             straight into the Bill of Quantities. Drawings stay on your computer — only their measurements
             and scales are saved online.
           </div>
         </div>
         <div>
-          <input ref={fileInputRef} type="file" accept="application/pdf,.pdf" style={{ display: "none" }} onChange={handleAddDrawing} />
-          <input ref={openFileInputRef} type="file" accept="application/pdf,.pdf" style={{ display: "none" }} onChange={handleOpenFile} />
+          <input ref={fileInputRef} type="file" accept={DRAWING_ACCEPT} style={{ display: "none" }} onChange={handleAddDrawing} />
+          <input ref={openFileInputRef} type="file" accept={DRAWING_ACCEPT} style={{ display: "none" }} onChange={handleOpenFile} />
           <button className="btn" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
             {uploading ? "Adding…" : "+ Add drawing"}
           </button>
@@ -561,7 +577,7 @@ export default function TakeoffTab({
         </div>
       )}
 
-      {drawings.length === 0 &&<div className="empty">No drawings added yet. Click “+ Add drawing” and choose a PDF to get started.</div>}
+      {drawings.length === 0 &&<div className="empty">No drawings added yet. Click “+ Add drawing” and choose a PDF or DXF to get started.</div>}
 
       {drawings.length > 0 && (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
@@ -705,7 +721,7 @@ export default function TakeoffTab({
                       Open “{selected.name}”{selected.file_size ? ` (${formatBytes(selected.file_size)})` : ""} from this computer to view it
                     </div>
                     <div style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 14, maxWidth: 620, marginInline: "auto" }}>
-                      Drawings are kept on each person's computer rather than online. Open the same PDF file this drawing
+                      Drawings are kept on each person's computer rather than online. Open the same file this drawing
                       was added from — for example from your shared drive or email. The app checks it's exactly the same
                       file, then keeps a copy in this browser so it opens straight away next time.
                     </div>
@@ -732,6 +748,12 @@ export default function TakeoffTab({
               }}
             >
               {loadingPdf && <div style={{ padding: 20 }}>Loading page…</div>}
+              {renderError && !loadingPdf && (
+                <div className="note" role="alert" style={{ margin: 12, borderColor: "var(--danger)" }}>
+                  <span>⚠</span>
+                  <span style={{ flex: 1 }}>{renderError}</span>
+                </div>
+              )}
               {/* Both canvases share the same display width so the overlay stays aligned at any zoom. */}
               <canvas ref={canvasRef} style={{ display: "block", width: `${zoom * 100}%`, maxWidth: "none", height: "auto" }} />
               <canvas

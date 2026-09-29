@@ -4,11 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import type { createClient } from "@/lib/supabase/client";
 import type { DrawingRow } from "@/lib/types";
 import { RENDER_SCALE } from "./constants";
+import { isDxfName } from "@/lib/takeoff";
 
 // Renders `page` of the selected drawing's PDF into `canvasRef`, and sizes
 // `overlayRef` to match. Older drawings (storage_path set) load from the
 // Storage bucket; newer ones are kept on the user's PC and load from
 // `localBytes` — until those are available nothing is rendered.
+// DXF drawings (always kept on the PC) are drawn from their vectors instead;
+// they are a single page, and `dxfScale` is the scale the file's own units
+// give, if it states any.
 export function usePdfPage({
   supabase,
   selected,
@@ -31,6 +35,10 @@ export function usePdfPage({
   // it, so the caller redraws the saved shapes when this changes.
   const [renderCount, setRenderCount] = useState(0);
   const pdfDocRef = useRef<any>(null);
+  // Tagged with the drawing it belongs to, so a scale can never be applied to
+  // a different drawing selected before the next render finishes.
+  const [dxfScale, setDxfScale] = useState<{ drawingId: string; scale: { px_per_unit: number; unit: string } } | null>(null);
+  const [renderError, setRenderError] = useState<string | null>(null);
 
   // Keyed on the drawing id, not the row: calibrating replaces the row
   // object, and that must not re-download and re-render the PDF.
@@ -42,7 +50,31 @@ export function usePdfPage({
       if (!selected) return;
       if (!selected.storage_path && !localBytes) return; // waiting for the user to open the file
       setLoadingPdf(true);
+      setRenderError(null);
+      setDxfScale(null);
       try {
+        if (isDxfName(selected.name) && localBytes) {
+          // Loaded only when a DXF is opened, like pdf.js below.
+          const { DxfError, dxfAutoScale, layoutDxf, parseDxf, renderDxf } = await import("@/lib/dxf");
+          const drawing = parseDxf(localBytes);
+          const layout = layoutDxf(drawing);
+          if (!layout) throw new DxfError("This DXF has nothing in model space that can be drawn.");
+          const canvas = canvasRef.current;
+          const overlay = overlayRef.current;
+          if (!canvas || !overlay || cancelled) return;
+          setNumPages(1);
+          canvas.width = layout.width;
+          canvas.height = layout.height;
+          overlay.width = layout.width;
+          overlay.height = layout.height;
+          setPageSize({ width: layout.width, height: layout.height });
+          renderDxf(canvas.getContext("2d")!, drawing, layout);
+          const auto = dxfAutoScale(drawing, layout);
+          setDxfScale(auto ? { drawingId: selected.id, scale: auto } : null);
+          setRenderCount((n) => n + 1);
+          return;
+        }
+
         const pdfjsLib: any = await import("pdfjs-dist");
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
@@ -81,6 +113,7 @@ export function usePdfPage({
         if (!cancelled) setRenderCount((n) => n + 1);
       } catch (err: any) {
         console.error(err);
+        if (!cancelled) setRenderError(err?.name === "DxfError" ? err.message : "Couldn't display this drawing.");
       } finally {
         if (!cancelled) setLoadingPdf(false);
       }
@@ -91,5 +124,5 @@ export function usePdfPage({
     };
   }, [selectedId, page, localBytes]);
 
-  return { numPages, loadingPdf, pageSize, renderCount };
+  return { numPages, loadingPdf, pageSize, renderCount, dxfScale, renderError };
 }

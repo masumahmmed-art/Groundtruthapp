@@ -66,7 +66,7 @@ export default function DrawingTakeoffPage() {
         <p className="landing-eyebrow">PDF drawing takeoff for civil estimating</p>
         <h1>Take quantities off the drawing, straight into the estimate</h1>
         <p className="landing-lead">
-          Measure lengths, areas, and counts on your PDF drawings — with a scale for every
+          Measure lengths, areas, and counts on your PDF or DXF drawings — with a scale for every
           page and a live running total — then send each quantity into a first-principles
           bill of quantities, ready for its rate to be built up.
         </p>
