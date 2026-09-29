@@ -406,6 +406,53 @@ td input[type="number"] { text-align: right; }
 .landing-hero-links a { color: var(--accent); text-decoration: none; border-bottom: 1.5px solid currentColor; padding-bottom: 1px; }
 .landing-hero-links a:hover { opacity: 0.8; }
 
+/* Homepage hero: copy beside a stack of real product screens. Separate from
+   .landing-hero, which the topic landing pages still use. */
+.home-hero {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 70%, var(--paper)) 0%, var(--paper) 78%);
+  padding: clamp(40px, 7vw, 88px) clamp(20px, 5vw, 64px) clamp(36px, 5vw, 64px);
+  margin-bottom: 40px;
+}
+.home-hero-inner {
+  max-width: 1200px; margin: 0 auto;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); gap: clamp(32px, 5vw, 64px); align-items: center;
+}
+.home-hero-eyebrow {
+  display: inline-block; font-family: var(--font-mono); font-size: 11.5px; text-transform: uppercase;
+  letter-spacing: 0.08em; font-weight: 700; color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 999px; padding: 6px 12px; margin: 0 0 20px;
+}
+.home-hero h1 {
+  font-size: clamp(38px, 5.4vw, 64px); line-height: 1.0; letter-spacing: -0.01em; color: var(--ink); margin: 0 0 20px;
+  text-wrap: balance;
+}
+.home-hero h1 .nowrap { white-space: nowrap; }
+.home-hero-lead { font-size: clamp(16px, 1.5vw, 18px); line-height: 1.6; color: var(--ink-soft); margin: 0 0 28px; max-width: 520px; }
+.home-hero-cta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.home-hero-cta .btn { padding: 13px 22px; font-size: 15px; text-decoration: none; }
+.home-hero-fineprint { font-size: 12.5px; line-height: 1.5; color: var(--ink-faint); margin: 16px 0 0; max-width: 480px; }
+.home-hero-links { display: flex; gap: 22px; flex-wrap: wrap; margin: 14px 0 0; font-size: 14px; font-weight: 600; }
+.home-hero-links a { color: var(--accent); text-decoration: none; border-bottom: 1.5px solid currentColor; padding-bottom: 1px; }
+.home-hero-links a:hover { opacity: 0.8; }
+
+.home-hero-shots { position: relative; aspect-ratio: 1.12 / 1; }
+.home-shot {
+  position: absolute; height: auto; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--surface); box-shadow: 0 22px 48px -18px rgba(27, 36, 32, 0.35);
+}
+.home-shot-back-left { width: 58%; left: 0; top: 0; transform: rotate(-3deg); }
+.home-shot-back-right { width: 58%; right: 0; top: 2%; transform: rotate(3deg); }
+.home-shot-front { width: 86%; left: 7%; bottom: 0; z-index: 1; box-shadow: 0 30px 60px -20px rgba(27, 36, 32, 0.45); }
+.home-hero-note { max-width: 1200px; margin: 22px auto 0; text-align: right; font-size: 11.5px; color: var(--ink-faint); }
+
+@media (max-width: 900px) {
+  .home-hero-inner { grid-template-columns: minmax(0, 1fr); }
+  .home-hero-shots { aspect-ratio: auto; }
+  .home-shot-back-left, .home-shot-back-right { display: none; }
+  .home-shot-front { position: static; width: 100%; }
+  .home-hero-note { text-align: left; }
+}
+
 .landing-features {
   max-width: 1080px; margin: 0 auto; padding: 0 24px 72px;
   display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px;

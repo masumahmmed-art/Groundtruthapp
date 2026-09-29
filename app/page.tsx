@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -73,52 +74,69 @@ export default async function RootPage() {
         </nav>
       </header>
 
-      <section className="landing-hero">
-        <p className="landing-eyebrow">First-principles cost estimating and cost control for civil infrastructure</p>
-        <h1>
-          Build estimates from the ground up — not from a gut-feel per-metre rate.
-        </h1>
-        <p className="landing-lead">
-          Ground Truth Estimator is a workspace for civil contractors and quantity
-          surveyors who need to defend a number, not just state one. Labour, plant, and
-          material rates assemble into build-ups, roll up into categories, and get
-          stress-tested against a real risk register — not a single figure pulled from
-          memory.
-        </p>
-        <p className="landing-lead">
-          Most estimating software gives you one blended total and asks you to trust
-          it. This shows the math behind every rate, and a best-case / expected /
-          worst-case price range generated from your own risk register — not a
-          contingency percentage picked to feel safe.
-        </p>
-        <p className="landing-lead">
-          Once work starts, the same numbers keep working: schedule categories on a
-          Programme, log real Labour, Plant, Material, and Subcontract cost as it
-          happens, and see Earned Value against the plan — cost control that picks up
-          where the estimate left off, not a separate spreadsheet.
-        </p>
-        <div className="landing-cta">
-          <Link href="/signup" className="btn btn-primary">
-            Create your workspace
-          </Link>
-          <Link href="/login" className="btn">
-            Log in
-          </Link>
+      <section className="home-hero">
+        <div className="home-hero-inner">
+          <div className="home-hero-copy">
+            <p className="home-hero-eyebrow">For civil contractors &amp; quantity surveyors</p>
+            <h1>
+              Build estimates from the ground up — not from a <span className="nowrap">gut-feel</span>{" "}
+              <span className="nowrap">per-metre</span> rate.
+            </h1>
+            <p className="home-hero-lead">
+              First-principles cost estimating and cost control for civil infrastructure. Labour,
+              plant, and material rates assemble into build-ups, get stress-tested against a real
+              risk register, then carry through to actual cost and earned value once work starts.
+            </p>
+            <div className="home-hero-cta">
+              <Link href="/signup" className="btn btn-primary">
+                Create your workspace
+              </Link>
+              <a href="#features" className="btn">
+                See how it works
+              </a>
+            </div>
+            <p className="home-hero-fineprint">
+              Free during early access · No credit card required · One workspace per company, never
+              visible outside your organisation
+            </p>
+            <p className="home-hero-links">
+              <Link href="/methvin-alternative">Compare with Methvin →</Link>
+              <a href="/GroundTruthEstimatorUserGuide.pdf">Read the user guide (PDF) →</a>
+            </p>
+          </div>
+
+          <div className="home-hero-shots">
+            <Image
+              className="home-shot home-shot-back-left"
+              src="/home-risk-register.webp"
+              alt="Risk register with weather, geotechnical and market-escalation lookups"
+              width={1000}
+              height={1073}
+              sizes="(max-width: 900px) 0px, 360px"
+            />
+            <Image
+              className="home-shot home-shot-back-right"
+              src="/home-estimate-summary.webp"
+              alt="Estimate summary with direct cost, risk allowance, contract price and a risk-adjusted price range"
+              width={1000}
+              height={842}
+              sizes="(max-width: 900px) 0px, 360px"
+            />
+            <Image
+              className="home-shot home-shot-front"
+              src="/home-earned-value.webp"
+              alt="Earned value tracking: budget, earned value and actual cost, with % complete per line item"
+              width={1400}
+              height={1088}
+              sizes="(max-width: 900px) 92vw, 560px"
+              priority
+            />
+          </div>
         </div>
-        <p className="landing-fineprint">
-          Free during early access — no credit card required.
-        </p>
-        <p className="landing-hero-links">
-          <Link href="/methvin-alternative">Compare with Methvin →</Link>
-          <a href="/GroundTruthEstimatorUserGuide.pdf">Read the user guide (PDF) →</a>
-        </p>
-        <p className="landing-fineprint">
-          One workspace per company. Your rates and projects are never visible to
-          anyone outside your organisation.
-        </p>
+        <p className="home-hero-note">Screens from a sample project — illustrative figures only.</p>
       </section>
 
-      <section className="landing-features">
+      <section className="landing-features" id="features">
         <div className="feature-card" style={{ borderTopColor: "var(--cat-earth)" }}>
           <span className="feature-tag" style={{ color: "var(--cat-earth)" }}>
             Rate library
