@@ -234,9 +234,25 @@ export const helpSearchIndex: HelpTopic[] = [
     id: "actuals",
     title: "Actuals",
     description: "Direct/Indirect Job Cost ledgers — rate-linked, fully editable.",
-    keywords: ["actuals", "actual cost", "ac", "direct job cost", "djc", "indirect job cost", "ijc", "ledger", "rate item", "quantity", "invoice number", "subcontract"],
+    keywords: ["actuals", "actual cost", "ac", "direct job cost", "djc", "indirect job cost", "ijc", "ledger", "rate item", "quantity", "invoice number", "subcontract", "supplier"],
     helpAnchor: "actuals",
     pdfPage: 12,
+  },
+  {
+    id: "suppliers",
+    title: "Suppliers",
+    description: "Your register of plant hire, material suppliers and subcontractors, by ABN.",
+    keywords: ["suppliers", "supplier", "subcontractor", "plant hire", "vendor", "abn", "abn lookup", "gst registered", "insurance", "licence", "license", "expiry", "payment terms"],
+    helpAnchor: "suppliers",
+    pdfPage: 13,
+  },
+  {
+    id: "supplier-invoices",
+    title: "Supplier invoices",
+    description: "Upload invoices, have them read automatically, code lines to projects and post to Actuals.",
+    keywords: ["invoices", "invoice", "supplier invoice", "bill", "bills", "upload invoice", "read invoice", "scan", "ocr", "approve", "reject", "duplicate", "gst", "free reads", "allowance", "accounts payable"],
+    helpAnchor: "supplier-invoices",
+    pdfPage: 13,
   },
   {
     id: "earned-value",
@@ -244,7 +260,7 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "% complete, Earned Value, and Earned Value Management.",
     keywords: ["earned value", "ev", "percent complete", "% complete", "earned value management", "evm", "cpi", "spi", "planned value", "actual cost"],
     helpAnchor: "earned-value",
-    pdfPage: 13,
+    pdfPage: 14,
   },
   {
     id: "dashboard",
@@ -252,7 +268,7 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "One rolled-up view — cost by category, cash flow, resource type.",
     keywords: ["dashboard", "major category", "report", "customise", "customize", "filter", "print"],
     helpAnchor: "dashboard",
-    pdfPage: 14,
+    pdfPage: 15,
   },
   {
     id: "settings",
@@ -268,6 +284,6 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "Forgot password, signing up with an existing email.",
     keywords: ["account", "password", "forgot password", "login", "sign in", "sign up"],
     helpAnchor: "account",
-    pdfPage: 17,
+    pdfPage: 19,
   },
 ];

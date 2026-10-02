@@ -11,6 +11,7 @@ import type {
   PositionRow,
   ProjectRow,
   RateItemRow,
+  SupplierRow,
 } from "@/lib/types";
 import {
   COST_TYPE_LABELS,
@@ -22,6 +23,10 @@ import {
   totalActualIjc,
 } from "@/lib/calc";
 import { formatMoney } from "@/lib/units";
+
+function supplierLabel(s: SupplierRow): string {
+  return s.trading_name || s.legal_name || `ABN ${s.abn}`;
+}
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
@@ -37,6 +42,7 @@ export default function ActualsTab({
   actualHours,
   setActualHours,
   rates,
+  suppliers,
   currency,
 }: {
   project: ProjectRow;
@@ -48,6 +54,7 @@ export default function ActualsTab({
   actualHours: ActualHoursRow[];
   setActualHours: (updater: (a: ActualHoursRow[]) => ActualHoursRow[]) => void;
   rates: RateItemRow[];
+  suppliers: SupplierRow[];
   currency: string;
 }) {
   const supabase = createClient();
@@ -213,7 +220,7 @@ export default function ActualsTab({
                 <th style={{ width: 110 }}>Cost type</th>
                 <th style={{ width: 230 }}>Rate item & quantity</th>
                 <th className="num" style={{ width: 110 }}>Amount</th>
-                <th style={{ width: 220 }}>{"Description / Invoice #"}</th>
+                <th style={{ width: 220 }}>{"Supplier · Description / Invoice #"}</th>
                 <th style={{ width: 36 }}></th>
               </tr>
             </thead>
@@ -283,6 +290,19 @@ export default function ActualsTab({
                       />
                     </td>
                     <td>
+                      <select
+                        value={r.supplier_id || ""}
+                        style={{ width: "100%", marginBottom: 4 }}
+                        title="Supplier or subcontractor paid — manage the list under Suppliers"
+                        onChange={(e) => { const v = e.target.value || null; updateCostLocal(r.id, { supplier_id: v }); persistCost(r.id, { supplier_id: v }); }}
+                      >
+                        <option value="">No supplier</option>
+                        {suppliers
+                          .filter((sp) => sp.is_active || sp.id === r.supplier_id)
+                          .map((sp) => (
+                            <option key={sp.id} value={sp.id}>{supplierLabel(sp)}</option>
+                          ))}
+                      </select>
                       <input
                         type="text"
                         value={r.description}

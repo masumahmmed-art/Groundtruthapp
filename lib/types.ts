@@ -236,7 +236,94 @@ export interface ActualCostRow {
   amount: number;
   /** Free text — used as an invoice number for Subcontract entries, or a general note otherwise. */
   description: string;
+  /** The supplier or subcontractor this cost was paid to, from the workspace's supplier register. */
+  supplier_id: string | null;
+  /** GST paid on this cost (amount is always ex GST). Filled when posted from a supplier invoice. */
+  gst_amount: number;
   created_at: string;
+}
+
+export type SupplierInvoiceStatus = "uploaded" | "reading" | "needs_review" | "approved" | "rejected";
+
+export interface SupplierInvoiceRow {
+  id: string;
+  org_id: string;
+  supplier_id: string | null;
+  status: SupplierInvoiceStatus;
+  /** <org_id>/<invoice_id>.<ext> in the private "invoices" storage bucket. */
+  file_path: string;
+  file_name: string;
+  file_size: number | null;
+  supplier_name_on_invoice: string;
+  abn_on_invoice: string;
+  invoice_number: string;
+  invoice_date: string | null;
+  due_date: string | null;
+  subtotal_ex_gst: number;
+  gst: number;
+  total: number;
+  extracted: unknown;
+  /** Set when automatic reading failed or flagged something to check. */
+  extraction_error: string | null;
+  notes: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  approved_by: string | null;
+  approved_at: string | null;
+}
+
+export interface SupplierInvoiceLineRow {
+  id: string;
+  invoice_id: string;
+  description: string;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  amount_ex_gst: number;
+  gst: number;
+  project_id: string | null;
+  category_id: string | null;
+  cost_type: CostType;
+  rate_item_id: string | null;
+  /** The actual_costs row this line became when the invoice was approved. */
+  actual_cost_id: string | null;
+  sort_order: number;
+}
+
+export interface InvoiceReadAllowance {
+  used: number;
+  free_allowance: number;
+  billing_status: "none" | "active" | "past_due" | "cancelled";
+  can_read: boolean;
+}
+
+export type SupplierType = "plant_hire" | "materials" | "subcontractor" | "consultant" | "other";
+
+export interface SupplierRow {
+  id: string;
+  org_id: string;
+  /** 11 digits, no spaces. The database rejects ABNs that fail the ATO checksum. */
+  abn: string;
+  legal_name: string;
+  trading_name: string;
+  supplier_type: SupplierType;
+  gst_registered: boolean | null;
+  /** "Active" / "Cancelled" from the Australian Business Register, or null if never looked up. */
+  abn_status: string | null;
+  abn_checked_at: string | null;
+  email: string;
+  phone: string;
+  address: string;
+  payment_terms_days: number;
+  insurance_expiry: string | null;
+  licence_number: string;
+  licence_expiry: string | null;
+  notes: string;
+  is_active: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 /**
@@ -424,6 +511,21 @@ export interface Database {
         Row: ActualCostRow;
         Insert: Partial<ActualCostRow> & { project_id: string };
         Update: Partial<ActualCostRow>;
+      };
+      suppliers: {
+        Row: SupplierRow;
+        Insert: Partial<SupplierRow> & { org_id: string; abn: string };
+        Update: Partial<SupplierRow>;
+      };
+      supplier_invoices: {
+        Row: SupplierInvoiceRow;
+        Insert: Partial<SupplierInvoiceRow> & { org_id: string; file_path: string };
+        Update: Partial<SupplierInvoiceRow>;
+      };
+      supplier_invoice_lines: {
+        Row: SupplierInvoiceLineRow;
+        Insert: Partial<SupplierInvoiceLineRow> & { invoice_id: string };
+        Update: Partial<SupplierInvoiceLineRow>;
       };
       actual_hours: {
         Row: ActualHoursRow;
