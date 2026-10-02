@@ -110,7 +110,9 @@ Deno.serve(async (req: Request) => {
     .eq("id", invoiceId)
     .maybeSingle();
   if (invErr || !inv) return json({ error: "Invoice not found." }, 404);
-  if (inv.status === "approved") return json({ error: "This invoice is already approved." }, 409);
+  if (!["uploaded", "reading", "needs_review"].includes(inv.status)) {
+    return json({ error: "locked", message: "This invoice has been submitted or approved, so it can't be read again." }, 409);
+  }
 
   const { data: allowanceRows, error: allowErr } = await userDb.rpc("invoice_read_allowance", { p_org_id: inv.org_id });
   const allowance = Array.isArray(allowanceRows) ? allowanceRows[0] : null;
