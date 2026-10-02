@@ -236,7 +236,37 @@ export interface ActualCostRow {
   amount: number;
   /** Free text — used as an invoice number for Subcontract entries, or a general note otherwise. */
   description: string;
+  /** The supplier or subcontractor this cost was paid to, from the workspace's supplier register. */
+  supplier_id: string | null;
   created_at: string;
+}
+
+export type SupplierType = "plant_hire" | "materials" | "subcontractor" | "consultant" | "other";
+
+export interface SupplierRow {
+  id: string;
+  org_id: string;
+  /** 11 digits, no spaces. The database rejects ABNs that fail the ATO checksum. */
+  abn: string;
+  legal_name: string;
+  trading_name: string;
+  supplier_type: SupplierType;
+  gst_registered: boolean | null;
+  /** "Active" / "Cancelled" from the Australian Business Register, or null if never looked up. */
+  abn_status: string | null;
+  abn_checked_at: string | null;
+  email: string;
+  phone: string;
+  address: string;
+  payment_terms_days: number;
+  insurance_expiry: string | null;
+  licence_number: string;
+  licence_expiry: string | null;
+  notes: string;
+  is_active: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 /**
@@ -424,6 +454,11 @@ export interface Database {
         Row: ActualCostRow;
         Insert: Partial<ActualCostRow> & { project_id: string };
         Update: Partial<ActualCostRow>;
+      };
+      suppliers: {
+        Row: SupplierRow;
+        Insert: Partial<SupplierRow> & { org_id: string; abn: string };
+        Update: Partial<SupplierRow>;
       };
       actual_hours: {
         Row: ActualHoursRow;

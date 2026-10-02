@@ -12,6 +12,7 @@ import type {
   PositionRow,
   ProjectRow,
   RateItemRow,
+  SupplierRow,
   RiskItemRow,
 } from "@/lib/types";
 import { fullBuildup } from "@/lib/calc";
@@ -76,6 +77,7 @@ export default function EstimatorClient({
   initialActualHours,
   rates,
   initialDrawings,
+  suppliers,
 }: {
   project: ProjectRow;
   initialCategories: CategoryRow[];
@@ -86,6 +88,7 @@ export default function EstimatorClient({
   initialActualHours: ActualHoursRow[];
   rates: RateItemRow[];
   initialDrawings: DrawingRow[];
+  suppliers: SupplierRow[];
 }) {
   const { currency, unitSystem } = useOrgSettings();
   const [activeTab, setActiveTab] = useState<TabId>("project");
@@ -213,6 +216,7 @@ export default function EstimatorClient({
           actualHours={actualHours}
           setActualHours={setActualHours}
           rates={rates}
+          suppliers={suppliers}
           currency={currency}
         />
       )}
