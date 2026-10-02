@@ -11,6 +11,10 @@
 --   Nobody approves an invoice they submitted (unless they're the only member).
 -- * Every status change goes through a SECURITY DEFINER function and is
 --   written to invoice_events; users can't set those statuses directly.
+-- Applied to production on 3 Oct 2026 as five migrations
+-- (team_members_columns, team_invitations_table, team_membership_functions,
+-- invoice_status_values, invoice_approval_workflow); this file is their union.
+-- Memberships are deactivated (org_members.active) rather than deleted.
 -- Run after 007.
 -- ============================================================================
 
@@ -19,8 +23,37 @@ alter table public.org_members
   add column email text not null default '',
   add column approval_limit numeric check (approval_limit is null or approval_limit >= 0);
 
-update public.org_members m set email = coalesce(u.email, '')
-from auth.users u where u.id = m.user_id;
+alter table public.org_members
+  add column active boolean not null default true;
+
+create or replace function public.is_org_member(check_org_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path to 'public'
+as $$
+  select exists (
+    select 1 from org_members
+    where org_id = check_org_id and user_id = auth.uid() and active
+  );
+$$;
+
+-- Team list with emails (read from auth.users), for members of the workspace.
+create or replace function public.org_member_list(p_org_id uuid)
+returns table (user_id uuid, email text, role text, approval_limit numeric, joined_at timestamptz)
+language sql
+stable
+security definer
+set search_path to 'public'
+as $$
+  select m.user_id, coalesce(u.email, ''), m.role, m.approval_limit, m.created_at
+  from org_members m join auth.users u on u.id = m.user_id
+  where m.org_id = p_org_id and m.active and public.is_org_member(p_org_id)
+  order by (m.role = 'owner') desc, u.email;
+$$;
+revoke execute on function public.org_member_list(uuid) from public, anon;
+grant execute on function public.org_member_list(uuid) to authenticated;
 
 -- New signups: record the email on their owner membership too.
 create or replace function public.handle_new_user()
@@ -82,7 +115,7 @@ set search_path to 'public'
 as $$
   select exists (
     select 1 from org_members
-    where org_id = check_org_id and user_id = auth.uid() and role = 'owner'
+    where org_id = check_org_id and user_id = auth.uid() and role = 'owner' and active
   );
 $$;
 
@@ -151,7 +184,7 @@ security definer
 set search_path to 'public'
 as $$
   select o.name, i.email,
-         coalesce((select m.email from org_members m where m.org_id = i.org_id and m.user_id = i.invited_by), ''),
+         coalesce((select u.email from auth.users u where u.id = i.invited_by), ''),
          i.expires_at < now(), i.accepted_at is not null
   from org_invitations i join organizations o on o.id = i.org_id
   where i.token = p_token and auth.uid() is not null;
@@ -181,26 +214,23 @@ begin
     raise exception 'this invitation was sent to %, but you are logged in as %', inv.email, v_email;
   end if;
 
-  if exists (select 1 from org_members where org_id = inv.org_id and user_id = auth.uid()) then
-    update org_invitations set accepted_at = now(), accepted_by = auth.uid() where id = inv.id;
-    return inv.org_id;
-  end if;
-
-  -- The app works with one workspace per person. Remove the invitee's own
-  -- workspace if it's empty; refuse if it holds real work.
-  for m in select org_id from org_members where user_id = auth.uid() loop
-    if exists (select 1 from org_members where org_id = m.org_id and user_id <> auth.uid())
+  -- One workspace per person: the invitee's own workspace must be empty.
+  for m in select org_id from org_members where user_id = auth.uid() and active and org_id <> inv.org_id loop
+    if exists (select 1 from org_members where org_id = m.org_id and user_id <> auth.uid() and active)
        or exists (select 1 from projects where org_id = m.org_id)
        or exists (select 1 from suppliers where org_id = m.org_id)
        or exists (select 1 from supplier_invoices where org_id = m.org_id) then
       raise exception 'you already have projects or team members in another workspace. Contact support to merge workspaces';
     end if;
   end loop;
-  delete from organizations o
-  where o.id in (select org_id from org_members where user_id = auth.uid());
 
-  insert into org_members (org_id, user_id, role, email, approval_limit)
-  values (inv.org_id, auth.uid(), 'member', coalesce(v_email,''), inv.approval_limit);
+  update org_members set active = false
+  where user_id = auth.uid() and org_id <> inv.org_id;
+
+  insert into org_members (org_id, user_id, role, email, approval_limit, active)
+  values (inv.org_id, auth.uid(), 'member', coalesce(v_email,''), inv.approval_limit, true)
+  on conflict (org_id, user_id) do update set active = true, approval_limit = excluded.approval_limit;
+
   update org_invitations set accepted_at = now(), accepted_by = auth.uid() where id = inv.id;
   return inv.org_id;
 end;
@@ -232,7 +262,8 @@ as $$
 begin
   if not is_org_owner(p_org_id) then raise exception 'only the workspace owner can remove people'; end if;
   if p_user_id = auth.uid() then raise exception 'you can''t remove yourself'; end if;
-  delete from org_members where org_id = p_org_id and user_id = p_user_id and role <> 'owner';
+  update org_members set active = false
+  where org_id = p_org_id and user_id = p_user_id and role <> 'owner';
   update projects set manager_user_id = null where org_id = p_org_id and manager_user_id = p_user_id;
 end;
 $$;
@@ -314,7 +345,7 @@ set search_path to 'public'
 as $$
   -- Owners have no limit.
   select case when role = 'owner' then 'Infinity'::numeric else approval_limit end
-  from org_members where org_id = p_org_id and user_id = p_user;
+  from org_members where org_id = p_org_id and user_id = p_user and active;
 $$;
 
 create or replace function public._invoice_log(p_inv supplier_invoices, p_action text, p_note text)
@@ -325,7 +356,7 @@ set search_path to 'public'
 as $$
   insert into invoice_events (invoice_id, org_id, action, actor, actor_email, note)
   values (p_inv.id, p_inv.org_id, p_action, auth.uid(),
-          coalesce((select email from org_members where org_id = p_inv.org_id and user_id = auth.uid()), ''),
+          coalesce((select email from auth.users where id = auth.uid()), ''),
           coalesce(p_note, ''));
 $$;
 
@@ -398,8 +429,8 @@ stable
 security definer
 set search_path to 'public'
 as $$
-  select p_inv.submitted_by = auth.uid()
-     and (select count(*) from org_members where org_id = p_inv.org_id) > 1;
+  select coalesce(p_inv.submitted_by = auth.uid(), false)
+     and (select count(*) from org_members where org_id = p_inv.org_id and active) > 1;
 $$;
 
 revoke execute on function public._invoice_member_limit(uuid, uuid) from public, anon, authenticated;

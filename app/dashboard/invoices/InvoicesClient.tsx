@@ -25,11 +25,13 @@ export default function InvoicesClient({
   initialInvoices,
   suppliers,
   initialAllowance,
+  actionableIds = [],
 }: {
   orgId: string;
   initialInvoices: SupplierInvoiceRow[];
   suppliers: SupplierRow[];
   initialAllowance: InvoiceReadAllowance | null;
+  actionableIds?: string[];
 }) {
   const supabase = createClient();
   const { currency } = useOrgSettings();
@@ -38,7 +40,7 @@ export default function InvoicesClient({
   const [messages, setMessages] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const [filter, setFilter] = useState<"open" | "all">("open");
+  const [filter, setFilter] = useState<"mine" | "open" | "all">(actionableIds.length ? "mine" : "open");
   const fileInput = useRef<HTMLInputElement>(null);
 
   const supplierName = (id: string | null) => {
@@ -103,15 +105,18 @@ export default function InvoicesClient({
   }
 
   async function remove(inv: SupplierInvoiceRow) {
-    if (inv.status === "approved") return;
+    if (!["uploaded", "reading", "needs_review"].includes(inv.status)) return;
     if (!confirm(`Delete ${inv.file_name || "this invoice"}? The uploaded file is deleted too.`)) return;
     setInvoices((prev) => prev.filter((i) => i.id !== inv.id));
     await supabase.from("supplier_invoices").delete().eq("id", inv.id);
     await supabase.storage.from("invoices").remove([inv.file_path]);
   }
 
-  const visible = invoices.filter((i) => filter === "all" || ["uploaded", "reading", "needs_review"].includes(i.status));
-  const toReview = invoices.filter((i) => i.status === "needs_review").length;
+  const OPEN = ["uploaded", "reading", "needs_review", "awaiting_check", "awaiting_approval"];
+  const visible = invoices.filter((i) =>
+    filter === "all" ? true : filter === "mine" ? actionableIds.includes(i.id) : OPEN.includes(i.status)
+  );
+  const openCount = invoices.filter((i) => OPEN.includes(i.status)).length;
 
   return (
     <div>
@@ -193,11 +198,12 @@ export default function InvoicesClient({
       <div className="section">
         <div className="section-head">
           <h3>
-            {filter === "open" ? "To review" : "All invoices"}
-            {toReview > 0 && filter === "open" ? ` (${toReview})` : ""}
+            {filter === "mine" ? "Waiting for me" : filter === "open" ? "In progress" : "All invoices"}
+            {filter === "mine" ? ` (${actionableIds.length})` : filter === "open" ? ` (${openCount})` : ""}
           </h3>
-          <select value={filter} onChange={(e) => setFilter(e.target.value as "open" | "all")} style={{ width: 160 }}>
-            <option value="open">To review</option>
+          <select value={filter} onChange={(e) => setFilter(e.target.value as "mine" | "open" | "all")} style={{ width: 200 }}>
+            <option value="mine">Waiting for me ({actionableIds.length})</option>
+            <option value="open">In progress ({openCount})</option>
             <option value="all">All invoices</option>
           </select>
         </div>
@@ -217,7 +223,11 @@ export default function InvoicesClient({
               {visible.length === 0 && (
                 <tr>
                   <td colSpan={6} className="empty">
-                    {filter === "open" ? "Nothing waiting for review." : "No invoices uploaded yet."}
+                    {filter === "mine"
+                      ? "Nothing is waiting for you."
+                      : filter === "open"
+                        ? "Nothing in progress."
+                        : "No invoices uploaded yet."}
                   </td>
                 </tr>
               )}
@@ -236,9 +246,9 @@ export default function InvoicesClient({
                   <td style={{ color: INVOICE_STATUS_COLOURS[inv.status], fontWeight: 600 }}>{INVOICE_STATUS_LABELS[inv.status]}</td>
                   <td style={{ whiteSpace: "nowrap" }}>
                     <Link className="btn btn-sm" href={`/dashboard/invoices/${inv.id}`}>
-                      {inv.status === "approved" || inv.status === "rejected" ? "View" : "Review"}
+                      {actionableIds.includes(inv.id) ? "Action" : inv.status === "approved" || inv.status === "rejected" ? "View" : "Review"}
                     </Link>
-                    {inv.status !== "approved" && (
+                    {["uploaded", "reading", "needs_review"].includes(inv.status) && (
                       <button className="btn btn-ghost btn-sm btn-danger" title="Delete" onClick={() => remove(inv)}>
                         ✕
                       </button>

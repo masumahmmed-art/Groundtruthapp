@@ -13,6 +13,7 @@ import type {
   ProjectRow,
   RateItemRow,
   SupplierRow,
+  TeamMember,
   RiskItemRow,
 } from "@/lib/types";
 import { fullBuildup } from "@/lib/calc";
@@ -78,6 +79,7 @@ export default function EstimatorClient({
   rates,
   initialDrawings,
   suppliers,
+  team,
 }: {
   project: ProjectRow;
   initialCategories: CategoryRow[];
@@ -89,6 +91,7 @@ export default function EstimatorClient({
   rates: RateItemRow[];
   initialDrawings: DrawingRow[];
   suppliers: SupplierRow[];
+  team: TeamMember[];
 }) {
   const { currency, unitSystem } = useOrgSettings();
   const [activeTab, setActiveTab] = useState<TabId>("project");
@@ -161,7 +164,7 @@ export default function EstimatorClient({
         ))}
       </div>
 
-      {activeTab === "project" && <ProjectTab project={project} setProject={setProject} />}
+      {activeTab === "project" && <ProjectTab project={project} setProject={setProject} team={team} />}
       {activeTab === "takeoff" && (
         <TakeoffTab project={project} categories={categories} setItems={setItems} initialDrawings={initialDrawings} />
       )}

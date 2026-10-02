@@ -7,7 +7,10 @@ import { createClient } from "@/lib/supabase/client";
 import type {
   CategoryRow,
   CostType,
+  InvoiceApprovalMode,
+  InvoiceEventRow,
   ProjectRow,
+  TeamMember,
   SupplierInvoiceLineRow,
   SupplierInvoiceRow,
   SupplierRow,
@@ -16,10 +19,12 @@ import { COST_TYPE_LABELS } from "@/lib/calc";
 import { useOrgSettings } from "@/lib/OrgSettingsContext";
 import { formatMoney } from "@/lib/units";
 import {
+  INVOICE_EVENT_LABELS,
   INVOICE_STATUS_COLOURS,
   INVOICE_STATUS_LABELS,
   cents,
   invoiceChecks,
+  isEditableInvoice,
   isValidAbn,
   readInvoiceErrorMessage,
 } from "@/lib/invoices";
@@ -43,6 +48,12 @@ export default function ReviewClient({
   categories,
   fileUrl,
   otherInvoices,
+  approvalMode,
+  team,
+  initialEvents,
+  initialCanCheck,
+  initialCanApprove,
+  currentUserId,
 }: {
   initialInvoice: SupplierInvoiceRow;
   initialLines: SupplierInvoiceLineRow[];
@@ -51,6 +62,12 @@ export default function ReviewClient({
   categories: CategoryRow[];
   fileUrl: string | null;
   otherInvoices: SupplierInvoiceRow[];
+  approvalMode: InvoiceApprovalMode;
+  team: TeamMember[];
+  initialEvents: InvoiceEventRow[];
+  initialCanCheck: boolean;
+  initialCanApprove: boolean;
+  currentUserId: string;
 }) {
   const supabase = createClient();
   const router = useRouter();
@@ -60,8 +77,27 @@ export default function ReviewClient({
   const [suppliers, setSuppliers] = useState<SupplierRow[]>(initialSuppliers);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string>("");
+  const [events, setEvents] = useState<InvoiceEventRow[]>(initialEvents);
+  const [canCheck, setCanCheck] = useState(initialCanCheck);
+  const [canApprove, setCanApprove] = useState(initialCanApprove);
 
-  const locked = inv.status === "approved" || inv.status === "rejected";
+  const locked = !isEditableInvoice(inv.status);
+  const me = team.find((m) => m.user_id === currentUserId);
+  const myLimit = me ? (me.role === "owner" ? Infinity : me.approval_limit) : null;
+  const checkAlsoApproves = myLimit !== null && myLimit >= cents(inv.total);
+  const emailOf = (id: string | null) => team.find((m) => m.user_id === id)?.email || "someone";
+  const lineProjectIds = Array.from(new Set(lines.map((l) => l.project_id).filter(Boolean))) as string[];
+  const managers = lineProjectIds
+    .map((pid) => projects.find((p) => p.id === pid)?.manager_user_id)
+    .filter((x): x is string => !!x);
+  const waitingOn =
+    inv.status === "awaiting_check"
+      ? managers.length
+        ? `the project manager${managers.length > 1 ? "s" : ""} (${Array.from(new Set(managers)).map(emailOf).join(", ")})`
+        : "anyone in the team other than the person who submitted it"
+      : inv.status === "awaiting_approval"
+        ? `someone with an approval limit of at least ${formatMoney(inv.total, currency, 2)} (other than the person who submitted it)`
+        : "";
   const supplier = suppliers.find((s) => s.id === inv.supplier_id);
   const isPdf = inv.file_path.toLowerCase().endsWith(".pdf");
 
@@ -215,25 +251,96 @@ export default function ReviewClient({
     if (freshLines) setLines(freshLines as SupplierInvoiceLineRow[]);
   }
 
-  async function approve() {
-    if (blocking) return;
-    if (!confirm(`Approve and post ${lines.length} line${lines.length === 1 ? "" : "s"} to project Actuals? Approved invoices can't be edited.`)) return;
+  async function refreshAll() {
+    const [{ data: fresh }, { data: freshLines }, { data: freshEvents }, { data: cc }, { data: ca }] = await Promise.all([
+      supabase.from("supplier_invoices").select("*").eq("id", inv.id).single(),
+      supabase.from("supplier_invoice_lines").select("*").eq("invoice_id", inv.id).order("sort_order"),
+      supabase.from("invoice_events").select("*").eq("invoice_id", inv.id).order("created_at"),
+      supabase.rpc("can_check_supplier_invoice", { p_invoice_id: inv.id }),
+      supabase.rpc("can_approve_supplier_invoice", { p_invoice_id: inv.id }),
+    ]);
+    if (fresh) setInv(fresh as SupplierInvoiceRow);
+    if (freshLines) setLines(freshLines as SupplierInvoiceLineRow[]);
+    if (freshEvents) setEvents(freshEvents as InvoiceEventRow[]);
+    setCanCheck(!!cc);
+    setCanApprove(!!ca);
+    router.refresh();
+  }
+
+  async function run(fn: () => PromiseLike<{ error: { message: string } | null }>, success: string) {
     setBusy(true);
-    const { error } = await supabase.rpc("approve_supplier_invoice", { p_invoice_id: inv.id });
+    setMessage("");
+    const { error } = await fn();
     setBusy(false);
     if (error) {
       setMessage(error.message);
       return;
     }
-    setInv((prev) => ({ ...prev, status: "approved", approved_at: new Date().toISOString() }));
-    setMessage("Approved. The costs are now on each project's Actuals tab.");
-    router.refresh();
+    setMessage(success);
+    await refreshAll();
+  }
+
+  // Simple mode: one-step approval.
+  async function approve() {
+    if (blocking) return;
+    if (!confirm(`Approve and post ${lines.length} line${lines.length === 1 ? "" : "s"} to project Actuals? Approved invoices can't be edited.`)) return;
+    await run(() => supabase.rpc("approve_supplier_invoice", { p_invoice_id: inv.id }), "Approved. The costs are now on each project's Actuals tab.");
+  }
+
+  // Two-step mode.
+  async function submit() {
+    if (blocking) return;
+    if (!confirm("Submit this invoice for approval? It can't be edited while it's being approved.")) return;
+    await run(() => supabase.rpc("submit_supplier_invoice", { p_invoice_id: inv.id }), "Submitted. It's now waiting for the project check.");
+  }
+
+  async function confirmReceived() {
+    const note = window.prompt(
+      checkAlsoApproves
+        ? "Confirm the goods or work were received, and approve. Add a note (optional), e.g. docket numbers checked:"
+        : "Confirm the goods or work were received. Add a note (optional), e.g. docket numbers checked:",
+      ""
+    );
+    if (note === null) return;
+    setBusy(true);
+    setMessage("");
+    const { data, error } = await supabase.rpc("check_supplier_invoice", { p_invoice_id: inv.id, p_note: note });
+    setBusy(false);
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    setMessage(
+      data === "approved"
+        ? "Checked and approved. The costs are now on each project's Actuals tab."
+        : "Checked. It now needs approval from someone whose limit covers the total."
+    );
+    await refreshAll();
+  }
+
+  async function finalApprove() {
+    const note = window.prompt("Approve and post to Actuals. Add a note (optional):", "");
+    if (note === null) return;
+    await run(
+      () => supabase.rpc("final_approve_supplier_invoice", { p_invoice_id: inv.id, p_note: note }),
+      "Approved. The costs are now on each project's Actuals tab."
+    );
+  }
+
+  async function sendBack() {
+    const reason = window.prompt("Why are you sending it back? The person preparing it will see this.", "");
+    if (reason === null) return;
+    if (!reason.trim()) {
+      setMessage("Add a reason so they know what to fix.");
+      return;
+    }
+    await run(() => supabase.rpc("send_back_supplier_invoice", { p_invoice_id: inv.id, p_reason: reason }), "Sent back for changes.");
   }
 
   async function reject() {
-    if (!confirm("Mark this invoice as rejected? Nothing is posted to Actuals.")) return;
-    setHeader({ status: "rejected" });
-    await supabase.from("supplier_invoices").update({ status: "rejected" }).eq("id", inv.id);
+    const reason = window.prompt("Reject this invoice? Nothing is posted to Actuals. Reason (optional):", "");
+    if (reason === null) return;
+    await run(() => supabase.rpc("reject_supplier_invoice", { p_invoice_id: inv.id, p_reason: reason }), "Rejected.");
   }
 
   const sumEx = cents(lines.reduce((t, l) => t + Number(l.amount_ex_gst || 0), 0));
@@ -518,27 +625,87 @@ export default function ReviewClient({
         </div>
       </div>
 
-      {!locked && (
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap", marginBottom: 40 }}>
-          <button className="btn" disabled={busy} onClick={reread}>
-            Read again
-          </button>
-          <button className="btn btn-ghost btn-danger" disabled={busy} onClick={reject}>
-            Reject
-          </button>
-          <button
-            className="btn btn-primary"
-            disabled={busy || blocking}
-            title={blocking ? "Fix the items marked ✕ under Checks first" : undefined}
-            onClick={approve}
-          >
-            {busy ? "Working…" : "Approve and post to Actuals"}
-          </button>
+      {(inv.status === "awaiting_check" || inv.status === "awaiting_approval") && (
+        <div className="note">
+          <span>⏳</span>
+          <span>
+            <b>{inv.status === "awaiting_check" ? "Waiting for the project check" : "Waiting for approval"}</b> by {waitingOn}.
+            {inv.submitted_by && <> Submitted by {emailOf(inv.submitted_by)}.</>}
+          </span>
         </div>
       )}
+
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap", marginBottom: 24 }}>
+        {isEditableInvoice(inv.status) && (
+          <>
+            <button className="btn" disabled={busy} onClick={reread}>
+              Read again
+            </button>
+            <button className="btn btn-ghost btn-danger" disabled={busy} onClick={reject}>
+              Reject
+            </button>
+            {approvalMode === "simple" ? (
+              <button
+                className="btn btn-primary"
+                disabled={busy || blocking}
+                title={blocking ? "Fix the items marked ✕ under Checks first" : undefined}
+                onClick={approve}
+              >
+                {busy ? "Working…" : "Approve and post to Actuals"}
+              </button>
+            ) : (
+              <button
+                className="btn btn-primary"
+                disabled={busy || blocking}
+                title={blocking ? "Fix the items marked ✕ under Checks first" : undefined}
+                onClick={submit}
+              >
+                {busy ? "Working…" : "Submit for approval"}
+              </button>
+            )}
+          </>
+        )}
+        {inv.status === "awaiting_check" && canCheck && (
+          <>
+            <button className="btn btn-ghost btn-danger" disabled={busy} onClick={reject}>Reject</button>
+            <button className="btn" disabled={busy} onClick={sendBack}>Send back</button>
+            <button className="btn btn-primary" disabled={busy} onClick={confirmReceived}>
+              {checkAlsoApproves ? "Confirm received and approve" : "Confirm received"}
+            </button>
+          </>
+        )}
+        {inv.status === "awaiting_approval" && canApprove && (
+          <>
+            <button className="btn btn-ghost btn-danger" disabled={busy} onClick={reject}>Reject</button>
+            <button className="btn" disabled={busy} onClick={sendBack}>Send back</button>
+            <button className="btn btn-primary" disabled={busy} onClick={finalApprove}>Approve and post to Actuals</button>
+          </>
+        )}
+      </div>
+
       {inv.status === "approved" && inv.approved_at && (
-        <div className="hint" style={{ textAlign: "right", marginBottom: 40 }}>
+        <div className="hint" style={{ textAlign: "right", marginBottom: 16 }}>
           Approved {new Date(inv.approved_at).toLocaleString()}. Posted lines appear on each project&apos;s Actuals tab.
+        </div>
+      )}
+
+      {events.length > 0 && (
+        <div className="section" style={{ marginBottom: 40 }}>
+          <div className="section-head">
+            <h3>History</h3>
+          </div>
+          <div className="card" style={{ padding: "12px 18px" }}>
+            {events.map((ev) => (
+              <div key={ev.id} style={{ padding: "6px 0", borderBottom: "1px solid var(--line)", fontSize: 13 }}>
+                <b>{INVOICE_EVENT_LABELS[ev.action] || ev.action}</b>
+                <span className="hint">
+                  {" "}
+                  — {ev.actor_email || "someone"}, {new Date(ev.created_at).toLocaleString()}
+                </span>
+                {ev.note && <div style={{ marginTop: 2 }}>“{ev.note}”</div>}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

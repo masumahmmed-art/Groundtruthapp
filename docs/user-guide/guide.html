@@ -74,6 +74,8 @@
   .badge { width: 19pt; height: 19pt; flex: none; border-radius: 3pt; background: var(--accent); color: #fff; font-weight: 700; font-size: 10pt; display: flex; align-items: center; justify-content: center; }
   .step-head h2 { font-size: 13.5pt; }
   .step-body { padding-left: 28pt; }
+  .steps-list { margin: 0 0 8pt 16pt; padding: 0; }
+  .steps-list li { margin-bottom: 4pt; }
   .step-body h4 { color: var(--ink); font-size: 10pt; margin: 10pt 0 4pt; break-after: avoid; }
   .where { font-size: 9pt; margin-top: 4pt; }
   .where b { margin-right: 3pt; }
@@ -111,7 +113,7 @@
       drawings to sending out a finished estimate.
     </p>
   </div>
-  <div class="cover-date">Ground Truth Estimator — October 2026 edition, with Suppliers &amp; Supplier Invoices</div>
+  <div class="cover-date">Ground Truth Estimator — October 2026 edition, with Suppliers, Invoices &amp; Approvals</div>
 </section>
 
 <!-- ======================= CONTENTS ======================= -->
@@ -133,12 +135,12 @@
   <div class="toc-row"><span>Step 7. Review the Summary and export</span><span class="dots"></span><span class="pg">10</span></div>
   <div class="toc-row"><span>Step 8. Programme — schedule your work</span><span class="dots"></span><span class="pg">11</span></div>
   <div class="toc-row"><span>Step 9. Positions &amp; Actuals — record real cost</span><span class="dots"></span><span class="pg">12</span></div>
-  <div class="toc-row"><span>Step 10. Suppliers &amp; supplier invoices<span class="new">NEW</span></span><span class="dots"></span><span class="pg">13</span></div>
-  <div class="toc-row"><span>Step 11. Earned Value — progress and performance</span><span class="dots"></span><span class="pg">14</span></div>
-  <div class="toc-row"><span>Step 12. Dashboard — see it all in one place</span><span class="dots"></span><span class="pg">15</span></div>
-  <div class="toc-row"><span>Step 13. Keep it current</span><span class="dots"></span><span class="pg">16</span></div>
-  <div class="toc-row"><span>Quick reference — where do I…?</span><span class="dots"></span><span class="pg">17</span></div>
-  <div class="toc-row"><span>Your account</span><span class="dots"></span><span class="pg">19</span></div>
+  <div class="toc-row"><span>Step 10. Suppliers, supplier invoices &amp; approvals<span class="new">NEW</span></span><span class="dots"></span><span class="pg">13</span></div>
+  <div class="toc-row"><span>Step 11. Earned Value — progress and performance</span><span class="dots"></span><span class="pg">15</span></div>
+  <div class="toc-row"><span>Step 12. Dashboard — see it all in one place</span><span class="dots"></span><span class="pg">16</span></div>
+  <div class="toc-row"><span>Step 13. Keep it current</span><span class="dots"></span><span class="pg">17</span></div>
+  <div class="toc-row"><span>Quick reference — where do I…?</span><span class="dots"></span><span class="pg">18</span></div>
+  <div class="toc-row"><span>Your account</span><span class="dots"></span><span class="pg">20</span></div>
 </section>
 
 <!-- ======================= PART ONE ======================= -->
@@ -253,6 +255,10 @@
         in the other unit system will show a small converted equivalent alongside it — without changing what you
         actually typed.
       </p>
+      <p>
+        To work as a team, the owner invites colleagues from <b>Settings → Team &amp; invoice approvals</b> and sends
+        them the invite link; they sign up or log in with that email and join your workspace.
+      </p>
       <div class="where"><b>Where:</b> Left rail → Settings</div>
     </div>
   </div>
@@ -281,6 +287,7 @@
       <p>
         From Projects, create a new project — either blank, or from the example project if you want to see a fully
         worked estimate first. Give it a name, client, location, and prepared-by details; these appear on exports.
+        With two-step invoice approval, also pick the <b>Project manager</b> who checks its supplier invoices (Step 10).
       </p>
       <p>
         A new project comes pre-loaded with four standard categories (Earthworks &amp; Site Works, Roads &amp;
@@ -623,7 +630,7 @@
 <!-- ---------- Step 10: Suppliers & supplier invoices ---------- -->
 <section class="page">
   <div class="step">
-    <div class="step-head"><span class="badge">10</span><h2>Suppliers &amp; supplier invoices</h2></div>
+    <div class="step-head"><span class="badge">10</span><h2>Suppliers, supplier invoices &amp; approvals</h2></div>
     <div class="step-body">
       <p>
         Instead of typing every plant hire, material and subcontractor invoice into Actuals by hand, keep a register of
@@ -658,7 +665,35 @@
         description. Approved invoices are locked so the record can't change afterwards; <b>Reject</b> keeps an invoice on
         file without posting anything.
       </p>
-      <div class="where"><b>Where:</b> Left rail → Suppliers, Left rail → Invoices, Project → Actuals tab (supplier column)</div>
+    </div>
+  </div>
+</section>
+
+<section class="page">
+  <div class="step">
+    <div class="step-body">
+      <h4>Step 10, continued — approving invoices</h4>
+      <p>
+        The workspace owner chooses how invoices are approved in Settings. <b>Simple</b> lets anyone in the
+        team approve in one step, as described above — suited to a small team. <b>Two-step</b> separates the jobs the way
+        most contractors do:
+      </p>
+      <ol class="steps-list">
+        <li>Whoever prepares the invoice codes it and clicks <b>Submit for approval</b>. It can't be edited from then on.</li>
+        <li>The project's <b>project manager</b> (set on the Project tab) checks the goods or work were received — against
+          plant dockets or delivery notes — and clicks <b>Confirm received</b>, optionally noting what was checked. If the
+          projects on the invoice have no project manager, anyone in the team can do this check.</li>
+        <li>If the checker's own approval limit covers the invoice total (including GST), that same click approves it.
+          Otherwise it waits for someone whose limit does — the owner has no limit — to click <b>Approve and post to
+          Actuals</b>.</li>
+      </ol>
+      <p>
+        Nobody can check or approve an invoice they submitted themselves. At either stage the invoice can be
+        <b>sent back</b> with a reason, which returns it for editing, or rejected. Every step is recorded with who did it
+        and when under <b>History</b> on the invoice, and the Invoices page's <b>Waiting for me</b> list shows what each
+        person needs to act on.
+      </p>
+      <div class="where"><b>Where:</b> Left rail → Suppliers, Left rail → Invoices, Settings → Team &amp; invoice approvals, Project → Actuals tab (supplier column)</div>
     </div>
   </div>
 </section>
@@ -777,6 +812,11 @@
       <tr><td>Upload a supplier invoice to be read automatically</td><td>Invoices → Choose files (or drop files in)</td></tr>
       <tr><td>Code invoice lines to a project and post them to Actuals</td><td>Invoices → Review → Approve and post to Actuals</td></tr>
       <tr><td>See how many free automatic reads are left this month</td><td>Invoices (top right)</td></tr>
+      <tr><td>Invite a colleague to the workspace, or change their approval limit</td><td>Settings → Team &amp; invoice approvals</td></tr>
+      <tr><td>Switch between simple and two-step invoice approval</td><td>Settings → Team &amp; invoice approvals</td></tr>
+      <tr><td>Choose who checks a project's supplier invoices</td><td>Project → Project tab → Project manager</td></tr>
+      <tr><td>Submit, check, approve, send back, or reject an invoice</td><td>Invoices → open the invoice → buttons at the bottom</td></tr>
+      <tr><td>See invoices waiting for my check or approval</td><td>Invoices → Waiting for me</td></tr>
       <tr><td>Link an actual cost to the supplier it was paid to</td><td>Project → Actuals tab → Supplier</td></tr>
       <tr><td>Edit an existing actual cost or hours entry</td><td>Project → Actuals tab → click into any field</td></tr>
       <tr><td>Update a line item's % complete, or see Earned Value</td><td>Project → Earned Value tab</td></tr>

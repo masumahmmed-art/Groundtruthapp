@@ -9,8 +9,16 @@ const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 export default function SignupPage({
   searchParams,
 }: {
-  searchParams: { error?: string; email?: string; "check-email"?: string; "already-registered"?: string };
+  searchParams: { error?: string; email?: string; "check-email"?: string; "already-registered"?: string; next?: string };
 }) {
+  const next = searchParams.next && searchParams.next.startsWith("/") && !searchParams.next.startsWith("//") ? searchParams.next : "";
+  const loginHref = (email?: string) => {
+    const q = new URLSearchParams();
+    if (email) q.set("email", email);
+    if (next) q.set("next", next);
+    const qs = q.toString();
+    return qs ? `/login?${qs}` : "/login";
+  };
   if (searchParams["already-registered"]) {
     return (
       <div className="auth-shell">
@@ -21,7 +29,7 @@ export default function SignupPage({
             <strong>{searchParams.email}</strong> is already registered. Log in instead — if
             you've forgotten your password, let us know and we'll help you reset it.
           </p>
-          <Link href={`/login?email=${encodeURIComponent(searchParams.email || "")}`} className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }}>
+          <Link href={loginHref(searchParams.email || "")} className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }}>
             Go to log in
           </Link>
         </div>
@@ -62,6 +70,7 @@ export default function SignupPage({
         {searchParams.error && <div className="auth-error" style={{ marginBottom: 14 }}>{searchParams.error}</div>}
 
         <form className="auth-form" action={signup}>
+          {next && <input type="hidden" name="next" value={next} />}
           <div className="field">
             <label htmlFor="email">Work email</label>
             <input id="email" name="email" type="email" required defaultValue={searchParams.email} autoFocus />
@@ -77,7 +86,7 @@ export default function SignupPage({
         </form>
 
         <div className="auth-foot">
-          Already have an account? <Link href="/login">Log in</Link>
+          Already have an account? <Link href={loginHref()}>Log in</Link>
         </div>
       </div>
     </div>

@@ -34,12 +34,26 @@ export default async function InvoicesPage() {
 
   const allowance = (Array.isArray(allowanceRows) ? allowanceRows[0] : null) as InvoiceReadAllowance | null;
 
+  // Which submitted invoices this person can act on (project check or approval).
+  const awaiting = ((invoices || []) as SupplierInvoiceRow[]).filter(
+    (i) => i.status === "awaiting_check" || i.status === "awaiting_approval"
+  );
+  const permissions = await Promise.all(
+    awaiting.map((i) =>
+      supabase.rpc(i.status === "awaiting_check" ? "can_check_supplier_invoice" : "can_approve_supplier_invoice", {
+        p_invoice_id: i.id,
+      })
+    )
+  );
+  const actionableIds = awaiting.filter((_, idx) => permissions[idx].data === true).map((i) => i.id);
+
   return (
     <InvoicesClient
       orgId={membership.org_id}
       initialInvoices={(invoices || []) as SupplierInvoiceRow[]}
       suppliers={(suppliers || []) as SupplierRow[]}
       initialAllowance={allowance}
+      actionableIds={actionableIds}
     />
   );
 }

@@ -162,6 +162,8 @@ export interface ProjectRow {
   utility_count: number | null;
   /** How much ground investigation has been done so far — feeds the suggested latent-conditions risk. */
   investigation_level: InvestigationLevel | null;
+  /** Person who does the project check on this project's supplier invoices (two-step approval). */
+  manager_user_id?: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -243,7 +245,14 @@ export interface ActualCostRow {
   created_at: string;
 }
 
-export type SupplierInvoiceStatus = "uploaded" | "reading" | "needs_review" | "approved" | "rejected";
+export type SupplierInvoiceStatus =
+  | "uploaded"
+  | "reading"
+  | "needs_review"
+  | "awaiting_check"
+  | "awaiting_approval"
+  | "approved"
+  | "rejected";
 
 export interface SupplierInvoiceRow {
   id: string;
@@ -271,6 +280,10 @@ export interface SupplierInvoiceRow {
   updated_at: string;
   approved_by: string | null;
   approved_at: string | null;
+  submitted_by: string | null;
+  submitted_at: string | null;
+  checked_by: string | null;
+  checked_at: string | null;
 }
 
 export interface SupplierInvoiceLineRow {
@@ -395,11 +408,49 @@ export interface PositionRow {
   sort_order: number;
 }
 
+export type InvoiceApprovalMode = "simple" | "two_step";
+
 export interface OrganizationRow {
   id: string;
   name: string;
   currency: string;
   unit_system: string;
+  created_at: string;
+  /** "simple": anyone approves in one click. "two_step": submit, project check, approve within limit. */
+  invoice_approval_mode?: InvoiceApprovalMode;
+}
+
+/** One person in the workspace, from the org_member_list() function. */
+export interface TeamMember {
+  user_id: string;
+  email: string;
+  role: "owner" | "member";
+  /** Largest invoice total (incl. GST) this person may approve; null = can't give final approval. Owners have no limit. */
+  approval_limit: number | null;
+  joined_at: string;
+}
+
+export interface OrgInvitationRow {
+  id: string;
+  org_id: string;
+  email: string;
+  approval_limit: number | null;
+  token: string;
+  invited_by: string | null;
+  created_at: string;
+  expires_at: string;
+  accepted_at: string | null;
+  accepted_by: string | null;
+}
+
+export interface InvoiceEventRow {
+  id: number;
+  invoice_id: string;
+  org_id: string;
+  action: "submitted" | "checked" | "approved" | "sent_back" | "rejected";
+  actor: string | null;
+  actor_email: string;
+  note: string;
   created_at: string;
 }
 
