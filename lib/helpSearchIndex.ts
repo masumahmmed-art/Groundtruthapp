@@ -255,12 +255,28 @@ export const helpSearchIndex: HelpTopic[] = [
     pdfPage: 13,
   },
   {
+    id: "invoice-approvals",
+    title: "Invoice approvals",
+    description: "Simple or two-step approval: submit, project check, approve within your limit, send back.",
+    keywords: ["approval", "approvals", "approve", "two-step", "two step", "submit", "project check", "confirm received", "send back", "approval limit", "authority", "delegation", "waiting for me", "history", "segregation"],
+    helpAnchor: "invoice-approvals",
+    pdfPage: 14,
+  },
+  {
+    id: "team",
+    title: "Team and invitations",
+    description: "Invite colleagues to your workspace, set approval limits, remove people.",
+    keywords: ["team", "invite", "invitation", "colleague", "user", "users", "member", "add user", "approval limit", "remove user", "owner", "project manager"],
+    helpAnchor: "team",
+    pdfPage: 5,
+  },
+  {
     id: "earned-value",
     title: "Earned Value",
     description: "% complete, Earned Value, and Earned Value Management.",
     keywords: ["earned value", "ev", "percent complete", "% complete", "earned value management", "evm", "cpi", "spi", "planned value", "actual cost"],
     helpAnchor: "earned-value",
-    pdfPage: 14,
+    pdfPage: 15,
   },
   {
     id: "dashboard",
@@ -268,7 +284,7 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "One rolled-up view — cost by category, cash flow, resource type.",
     keywords: ["dashboard", "major category", "report", "customise", "customize", "filter", "print"],
     helpAnchor: "dashboard",
-    pdfPage: 15,
+    pdfPage: 16,
   },
   {
     id: "settings",
@@ -284,6 +300,6 @@ export const helpSearchIndex: HelpTopic[] = [
     description: "Forgot password, signing up with an existing email.",
     keywords: ["account", "password", "forgot password", "login", "sign in", "sign up"],
     helpAnchor: "account",
-    pdfPage: 19,
+    pdfPage: 20,
   },
 ];

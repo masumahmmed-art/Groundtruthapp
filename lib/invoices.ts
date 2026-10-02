@@ -4,6 +4,8 @@ export const INVOICE_STATUS_LABELS: Record<SupplierInvoiceStatus, string> = {
   uploaded: "Uploaded",
   reading: "Reading…",
   needs_review: "Needs review",
+  awaiting_check: "Awaiting project check",
+  awaiting_approval: "Awaiting approval",
   approved: "Approved",
   rejected: "Rejected",
 };
@@ -12,8 +14,25 @@ export const INVOICE_STATUS_COLOURS: Record<SupplierInvoiceStatus, string> = {
   uploaded: "var(--ink-soft)",
   reading: "var(--ink-soft)",
   needs_review: "var(--warning)",
+  awaiting_check: "var(--accent)",
+  awaiting_approval: "var(--accent)",
   approved: "var(--ok, #2f7d4f)",
   rejected: "var(--danger)",
+};
+
+/** Statuses in which the invoice and its lines can still be edited. */
+export const EDITABLE_INVOICE_STATUSES = ["uploaded", "reading", "needs_review"] as const;
+
+export function isEditableInvoice(status: string): boolean {
+  return (EDITABLE_INVOICE_STATUSES as readonly string[]).includes(status);
+}
+
+export const INVOICE_EVENT_LABELS: Record<string, string> = {
+  submitted: "Submitted for approval",
+  checked: "Project check done — goods or work received",
+  approved: "Approved and posted to Actuals",
+  sent_back: "Sent back for changes",
+  rejected: "Rejected",
 };
 
 export const MAX_INVOICE_BYTES = 10 * 1024 * 1024;

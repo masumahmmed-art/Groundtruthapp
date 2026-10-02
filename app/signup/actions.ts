@@ -23,6 +23,9 @@ export async function signup(formData: FormData) {
   const password = String(formData.get("password") || "");
   const captchaToken = String(formData.get("cf-turnstile-response") || "") || undefined;
   const origin = resolveSiteUrl();
+  // Where to go after confirming — e.g. back to an /invite/<token> link. On-site paths only.
+  const rawNext = String(formData.get("next") || "");
+  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") && !rawNext.startsWith("/\\") ? rawNext : "";
 
   // Set by middleware.ts on first visit from a tagged link (?src=... or
   // ?utm_source=...). Stored on the account itself so you can see where
@@ -35,7 +38,7 @@ export async function signup(formData: FormData) {
     email,
     password,
     options: {
-      emailRedirectTo: `${origin}/auth/callback`,
+      emailRedirectTo: next ? `${origin}/auth/callback?next=${encodeURIComponent(next)}` : `${origin}/auth/callback`,
       captchaToken,
       data: signupSource ? { signup_source: signupSource } : undefined,
     },
@@ -52,7 +55,7 @@ export async function signup(formData: FormData) {
   // empty array. When that happens, send the visitor to log in instead of
   // showing a misleading "check your email" screen.
   if (data.user && data.user.identities && data.user.identities.length === 0) {
-    redirect(`/signup?already-registered=1&email=${encodeURIComponent(email)}`);
+    redirect(`/signup?already-registered=1&email=${encodeURIComponent(email)}${next ? `&next=${encodeURIComponent(next)}` : ""}`);
   }
 
   // If your Supabase project has "Confirm email" turned on (the default),
@@ -62,5 +65,5 @@ export async function signup(formData: FormData) {
     redirect(`/signup?check-email=1&email=${encodeURIComponent(email)}`);
   }
 
-  redirect("/dashboard");
+  redirect(next || "/dashboard");
 }

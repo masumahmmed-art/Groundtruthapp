@@ -11,6 +11,7 @@ import type {
   RateItemRow,
   RiskItemRow,
   SupplierRow,
+  TeamMember,
 } from "@/lib/types";
 import EstimatorClient from "./EstimatorClient";
 
@@ -33,6 +34,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
     { data: actualHourItems },
     { data: drawings },
     { data: suppliers },
+    { data: team },
   ] = await Promise.all([
     supabase.from("categories").select("*").eq("project_id", params.id).order("sort_order"),
     supabase.from("rate_items").select("*").eq("org_id", project.org_id).order("sort_order"),
@@ -42,6 +44,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
     supabase.from("actual_hours").select("*").eq("project_id", params.id).order("entry_date", { ascending: false }),
     supabase.from("drawings").select("*").eq("project_id", params.id).order("created_at"),
     supabase.from("suppliers").select("*").eq("org_id", project.org_id).order("legal_name"),
+    supabase.rpc("org_member_list", { p_org_id: project.org_id }),
   ]);
 
   const catIds = (categories || []).map((c) => c.id);
@@ -63,6 +66,7 @@ export default async function ProjectPage({ params }: { params: { id: string } }
       rates={(rateItems || []) as RateItemRow[]}
       initialDrawings={(drawings || []) as DrawingRow[]}
       suppliers={(suppliers || []) as SupplierRow[]}
+      team={(team || []) as TeamMember[]}
     />
   );
 }

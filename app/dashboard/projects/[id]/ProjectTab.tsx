@@ -1,14 +1,16 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
-import type { ProjectRow } from "@/lib/types";
+import type { ProjectRow, TeamMember } from "@/lib/types";
 
 export default function ProjectTab({
   project,
   setProject,
+  team = [],
 }: {
   project: ProjectRow;
   setProject: (updater: (p: ProjectRow) => ProjectRow) => void;
+  team?: TeamMember[];
 }) {
   const supabase = createClient();
 
@@ -44,6 +46,29 @@ export default function ProjectTab({
               />
             </div>
           ))}
+        </div>
+        <div className="field" style={{ marginTop: 16, maxWidth: 420 }}>
+          <label htmlFor="manager_user_id">Project manager</label>
+          <select
+            id="manager_user_id"
+            value={project.manager_user_id || ""}
+            onChange={(e) => {
+              const v = e.target.value || null;
+              change("manager_user_id", v);
+              persist("manager_user_id", v);
+            }}
+          >
+            <option value="">Not set — anyone in the team can check invoices</option>
+            {team.map((m) => (
+              <option key={m.user_id} value={m.user_id}>
+                {m.email}
+              </option>
+            ))}
+          </select>
+          <div className="hint" style={{ marginTop: 4 }}>
+            With two-step invoice approval, this person confirms that goods and work on this project&apos;s supplier
+            invoices were actually received.
+          </div>
         </div>
         <div className="field" style={{ marginTop: 16 }}>
           <label htmlFor="notes">Notes</label>

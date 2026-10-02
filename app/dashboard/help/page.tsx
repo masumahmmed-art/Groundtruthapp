@@ -16,7 +16,7 @@ export default function HelpPage() {
               A step-by-step manual covering first-principles estimating — the considerations
               behind a sound estimate — and a full walkthrough of using this software from
               setting up your workspace through to exporting a finished estimate. Updated
-              October 2026 with a new chapter on Suppliers and Supplier Invoices.
+              October 2026 with a new chapter on Suppliers, Supplier Invoices and approvals.
             </p>
           </div>
           <a
@@ -453,7 +453,37 @@ export default function HelpPage() {
             <b>Approve and post to Actuals</b> creates one Direct Job Cost entry per line on the chosen project, dated
             on the invoice date, with the amount excluding GST, the GST stored separately, the supplier attached and
             the invoice number in the description. Approved invoices are locked. <b>Reject</b> keeps an invoice on file
-            without posting anything, and <b>Read again</b> replaces the details with a fresh reading.
+            without posting anything, and <b>Read again</b> replaces the details with a fresh reading. If your
+            workspace uses two-step approval, the button says <b>Submit for approval</b> instead — see Invoice
+            approvals below.
+          </p>
+        </div>
+      </div>
+      <div className="section" id="invoice-approvals">
+        <div className="section-head"><h3>Invoice approvals</h3></div>
+        <div className="card" style={{ padding: "18px 22px" }}>
+          <p>
+            The workspace owner chooses the approval process under <b>Settings → Team &amp; invoice approvals</b>.
+            With <b>Simple</b>, anyone in the team approves an invoice in one step. With <b>Two-step</b>:
+          </p>
+          <ol>
+            <li>
+              Whoever prepares the invoice clicks <b>Submit for approval</b>. It can&apos;t be edited after that.
+            </li>
+            <li>
+              The project manager — set on each project&apos;s <b>Project</b> tab — checks that the goods or work were
+              received (against plant dockets or delivery notes) and clicks <b>Confirm received</b>. If none of the
+              invoice&apos;s projects has a project manager, anyone in the team can do the check.
+            </li>
+            <li>
+              If the checker&apos;s approval limit covers the invoice total including GST, the same click approves it
+              and posts the costs. Otherwise it waits for someone whose limit does. The owner has no limit.
+            </li>
+          </ol>
+          <p>
+            Nobody can check or approve an invoice they submitted. Either step can <b>Send back</b> an invoice with a
+            reason — it returns for editing — or <b>Reject</b> it. Each invoice keeps a <b>History</b> of who did what
+            and when. On the Invoices page, <b>Waiting for me</b> lists the invoices you can check or approve right now.
           </p>
         </div>
       </div>
@@ -497,6 +527,24 @@ export default function HelpPage() {
             the Settings page. Currency changes how every dollar figure is formatted,
             everywhere in the app. Unit system only affects the small converted-equivalent
             hints described above — it never rewrites what you've actually typed.
+          </p>
+        </div>
+      </div>
+      <div className="section" id="team">
+        <div className="section-head"><h3>Team and invitations</h3></div>
+        <div className="card" style={{ padding: "18px 22px" }}>
+          <p>
+            The person who created the workspace is its <b>owner</b>. Under <b>Settings → Team &amp; invoice
+            approvals</b>, the owner invites colleagues: enter their email and, optionally, an approval limit — the
+            largest invoice total (including GST) they may approve — then click <b>Create invite link</b>. The link is
+            copied for you to send by email or message, and works for 14 days. The invited person opens it, signs up
+            or logs in with that same email address, and joins your workspace.
+          </p>
+          <p>
+            Leave the limit blank for someone who prepares or checks invoices but doesn&apos;t give final approval. The
+            owner can change limits, cancel unused invitations, or remove people from the same screen; removed people
+            lose access straight away, and their past approvals stay on record. Each person belongs to one workspace,
+            so someone who has already started projects in their own workspace can&apos;t join another.
           </p>
         </div>
       </div>

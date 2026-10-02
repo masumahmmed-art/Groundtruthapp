@@ -40,7 +40,8 @@ export default function LoginPage({
         />
 
         <div className="auth-foot">
-          Don&apos;t have a workspace yet? <Link href="/signup">Create one</Link>
+          Don&apos;t have a workspace yet?{" "}
+          <Link href={searchParams.next ? `/signup?next=${encodeURIComponent(searchParams.next)}` : "/signup"}>Create one</Link>
         </div>
       </div>
     </div>
