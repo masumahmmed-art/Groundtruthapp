@@ -22,3 +22,17 @@ linked from the in-app Help page and the top search bar.
      open the PDF at the right page.
 4. If the change affects what the app does, update the in-app Help page too:
    `app/dashboard/help/page.tsx`.
+
+### Rebuilding the PDF on Linux or macOS
+
+With Python and Playwright installed (`pip install playwright && playwright install chromium`):
+
+```bash
+python3 -c "
+from playwright.sync_api import sync_playwright; import pathlib
+src = pathlib.Path('docs/user-guide/guide.html').resolve()
+with sync_playwright() as p:
+    b = p.chromium.launch(); pg = b.new_page(); pg.goto(src.as_uri()); pg.wait_for_load_state('networkidle')
+    pg.pdf(path='public/GroundTruthEstimatorUserGuide.pdf', prefer_css_page_size=True, print_background=True); b.close()
+"
+```

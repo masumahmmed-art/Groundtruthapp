@@ -16,7 +16,7 @@ export default function HelpPage() {
               A step-by-step manual covering first-principles estimating — the considerations
               behind a sound estimate — and a full walkthrough of using this software from
               setting up your workspace through to exporting a finished estimate. Updated
-              September 2026 with a new chapter on Drawing Takeoff.
+              October 2026 with a new chapter on Suppliers and Supplier Invoices.
             </p>
           </div>
           <a
@@ -397,12 +397,63 @@ export default function HelpPage() {
             Rate Library afterwards doesn't silently rewrite past actual cost history. Pick "Manual amount"
             instead for anything that doesn't fit a rate item. Subcontract costs are always typed directly,
             since a subcontractor's invoice isn't priced off the Rate Library — its description field doubles
-            as an invoice number to track.
+            as an invoice number to track. Each entry can be linked to a <b>supplier</b> from your register, and
+            costs posted from an approved supplier invoice arrive here already filled in, with GST recorded
+            separately.
           </p>
           <p>
             The <b>Indirect Job Cost ledger</b> logs hours worked against a Position; the dollar cost isn't
             typed in, it's calculated automatically as hours × that position's current fully-loaded rate, so
             correcting a position's rate later automatically corrects its past actual cost too.
+          </p>
+        </div>
+      </div>
+      <div className="section" id="suppliers">
+        <div className="section-head"><h3>Suppliers</h3></div>
+        <div className="card" style={{ padding: "18px 22px" }}>
+          <p>
+            Your workspace&apos;s register of the businesses you buy from — plant hire, material suppliers,
+            subcontractors and consultants — shared by every project. Open <b>Suppliers</b> in the left rail and add
+            each one by <b>ABN</b>. The app rejects any number that fails the ATO&apos;s ABN check and warns if it&apos;s
+            already in the register. <b>Look up ABN</b> fills in the registered name, whether the ABN is active and
+            whether the business is registered for GST.
+          </p>
+          <p>
+            Record each supplier&apos;s type, payment terms (days) and the expiry dates of their insurance and licence.
+            Dates turn amber 30 days before they expire and red once they have, and the count at the top right shows
+            how many suppliers need attention. Click ▸ on a row for contact details, notes and{" "}
+            <b>Re-check ABN and GST status</b>. To stop using a supplier, untick <b>Active</b> instead of deleting it,
+            so costs already linked to them keep the link.
+          </p>
+        </div>
+      </div>
+      <div className="section" id="supplier-invoices">
+        <div className="section-head"><h3>Supplier invoices</h3></div>
+        <div className="card" style={{ padding: "18px 22px" }}>
+          <p>
+            Open <b>Invoices</b> in the left rail and drop in invoice PDFs or photos (JPG or PNG, up to 10 MB each).
+            Each one is read automatically for the supplier, ABN, invoice number, dates, totals and every line, with a
+            suggested cost type per line. Your workspace gets <b>20 automatic reads a month</b> free — the counter at
+            the top right shows how many you&apos;ve used. After that you can still upload invoices and type the details
+            in yourself. Uploaded files are stored privately; only members of your workspace can open them.
+          </p>
+          <p>
+            Click <b>Review</b> to see the invoice beside its details. Link it to a supplier from your register, or use{" "}
+            <b>Add as new supplier</b> to create one from the ABN on the invoice. Give every line a project, and
+            optionally a category and cost type — <b>Set project for all lines</b> is quickest when the whole invoice
+            belongs to one job. Changing a line&apos;s quantity or unit price recalculates its amount and GST.
+          </p>
+          <p>
+            The <b>Checks</b> panel must show no ✕ items before you can approve. It blocks a likely duplicate (same
+            supplier and invoice number), lines that don&apos;t add up to the subtotal or GST, a total that isn&apos;t
+            subtotal plus GST, and lines without a project. It also warns (!) about GST that isn&apos;t 10%, a supplier
+            charging GST who isn&apos;t registered for it, a missing or invalid ABN, and a missing invoice date.
+          </p>
+          <p>
+            <b>Approve and post to Actuals</b> creates one Direct Job Cost entry per line on the chosen project, dated
+            on the invoice date, with the amount excluding GST, the GST stored separately, the supplier attached and
+            the invoice number in the description. Approved invoices are locked. <b>Reject</b> keeps an invoice on file
+            without posting anything, and <b>Read again</b> replaces the details with a fresh reading.
           </p>
         </div>
       </div>

@@ -111,7 +111,7 @@
       drawings to sending out a finished estimate.
     </p>
   </div>
-  <div class="cover-date">Ground Truth Estimator — September 2026 edition, with Drawing Takeoff</div>
+  <div class="cover-date">Ground Truth Estimator — October 2026 edition, with Suppliers &amp; Supplier Invoices</div>
 </section>
 
 <!-- ======================= CONTENTS ======================= -->
@@ -133,11 +133,12 @@
   <div class="toc-row"><span>Step 7. Review the Summary and export</span><span class="dots"></span><span class="pg">10</span></div>
   <div class="toc-row"><span>Step 8. Programme — schedule your work</span><span class="dots"></span><span class="pg">11</span></div>
   <div class="toc-row"><span>Step 9. Positions &amp; Actuals — record real cost</span><span class="dots"></span><span class="pg">12</span></div>
-  <div class="toc-row"><span>Step 10. Earned Value — progress and performance</span><span class="dots"></span><span class="pg">13</span></div>
-  <div class="toc-row"><span>Step 11. Dashboard — see it all in one place</span><span class="dots"></span><span class="pg">14</span></div>
-  <div class="toc-row"><span>Step 12. Keep it current</span><span class="dots"></span><span class="pg">15</span></div>
-  <div class="toc-row"><span>Quick reference — where do I…?</span><span class="dots"></span><span class="pg">16</span></div>
-  <div class="toc-row"><span>Your account</span><span class="dots"></span><span class="pg">17</span></div>
+  <div class="toc-row"><span>Step 10. Suppliers &amp; supplier invoices<span class="new">NEW</span></span><span class="dots"></span><span class="pg">13</span></div>
+  <div class="toc-row"><span>Step 11. Earned Value — progress and performance</span><span class="dots"></span><span class="pg">14</span></div>
+  <div class="toc-row"><span>Step 12. Dashboard — see it all in one place</span><span class="dots"></span><span class="pg">15</span></div>
+  <div class="toc-row"><span>Step 13. Keep it current</span><span class="dots"></span><span class="pg">16</span></div>
+  <div class="toc-row"><span>Quick reference — where do I…?</span><span class="dots"></span><span class="pg">17</span></div>
+  <div class="toc-row"><span>Your account</span><span class="dots"></span><span class="pg">19</span></div>
 </section>
 
 <!-- ======================= PART ONE ======================= -->
@@ -548,7 +549,7 @@
     <div class="step-head"><span class="badge">8</span><h2>Programme — schedule your work</h2></div>
     <div class="step-body">
       <p>
-        The Programme tab gives each category a planned start and end date, so Earned Value (see Step 10) can compare
+        The Programme tab gives each category a planned start and end date, so Earned Value (see Step 11) can compare
         real progress against a realistic time-phased budget instead of an even spread across the whole job. A category
         left unscheduled is still included in the total — its budget is simply spread evenly across the whole programme
         window until you set its dates.
@@ -591,7 +592,7 @@
       <p>
         These two tabs record what's actually happening on site against the estimate: Positions is the register behind
         Indirect Job Cost, and Actuals is where every real Direct and Indirect cost is logged. A separate Earned Value tab
-        (Step 10) turns recorded progress into the figures that compare all this against the plan.
+        (Step 11) turns recorded progress into the figures that compare all this against the plan.
       </p>
       <p>
         <b>Positions</b> is the Indirect Job Cost register — one row per site or support role. Each position is flagged
@@ -609,7 +610,8 @@
         then frozen at that moment like a recorded invoice or timesheet, so correcting the Rate Library afterwards
         doesn't silently rewrite past actual cost history. Subcontract costs are still typed directly, since a
         subcontractor's invoice isn't priced off the Rate Library — its description field doubles as an invoice number to
-        track. The <b>Indirect Job Cost ledger</b> logs hours worked against a Position; the dollar cost isn't typed in,
+        track. Each entry can also be linked to a <b>supplier</b> from your register, and entries posted from an approved
+        supplier invoice (Step 10) arrive here already filled in, with GST recorded separately. The <b>Indirect Job Cost ledger</b> logs hours worked against a Position; the dollar cost isn't typed in,
         it's calculated automatically as hours × that position's current fully-loaded rate, so correcting a position's
         rate later automatically corrects its past actual cost too.
       </p>
@@ -618,10 +620,53 @@
   </div>
 </section>
 
-<!-- ---------- Step 10: Earned Value ---------- -->
+<!-- ---------- Step 10: Suppliers & supplier invoices ---------- -->
 <section class="page">
   <div class="step">
-    <div class="step-head"><span class="badge">10</span><h2>Earned Value — progress and performance</h2></div>
+    <div class="step-head"><span class="badge">10</span><h2>Suppliers &amp; supplier invoices</h2></div>
+    <div class="step-body">
+      <p>
+        Instead of typing every plant hire, material and subcontractor invoice into Actuals by hand, keep a register of
+        the businesses you buy from and upload their invoices. Each invoice is read for you, you check it and say which
+        project each line belongs to, and approving it posts the costs to that project's Actuals tab.
+      </p>
+      <p>
+        <b>Suppliers</b> is your workspace's register, shared by every project. Add a supplier by its <b>ABN</b>: the
+        app rejects any number that fails the ATO's ABN check, warns if it's already in the register, and
+        <b>Look up ABN</b> fills in the registered name, whether the ABN is active and whether the business is registered
+        for GST. Record each supplier's type (plant hire, materials, subcontractor, consultant), payment terms and the
+        expiry dates of their insurance and licence — dates turn amber 30 days before they expire and red once they have.
+        Untick <b>Active</b> rather than deleting a supplier you no longer use, so past costs keep their link.
+      </p>
+      <p>
+        <b>Invoices</b> is where supplier invoices arrive. Drop in PDFs or photos (up to 10 MB each). Each one is read
+        automatically for the supplier, ABN, invoice number, dates, totals and every line, with a suggested cost type per
+        line. Each workspace gets <b>20 automatic reads a month</b> free; after that you can still upload invoices and type
+        the details yourself.
+      </p>
+      <p>
+        <b>Reviewing an invoice</b> shows the document beside its details. Link it to a supplier from the register — or
+        <b>Add as new supplier</b> straight from the ABN on the invoice — then give every line a project, and optionally a
+        category and cost type. <b>Set project for all lines</b> saves time on single-project invoices. The <b>Checks</b>
+        panel stops you approving a likely duplicate (same supplier and invoice number), lines that don't add up to the
+        subtotal, or a total that isn't subtotal plus GST; it also warns about GST that isn't 10%, a supplier charging GST
+        who isn't registered for it, and a missing or invalid ABN.
+      </p>
+      <p>
+        <b>Approve and post to Actuals</b> creates one Direct Job Cost entry per line, dated on the invoice date, with the
+        amount excluding GST, the GST recorded separately, the supplier attached and the invoice number in the
+        description. Approved invoices are locked so the record can't change afterwards; <b>Reject</b> keeps an invoice on
+        file without posting anything.
+      </p>
+      <div class="where"><b>Where:</b> Left rail → Suppliers, Left rail → Invoices, Project → Actuals tab (supplier column)</div>
+    </div>
+  </div>
+</section>
+
+<!-- ---------- Step 11: Earned Value ---------- -->
+<section class="page">
+  <div class="step">
+    <div class="step-head"><span class="badge">11</span><h2>Earned Value — progress and performance</h2></div>
     <div class="step-body">
       <p>
         The Earned Value tab is where you type each line item's % complete as work happens on site — Earned Value (EV) is
@@ -638,10 +683,10 @@
   </div>
 </section>
 
-<!-- ---------- Step 11: Dashboard ---------- -->
+<!-- ---------- Step 12: Dashboard ---------- -->
 <section class="page">
   <div class="step">
-    <div class="step-head"><span class="badge">11</span><h2>Dashboard — see it all in one place</h2></div>
+    <div class="step-head"><span class="badge">12</span><h2>Dashboard — see it all in one place</h2></div>
     <div class="step-body">
       <p>
         The Dashboard tab rolls the whole project up into one reporting view: cost by category, cash flow, and cost by
@@ -661,10 +706,10 @@
   </div>
 </section>
 
-<!-- ---------- Step 12: Keep it current ---------- -->
+<!-- ---------- Step 13: Keep it current ---------- -->
 <section class="page">
   <div class="step">
-    <div class="step-head"><span class="badge">12</span><h2>Keep it current</h2></div>
+    <div class="step-head"><span class="badge">13</span><h2>Keep it current</h2></div>
     <div class="step-body">
       <p>
         A first-principles estimate is only as good as the rates behind it. Revisit the Rate Library periodically against
@@ -675,6 +720,11 @@
         When a revised drawing arrives, add it on the Takeoff tab alongside the original, set its scale, and
         re-measure the items that changed. Measurements stay listed under the drawing and page they were taken from, so
         it's clear which revision each quantity came off — it helps to include the revision in a measurement's label too.
+      </p>
+      <p>
+        Keep the supplier register current as well: update insurance and licence expiry dates when certificates are
+        renewed, and use <b>Re-check ABN and GST status</b> on a supplier's details now and then — a cancelled ABN or a
+        change in GST registration affects how their invoices should be paid.
       </p>
       <p>
         Re-import your schedule from Primavera P6 periodically too — each import is saved as a dated snapshot, so the
@@ -722,6 +772,12 @@
       <tr><td>Log a Labour, Plant, or Material cost against a Rate Library item and quantity</td><td>Project → Actuals tab → Direct Job Cost ledger</td></tr>
       <tr><td>Log a Subcontract cost with an invoice number</td><td>Project → Actuals tab → Direct Job Cost ledger</td></tr>
       <tr><td>Log hours worked against a Position</td><td>Project → Actuals tab → Indirect Job Cost ledger</td></tr>
+      <tr><td>Add a supplier or subcontractor by ABN, and check their GST status</td><td>Suppliers → ABN → Look up ABN</td></tr>
+      <tr><td>Track a supplier's insurance and licence expiry</td><td>Suppliers → Insurance expiry / Licence expiry</td></tr>
+      <tr><td>Upload a supplier invoice to be read automatically</td><td>Invoices → Choose files (or drop files in)</td></tr>
+      <tr><td>Code invoice lines to a project and post them to Actuals</td><td>Invoices → Review → Approve and post to Actuals</td></tr>
+      <tr><td>See how many free automatic reads are left this month</td><td>Invoices (top right)</td></tr>
+      <tr><td>Link an actual cost to the supplier it was paid to</td><td>Project → Actuals tab → Supplier</td></tr>
       <tr><td>Edit an existing actual cost or hours entry</td><td>Project → Actuals tab → click into any field</td></tr>
       <tr><td>Update a line item's % complete, or see Earned Value</td><td>Project → Earned Value tab</td></tr>
       <tr><td>See cost by category, cash flow, and resource type in one view</td><td>Project → Dashboard tab</td></tr>
@@ -735,8 +791,9 @@
 <section class="page">
   <h1 class="page-title rule">Your account</h1>
   <p>
-    Your workspace and everything in it — rates, projects, measurements, risk registers — is private to your
-    organisation, and drawing files themselves never leave your computer.
+    Your workspace and everything in it — rates, projects, measurements, risk registers, suppliers and invoices — is
+    private to your organisation. Drawing files never leave your computer; uploaded supplier invoices are stored in
+    private storage that only members of your workspace can open.
     Signing in with an email that already has an account will tell you so directly rather than silently failing; use
     “Forgot password?” on the login screen at any time to regain access without contacting support.
   </p>
