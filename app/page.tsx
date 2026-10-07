@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   title: "Ground Truth Estimator — Cost Estimating & Cost Control for Civil Infrastructure",
   description:
     "Cost estimating and cost control for civil infrastructure — real rates, actual costs, and earned value in one place. Free during early access.",
+  // Fixes "Duplicate without user-selected canonical" in Search Console
+  // (apex domain and www both serve this page; www is the real one).
+  alternates: { canonical: "/" },
   openGraph: {
     title: "Ground Truth Estimator — Cost Estimating & Cost Control",
     description:

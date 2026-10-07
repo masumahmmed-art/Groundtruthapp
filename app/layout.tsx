@@ -7,14 +7,10 @@ export const metadata: Metadata = {
   title: "Ground Truth Estimator",
   description:
     "First-principles cost estimating for civil infrastructure projects, worldwide.",
-  // Tells Google which URL is the "real" one when the same page is reachable
-  // at more than one address (e.g. the bare apex domain, which redirects
-  // here anyway) — fixes "Duplicate without user-selected canonical" in
-  // Search Console. Individual pages can override this with their own
-  // `alternates.canonical` if needed.
-  alternates: {
-    canonical: "/",
-  },
+  // No site-wide canonical here on purpose: a canonical in the root layout is
+  // inherited by every page that doesn't set its own, which would tell Google
+  // that /signup, /login etc. are copies of the homepage. Each public page
+  // sets its own `alternates.canonical` instead (homepage: app/page.tsx).
 };
 
 // Google Analytics (gtag.js). Loaded once here in the root layout so every
