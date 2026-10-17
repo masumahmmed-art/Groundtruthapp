@@ -19,6 +19,10 @@ const MARKETING_PAGES = [
   "/earned-value-management",
   "/methvin-alternative",
   "/GroundTruthEstimatorUserGuide.pdf",
+  "/about",
+  "/pricing",
+  "/privacy",
+  "/terms",
 ];
 
 function firstTouchSource(request: NextRequest): string | null {
