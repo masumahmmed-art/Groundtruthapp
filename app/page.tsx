@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { SiteFooterLinks } from "@/lib/SitePageShell";
 
 export const metadata: Metadata = {
   title: "Ground Truth Estimator — Cost Estimating & Cost Control for Civil Infrastructure",
@@ -257,6 +258,7 @@ export default async function RootPage() {
         <Link href="/methvin-alternative">Compare: Methvin</Link>
         <a href="/GroundTruthEstimatorUserGuide.pdf">User guide (PDF)</a>
       </nav>
+      <SiteFooterLinks />
       <footer className="landing-foot">
         <div className="landing-nav-brand">
           <span className="mark">GT</span>
