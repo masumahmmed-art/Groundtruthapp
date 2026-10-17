@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 // MARKETING_PAGES (middleware.ts) and app/sitemap.ts.
 
 export const CONTACT_EMAIL = "hello@groundtruthestimator.com";
+export const LINKEDIN_URL = "https://www.linkedin.com/company/ground-truth-estimator/";
 
 export function SiteFooterLinks() {
   return (
@@ -15,6 +16,7 @@ export function SiteFooterLinks() {
       <Link href="/pricing">Pricing</Link>
       <Link href="/privacy">Privacy</Link>
       <Link href="/terms">Terms</Link>
+      <a href={LINKEDIN_URL} target="_blank" rel="noopener noreferrer">LinkedIn</a>
       <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
     </nav>
   );
